@@ -10,9 +10,10 @@
 
 ## 配置状态
 
-- 当前：本地协作文件已准备；GitHub 尚未认证，仓库尚未创建，分支保护尚未应用。
-- 仓库地址、所有者、CODEOWNERS 与实际保护状态将在认证和创建完成后更新。
-- Issue 模板、PR 模板和基础源码语法检查已纳入本地项目。
+- 仓库：[Fuuuuu24/handmade-ai-studio](https://github.com/Fuuuuu24/handmade-ai-studio)，公开，默认分支 `main`，Issue 已开启。
+- CODEOWNERS：`.github/CODEOWNERS` 指定 `@Fuuuuu24` 为所有文件的评审人；需配合分支保护中的「要求代码所有者评审」才生效。
+- 分支保护：尚未配置。
+- Issue 模板、PR 模板和基础源码语法检查（`.github/workflows/source-checks.yml`）已纳入项目。
 - 自定义许可证尚未选择；仓库公开不能表述为已经采用某项开源许可。
 
 ## 维护提示
