@@ -26,9 +26,10 @@
 
 ## 本地运行
 
-需要 Node.js 18 或以上，当前没有第三方依赖，无需先运行 `npm install`。
+原型位于 `原型/`，正式代码将放在 `正式代码/`（尚未开始）。需要 Node.js 18 或以上，当前没有第三方依赖，无需先运行 `npm install`。
 
 ```sh
+cd 原型
 npm start
 ```
 
@@ -39,6 +40,7 @@ npm start
 ## 验证与已知限制
 
 ```sh
+cd 原型
 node --check server.mjs
 npm run check
 ```
