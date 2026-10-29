@@ -1,0 +1,30 @@
+name: Source checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 原型
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check server script
+        run: node --check server.mjs
+      - name: Check app script
+        run: |
+          if [ -f app.js ]; then
+            node --check app.js
+          else
+            echo "::warning::原型/app.js 尚未实现，本次仅检查 server.mjs；通过不代表产品流程可用。"
+          fi

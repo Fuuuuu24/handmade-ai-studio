@@ -1,0 +1,28 @@
+# 凭据与环境变量
+.env
+.env.*
+*.pem
+*.key
+
+# 依赖与缓存
+node_modules/
+.cache/
+
+# 本地工作文件、用户上传与归档输出
+work/
+uploads/
+outputs/
+*.zip
+*.7z
+*.tar.gz
+
+# 日志与系统文件
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 编辑器与代理本地配置
+.vscode/
+.idea/
+.claude/settings.local.json

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f7f4">
+  <meta name="description" content="一间，陪手作人把作品的故事变成商品主图。">
+  <title>一间 · 手作影像工作台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" aria-label="侧边栏">
+    <button class="brand" data-action="go" data-view="works" aria-label="一间，回到作品列表">
+      <span class="brand-mark" aria-hidden="true">间</span>
+      <span class="brand-text">一间<small>HANDMADE STUDIO</small></span>
+    </button>
+    <button class="btn btn-primary btn-block" data-action="new-work"><span aria-hidden="true">＋</span> 新建作品</button>
+    <nav class="side-nav" aria-label="主导航" id="side-nav"></nav>
+    <div class="side-section">
+      <div class="mono-label">RECENT · 最近作品</div>
+      <div id="recent-works" class="recent-works"></div>
+    </div>
+    <div class="side-foot">
+      <p><span class="dot dot-muted" aria-hidden="true"></span>数据只保存在此浏览器，清除浏览器数据会丢失记录。</p>
+      <button class="link-btn" data-action="open-intro">使用说明</button>
+    </div>
+  </aside>
+
+  <div class="main-shell">
+    <header class="topbar">
+      <nav class="breadcrumb" id="breadcrumb" aria-label="当前位置"></nav>
+      <div class="top-actions">
+        <div class="save-state" id="save-state" role="status" aria-live="polite"></div>
+        <button class="icon-btn" data-action="open-intro" aria-label="使用说明">?</button>
+      </div>
+    </header>
+    <main id="view" tabindex="-1"></main>
+  </div>
+</div>
+
+<nav class="tabbar" id="tabbar" aria-label="主导航（手机）"></nav>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="intro-dialog" aria-labelledby="intro-title">
+  <button class="dialog-close" data-action="close-dialog" aria-label="关闭">×</button>
+  <div class="mono-label">PROTOTYPE · v0.2</div>
+  <h2 id="intro-title">一间小小的线上摄影间</h2>
+  <p>这是按 PRD v0.2 做的本地交互原型，用来走通「资产 → 信息 → 共创 → 方案 → 出图」的流程。</p>
+  <ul class="intro-list">
+    <li><strong>未接入 AI。</strong>助手「小间」按固定规则引导；白底图只是把原图放到白底上，没有真实抠图；候选图是本地拼出的演示图，都会标注「演示」。</li>
+    <li><strong>只存在此浏览器。</strong>换设备、换浏览器或清除浏览器数据都会丢失记录。</li>
+    <li><strong>生成前必须批准方案。</strong>保存、聊天、切换页面都不算批准。</li>
+  </ul>
+  <div class="dialog-actions"><button class="btn btn-primary" data-action="close-dialog" autofocus>开始体验</button></div>
+</dialog>
+
+<dialog id="confirm-dialog" aria-labelledby="confirm-title">
+  <h2 id="confirm-title"></h2>
+  <div id="confirm-body"></div>
+  <div class="dialog-actions">
+    <button class="btn btn-ghost" data-action="confirm-cancel">取消</button>
+    <button class="btn btn-primary" data-action="confirm-ok" id="confirm-ok">确定</button>
+  </div>
+</dialog>
+
+<dialog id="lightbox" aria-label="大图查看">
+  <button class="dialog-close" data-action="close-dialog" aria-label="关闭">×</button>
+  <div id="lightbox-body"></div>
+</dialog>
+
+<script src="js/core.js"></script>
+<script src="js/views.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
