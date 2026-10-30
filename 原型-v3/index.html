@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="一间，陪手作人把作品的故事变成商品主图。">
+  <title>一间 · 手作影像工作台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <!-- 图标栏（沿用 v2）：收起 60px 只显示图标，悬停或键盘聚焦时展开显示文字 -->
+  <aside class="rail" aria-label="侧边栏">
+    <button class="brand" data-action="go" data-view="home" aria-label="一间，回到首页">
+      <span class="brand-mark" aria-hidden="true">间</span><span class="brand-text rail-label" aria-hidden="true">一间</span>
+    </button>
+    <button class="rail-item rail-new" data-action="go" data-view="home"><span class="rail-icon" data-icon="plus"></span><span class="rail-label">新建作品</span></button>
+    <nav class="rail-nav" aria-label="主导航" id="side-nav"></nav>
+    <button class="rail-item rail-foot" data-action="open-intro"><span class="rail-icon" data-icon="help"></span><span class="rail-label">使用说明</span></button>
+  </aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <main id="view" tabindex="-1"></main>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" hidden>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="intro-dialog" aria-labelledby="intro-title">
+  <button class="dialog-close" data-action="close-dialog" aria-label="关闭" data-icon="close"></button>
+  <h2 id="intro-title">一间 · 布局原型 v0.3</h2>
+  <p class="dialog-sub">AI 对话为主，流程退到次要位置</p>
+  <ul class="intro-list">
+    <li><strong>回复是固定剧本，未接大模型。</strong>小间按写好的剧本带你走完五步，点对话里卡片上的按钮推进。方案和出图时能用关键词规则认几类常见说法（如「亮一点」「去掉道具」），其他自由输入读不懂。</li>
+    <li><strong>图片是本地演示。</strong>白底图只是把原图贴到白底上，候选图是本地合成的，都印有「演示」。</li>
+    <li><strong>刷新就没了。</strong>这一版只验证布局和主次关系，数据不保存。完整的五步交互在 <code>原型-v2/</code>。</li>
+  </ul>
+  <div class="dialog-actions"><button class="btn btn-primary" data-action="close-dialog" autofocus>开始体验</button></div>
+</dialog>
+
+<dialog id="confirm-dialog" aria-labelledby="confirm-title">
+  <h2 id="confirm-title"></h2>
+  <div id="confirm-body"></div>
+  <div class="dialog-actions">
+    <button class="btn btn-ghost" data-action="confirm-cancel">取消</button>
+    <button class="btn btn-primary" data-action="confirm-ok" id="confirm-ok">确定</button>
+  </div>
+</dialog>
+
+<dialog id="lightbox" aria-label="大图查看">
+  <button class="dialog-close" data-action="close-dialog" aria-label="关闭" data-icon="close"></button>
+  <div id="lightbox-body"></div>
+</dialog>
+
+<script src="js/sample.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
