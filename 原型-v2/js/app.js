@@ -6,11 +6,12 @@ const $ = sel => document.querySelector(sel);
 const currentWork = () => state.works.find(w => w.id === state.currentId) || null;
 
 /* ---------- 渲染 ---------- */
+// 顶栏滚动后才显示底部发丝线
+const markScrolled = () => $('.topbar').classList.toggle('scrolled', window.scrollY > 2);
+window.addEventListener('scroll', markScrolled, { passive: true });
+
 function renderChrome() {
-  const work = currentWork();
   $('#side-nav').innerHTML = viewSideNav(state);
-  $('#recent-works').innerHTML = viewRecent(state);
-  $('#breadcrumb').innerHTML = viewBreadcrumb(state, work);
   $('#tabbar').innerHTML = viewTabbar(state);
   renderSaveState();
 }
@@ -27,6 +28,7 @@ function render() {
   const scrollY = window.scrollY;
   const chatScroll = $('#chat-list')?.scrollTop;
   $('#view').innerHTML = (views[state.view] || views.works)();
+  $('#topbar-main').innerHTML = viewTopbar(state, work);   // 含作品名输入框：只在整页渲染时重绘，打字走 refreshLight，不丢焦点
   renderChrome();
   if (state.view === 'work') {
     window.scrollTo(0, scrollY);
@@ -37,6 +39,7 @@ function render() {
     render.lastWorkId = work.id;
   }
   document.title = work && state.view === 'work' ? `${work.name} · 一间` : '一间 · 手作影像工作台';
+  markScrolled();
 }
 // 只刷新步骤条和状态，不重绘编辑区（输入时保持焦点）
 function refreshLight() {
@@ -668,6 +671,11 @@ document.addEventListener('input', event => {
   if (!path) return;
   setPath(work, path, el.type === 'checkbox' ? el.checked : el.value);
   if (path.startsWith('style.')) { work.styleSrc[path.slice(6)] = 'user'; work.sceneRef = null; }
+  // 选项行末尾的「自己描述」：打字时就同步选项的选中态，不等失焦重绘
+  if (el.classList.contains('choice-input')) {
+    el.classList.toggle('filled', Boolean(el.value));
+    el.closest('.choices').querySelectorAll('.choice').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.value === el.value)));
+  }
   if (path.startsWith('story.summary.')) work.story.summarySrc = 'user';
   if (path.startsWith('story.answers.')) work.story.sources[path.split('.')[2]] = 'user';
   save(work); refreshLight();

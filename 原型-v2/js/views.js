@@ -8,43 +8,55 @@ const ICON_PATHS = {
   style: '<path d="M12 3.5c-4.9 0-8.5 3.6-8.5 8.3 0 4.6 3.6 8.2 8.2 8.2 1.1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.8-.5-1.2 0-1 .8-1.8 1.8-1.8h2c2.7 0 4.5-1.9 4.5-4.5 0-3.4-3.8-6-8.8-6z"/><circle cx="7.8" cy="11.5" r="1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7.8" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="8.3" r="1" fill="currentColor" stroke="none"/>',
   scenes: '<rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 15.5 16 11l-8.5 8"/>',
   history: '<path d="M3.5 12A8.5 8.5 0 1 0 6 6L3.5 8.5"/><path d="M3.5 4v4.5H8"/><path d="M12 7.5V12l3 2"/>',
+  help: '<circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.4a2.4 2.4 0 0 1 4.6.9c0 1.6-2.3 2-2.3 3.4"/><circle cx="12" cy="16.7" r=".9" fill="currentColor" stroke="none"/>',
+  close: '<path d="M7 7l10 10M17 7 7 17"/>',
+  send: '<path d="M12 18.5v-13M6.5 11 12 5.5l5.5 5.5"/>',
+  check: '<path d="M5.5 12.5 10 17l8.5-9.5"/>',
+  alert: '<path d="M12 6.5v7"/><circle cx="12" cy="17.3" r="1" fill="currentColor" stroke="none"/>',
+  back: '<path d="M14.5 6.5 9 12l5.5 5.5"/>',
+  next: '<path d="M5 12h13.5M13 6.5l5.5 5.5-5.5 5.5"/>',
+  down: '<path d="M6.5 9.5 12 15l5.5-5.5"/>',
+  upload: '<path d="M12 15.5V5M7.5 9.5 12 5l4.5 4.5"/><path d="M5 14.5v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/>',
+  trash: '<path d="M5 7h14M10 4.5h4M7 7l.7 11a2 2 0 0 0 2 1.9h4.6a2 2 0 0 0 2-1.9L17 7"/>',
+  download: '<path d="M12 4.5V15M7.5 10.5 12 15l4.5-4.5"/><path d="M5 15.5v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/>',
 };
-const icon = name => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[name]}</svg>`;
+const icon = (name, cls = '') => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[name]}</svg>`;
 
 const NAV = [
-  { view: 'works', icon: 'works', name: '作品', count: s => s.works.length },
-  { view: 'style', icon: 'style', name: '我的风格', count: () => '' },
-  { view: 'scenes', icon: 'scenes', name: '摄影布景', count: s => s.scenes.length },
-  { view: 'history', icon: 'history', name: '历史结果', count: s => s.works.reduce((n, w) => n + w.results.filter(r => r.status === 'success').length, 0) },
+  { view: 'works', icon: 'works', name: '作品' },
+  { view: 'style', icon: 'style', name: '我的风格' },
+  { view: 'scenes', icon: 'scenes', name: '摄影布景' },
+  { view: 'history', icon: 'history', name: '历史结果' },
 ];
 
 const coverOf = work => (work.results.find(isComplete) || {}).dataUrl || (work.assets.find(a => a.kind === 'overall') || work.assets[0] || {}).dataUrl || '';
 const statusChip = work => { const s = workStatus(work); return `<span class="chip ${s.tone ? `chip-${s.tone}` : ''}">${esc(s.text)}</span>`; };
 const activeNav = state => (state.view === 'work' ? 'works' : state.view);
 
-/* ---------- 外框 ---------- */
+/* ---------- 外框：图标栏（悬停展开显示文字）+ 顶栏 ---------- */
 function viewSideNav(state) {
-  return NAV.map(n => `<button class="nav-item ${activeNav(state) === n.view ? 'active' : ''}" data-action="go" data-view="${n.view}" ${activeNav(state) === n.view ? 'aria-current="page"' : ''}>
-    <span class="nav-icon">${icon(n.icon)}</span>${n.name}<span class="count">${n.count(state)}</span></button>`).join('');
+  return NAV.map(n => {
+    const on = activeNav(state) === n.view;
+    return `<button class="rail-item ${on ? 'active' : ''}" data-action="go" data-view="${n.view}" ${on ? 'aria-current="page"' : ''}>
+      <span class="rail-icon">${icon(n.icon)}</span><span class="rail-label">${n.name}</span></button>`;
+  }).join('');
 }
 
-function viewRecent(state) {
-  const list = state.works.slice().sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5);
-  if (!list.length) return '<p class="side-empty">还没有作品</p>';
-  return list.map(w => `<button class="recent-item ${state.view === 'work' && state.currentId === w.id ? 'active' : ''}" data-action="open-work" data-id="${w.id}" title="${esc(workStatus(w).text)}">
-      <span>${esc(w.name)}</span></button>`).join('');
-}
-
-function viewBreadcrumb(state, work) {
-  const nav = NAV.find(n => n.view === activeNav(state));
-  if (state.view === 'work' && work) return `<button data-action="go" data-view="works">作品</button><span class="sep">/</span><strong>${esc(work.name)}</strong>`;
-  return `<strong>${nav ? nav.name : '作品'}</strong>`;
+// 作品页的头部在顶栏里：作品名可直接改、状态、演示设置、删除。列表页顶栏留空，标题在页面里
+function viewTopbar(state, work) {
+  if (state.view !== 'work' || !work) return '';
+  return `<nav class="crumbs" aria-label="当前位置"><button data-action="go" data-view="works">作品</button><span class="crumb-sep" aria-hidden="true">/</span></nav>
+    <label class="sr-only" for="work-name">作品名称</label>
+    <input id="work-name" class="work-name" data-bind="name" value="${esc(work.name)}" maxlength="40" autocomplete="off">
+    <span id="work-status">${statusChip(work)}</span>
+    <span class="grow"></span>
+    <button class="btn btn-quiet btn-sm" data-action="open-demo">演示设置</button>
+    <button class="icon-btn" data-action="delete-work" aria-label="删除作品" title="删除作品">${icon('trash')}</button>`;
 }
 
 function viewSaveState(status, error) {
   if (status === 'error') return `<span class="dot dot-bad"></span>保存失败：${esc(error)} <button class="btn btn-outline btn-sm" data-action="retry-save">重试</button>`;
-  if (status === 'saved') return '<span class="dot dot-ok"></span>已保存';
-  return '<span class="dot dot-warn"></span>保存中…';
+  return status === 'saved' ? `${icon('check')}已保存` : '保存中…';
 }
 
 function viewTabbar(state) {
@@ -54,10 +66,7 @@ function viewTabbar(state) {
 /* ---------- 作品列表首页 ---------- */
 function viewWorks(state) {
   const works = state.works.slice().sort((a, b) => b.updatedAt - a.updatedAt);
-  const hero = `<section class="hero"><div>
-      <h1>让作品的故事，长成画面</h1>
-      <p>每件作品一个工作区，资产、共创、方案和结果都留在这里。</p></div>
-      ${works.length ? '<button class="btn btn-primary" data-action="new-work">＋ 新建作品</button>' : ''}</section>`;
+  const hero = '<section class="hero"><h1>让作品的故事，长成画面</h1></section>';
   if (!works.length) {
     return `${hero}<div class="empty"><h2>还没有作品</h2>
       <p>从上传一件作品的照片开始；也可以先载入示例，看看整个流程。</p>
@@ -67,11 +76,11 @@ function viewWorks(state) {
     const cover = coverOf(w);
     return `<button class="work-card" data-action="open-work" data-id="${w.id}">
       <div class="work-cover stage">${cover ? `<img src="${cover}" alt="">` : '<span class="placeholder">间</span>'}</div>
-      <div class="work-meta"><h3>${esc(w.name)}</h3>
-        <div class="row">${statusChip(w)}<span class="small muted">${fmtTime(w.updatedAt)}</span></div></div></button>`;
+      <div class="work-meta"><h2>${esc(w.name)}</h2>
+        <div class="row">${statusChip(w)}<span class="time">${fmtTime(w.updatedAt)}</span></div></div></button>`;
   }).join('');
   return `${hero}<div class="work-grid">${cards}
-    <button class="work-card new" data-action="new-work"><span class="plus">＋</span>新建作品</button></div>`;
+    <button class="work-card new" data-action="new-work"><span class="plus">${icon('plus')}</span>新建作品</button></div>`;
 }
 
 /* ---------- 步骤条 ---------- */
@@ -79,7 +88,7 @@ function viewSteps(work) {
   return `<nav class="steps" aria-label="创作步骤">${STEPS.map((s, i) => {
     const st = stepState(work, s.id);
     const current = work.step === s.id;
-    const mark = st === 'done' ? '✓' : st === 'stale' ? '!' : i + 1;
+    const mark = st === 'done' ? icon('check') : st === 'stale' ? icon('alert') : i + 1;
     return `<button class="step ${st} ${current ? 'current' : ''}" data-action="goto-step" data-step="${s.id}" aria-label="${s.name}，${STEP_STATE_TEXT[st]}" ${current ? 'aria-current="step"' : ''}>
       <span class="mark" aria-hidden="true">${mark}</span>${s.name}</button>`;
   }).join('')}</nav>`;
@@ -95,12 +104,7 @@ const srcTag = src => {
 function viewWorkspace(state, work) {
   const editors = { asset: viewAssetStep, info: viewInfoStep, story: viewStoryStep, plan: viewPlanStep, output: viewOutputStep };
   const pane = state.pane || 'edit';
-  return `<div class="work-head">
-      <div class="work-title"><label class="sr-only" for="work-name">作品名称</label>
-        <input id="work-name" data-bind="name" value="${esc(work.name)}" maxlength="40" autocomplete="off">
-        <span id="work-status">${statusChip(work)}</span></div>
-      <div class="work-actions"><button class="btn btn-quiet btn-sm" data-action="open-demo">演示设置</button><button class="btn btn-quiet btn-sm" data-action="delete-work">删除作品</button></div></div>
-    ${viewSteps(work)}
+  return `${viewSteps(work)}
     <div class="pane-tabs segmented" role="group" aria-label="切换编辑与对话">
       <button aria-pressed="${pane === 'edit'}" data-action="pane" data-pane="edit">编辑</button>
       <button aria-pressed="${pane === 'chat'}" data-action="pane" data-pane="chat">对话</button></div>
@@ -137,7 +141,11 @@ function agentChecklist(work) {
   };
   const items = lists[work.step] || [];
   const nowIndex = items.findIndex(([, done]) => !done);
-  return items.map(([text, done], i) => `<li class="${done ? 'done' : i === nowIndex ? 'now' : ''}"><span class="ico">${done ? '✓' : i === nowIndex ? '◐' : '○'}</span>${esc(text)}</li>`).join('');
+  // 完成=勾，当前=深色圈，待办=浅色圈；圈由 CSS 画，读屏读状态文字
+  return items.map(([text, done], i) => {
+    const now = !done && i === nowIndex;
+    return `<li class="${done ? 'done' : now ? 'now' : ''}"><span class="ico" aria-hidden="true">${done ? icon('check') : ''}</span><span class="sr-only">${done ? '已完成：' : now ? '进行中：' : ''}</span>${esc(text)}</li>`;
+  }).join('');
 }
 
 function contextOptions(work) {
@@ -161,7 +169,7 @@ function viewAssistant(work) {
     <form class="chat-form" id="chat-form">
       <label class="sr-only" for="chat-input">和小间说（Enter 发送，Shift+Enter 换行）</label>
       <textarea id="chat-input" rows="2" maxlength="500" placeholder="和小间说…" title="Enter 发送，Shift+Enter 换行"></textarea>
-      <div class="row"><small id="chat-count"></small><button class="send-btn" type="submit" aria-label="发送">↑</button></div>
+      <div class="row"><small id="chat-count"></small><button class="send-btn" type="submit" aria-label="发送">${icon('send')}</button></div>
     </form></aside>`;
 }
 
@@ -176,7 +184,7 @@ function mediaCard(asset) {
       <label class="sr-only" for="kind-${asset.id}">图片类型</label>
       <select id="kind-${asset.id}" data-action-change="asset-kind" data-id="${asset.id}">
         ${Object.entries(ASSET_KINDS).map(([k, v]) => `<option value="${k}" ${asset.kind === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
-      <button class="icon-btn" data-action="asset-remove" data-id="${asset.id}" aria-label="删除这张图">×</button></div>
+      <button class="icon-btn" data-action="asset-remove" data-id="${asset.id}" aria-label="删除这张图" title="删除这张图">${icon('close')}</button></div>
   </div>`;
 }
 
@@ -186,11 +194,11 @@ function viewAssetStep(work) {
   const white = work.route === 'A' ? work.whiteBg : null;
   const canConfirm = overall && (work.route === 'B' || white);
   const whiteSource = white && (work.assets.find(a => a.id === white.sourceId) || overall);
-  return `<div class="panel-head"><h2>商品资产</h2>
-      ${work.assetsConfirmed ? '<span class="chip chip-ok">已确认</span>' : '<span class="chip chip-warn">待确认</span>'}</div>
+  return `<div class="panel-head"><h2>商品资产</h2></div>
     <div class="panel-body">
       <div class="section-title">参考照片 <span class="muted">${work.assets.length} / ${UPLOAD.maxCount}</span></div>
       <label class="drop" id="drop-zone">
+        ${icon('upload', 'drop-icon')}
         <strong>拖入照片，或点击选择</strong>
         <p>JPG、PNG、WebP，单张不超过 10MB</p>
         <input type="file" id="file-input" accept="${UPLOAD.types.join(',')}" multiple class="sr-only">
@@ -212,7 +220,7 @@ function viewAssetStep(work) {
     <div class="panel-foot">
       <span class="hint">${work.assetsConfirmed ? '已确认，可以进入下一步' : !overall ? '需要至少一张整体图' : !canConfirm ? '先生成白底图' : '检查无误后确认'}</span>
       <div class="choices">
-        ${work.assetsConfirmed ? '<button class="btn btn-outline" data-action="unconfirm-assets">撤销确认</button><button class="btn btn-primary" data-action="goto-step" data-step="info">下一步：信息 →</button>'
+        ${work.assetsConfirmed ? `<button class="btn btn-outline" data-action="unconfirm-assets">撤销确认</button><button class="btn btn-primary" data-action="goto-step" data-step="info">下一步：信息${icon('next')}</button>`
           : `<button class="btn btn-primary" data-action="confirm-assets" ${canConfirm ? '' : 'disabled'}>确认资产可用</button>`}
       </div></div>`;
 }
@@ -235,8 +243,7 @@ function viewInfoStep(work) {
   const i = work.info;
   const stale = work.approvedV && diffSnapshot(approvedPlan(work).snapshot, snapshotOf(work)).includes('商品信息');
   const field = (key, label, extra = '') => `<label class="field-label" for="info-${key}">${label}${extra}</label>`;
-  return `<div class="panel-head"><h2>商品信息</h2>
-      ${infoReady(work) ? '<span class="chip chip-ok">核心信息已齐</span>' : '<span class="chip chip-warn">待补充</span>'}</div>
+  return `<div class="panel-head"><h2>商品信息</h2></div>
     <div class="panel-body">
       ${stale ? '<div class="banner warn"><span class="grow">商品信息改过了，需要回到「方案」重新批准。</span></div>' : ''}
       <div class="form-grid">
@@ -255,7 +262,7 @@ function viewInfoStep(work) {
         <div class="field full">${field('keep', '不可改变的细节', '<em>建议填写，生成时会严格保留</em>')}
           <textarea id="info-keep" data-bind="info.keep" maxlength="300" placeholder="如：一对两只；叶片上有手刻叶脉；珍珠在上、叶片在下，不能调换">${esc(i.keep)}</textarea></div>
       </div>
-      <details class="more" ${i.price || i.audience ? 'open' : ''}><summary>售价和目标顾客（选填）</summary>
+      <details class="more" ${i.price || i.audience ? 'open' : ''}><summary>${icon('down', 'sum-icon')}售价和目标顾客（选填）</summary>
         <div class="form-grid">
           <div class="field">${field('price', '售价或区间')}
             <input type="text" id="info-price" data-bind="info.price" value="${esc(i.price)}" placeholder="如：128 元" maxlength="20"></div>
@@ -264,8 +271,8 @@ function viewInfoStep(work) {
         </div></details>
     </div>
     <div class="panel-foot"><span class="hint" id="step-hint">${infoHint(work)}</span>
-      <div class="choices"><button class="btn btn-outline" data-action="goto-step" data-step="asset">← 资产</button>
-      <button class="btn btn-primary" data-action="goto-step" data-step="story">下一步：共创 →</button></div></div>`;
+      <div class="choices"><button class="btn btn-outline" data-action="goto-step" data-step="asset">${icon('back')}资产</button>
+      <button class="btn btn-primary" data-action="goto-step" data-step="story">下一步：共创${icon('next')}</button></div></div>`;
 }
 
 /* ---------- 03 共创（FR-04） ---------- */
@@ -286,17 +293,18 @@ function viewStoryStep(work) {
   const questions = STORY_QUESTIONS.map((q, idx) => {
     const current = idx === s.q && !s.summaryConfirmed;
     const isNoStory = q.key === 'inspiration' && s.noStory;
-    // 「我不知道」只放在当前这题下，其余题目只留输入框
+    const picking = s.picking === q.key;
+    // 「我不知道」只放在当前这题下，推荐卡展开后不再重复；题目说明放进输入框的提示语，不单独占一行
+    const helpers = current && !isNoStory ? [
+      picking ? '' : `<button class="btn btn-outline btn-sm" data-action="story-recommend" data-key="${q.key}">我不知道，给我推荐</button>`,
+      q.allowNoStory ? '<button class="btn btn-ghost btn-sm" data-action="story-nostory">暂无明确故事</button>' : '',
+    ].join('') : '';
     return `<div class="field question ${current ? 'q-current' : ''}">
       <label class="field-label" for="story-${q.key}">${q.label}${s.sources[q.key] === 'user' ? '' : srcTag(s.sources[q.key])}</label>
-      <p class="q-ask">${esc(q.short)}</p>
       ${isNoStory ? `<div class="banner"><span class="grow">已记为「暂无明确故事」，之后以造型和材质为主。</span><button class="btn btn-ghost btn-sm" data-action="story-nostory-undo">我想补充</button></div>`
-        : `<textarea id="story-${q.key}" data-bind="story.answers.${q.key}" maxlength="300" placeholder="用你自己的话说就好">${esc(s.answers[q.key] || '')}</textarea>`}
-      ${current && !isNoStory ? `<div class="choices">
-        <button class="btn btn-outline btn-sm" data-action="story-recommend" data-key="${q.key}">我不知道，给我推荐</button>
-        ${q.allowNoStory ? '<button class="btn btn-ghost btn-sm" data-action="story-nostory">暂无明确故事</button>' : ''}
-      </div>` : ''}
-      ${s.picking === q.key ? pickPanel(work, q) : ''}
+        : `<textarea id="story-${q.key}" data-bind="story.answers.${q.key}" maxlength="300" placeholder="${esc(q.short)}">${esc(s.answers[q.key] || '')}</textarea>`}
+      ${helpers ? `<div class="choices">${helpers}</div>` : ''}
+      ${picking ? pickPanel(work, q) : ''}
     </div>`;
   }).join('');
 
@@ -312,16 +320,15 @@ function viewStoryStep(work) {
         <textarea id="sum-avoid" data-bind="story.summary.avoid" maxlength="200">${esc(sum.avoid)}</textarea></div>
     </div>`;
 
-  return `<div class="panel-head"><h2>深入共创</h2>
-      ${s.summaryConfirmed ? '<span class="chip chip-ok">总结已确认</span>' : `<span class="chip">${Math.min(s.q, STORY_QUESTIONS.length)} / ${STORY_QUESTIONS.length}</span>`}</div>
+  return `<div class="panel-head"><h2>深入共创</h2></div>
     <div class="panel-body">
       ${questions}
       <div class="section-title">三项总结</div>
       ${summaryBlock}
     </div>
     <div class="panel-foot"><span class="hint">${s.summaryConfirmed ? '共创完成' : sum ? '确认总结后共创才算完成' : allAnswered ? '' : `还有 ${STORY_QUESTIONS.length - s.q} 个问题`}</span>
-      <div class="choices"><button class="btn btn-outline" data-action="goto-step" data-step="info">← 信息</button>
-        ${s.summaryConfirmed ? '<button class="btn btn-primary" data-action="goto-step" data-step="plan">下一步：方案 →</button>'
+      <div class="choices"><button class="btn btn-outline" data-action="goto-step" data-step="info">${icon('back')}信息</button>
+        ${s.summaryConfirmed ? `<button class="btn btn-primary" data-action="goto-step" data-step="plan">下一步：方案${icon('next')}</button>`
           : `<button class="btn btn-primary" data-action="story-confirm" ${sum && sum.express && sum.feel ? '' : 'disabled'}>确认总结</button>`}</div></div>`;
 }
 
@@ -359,14 +366,18 @@ function storyNoteRow(work, field, ss) {
 }
 
 const recMark = '<span class="sr-only">（按共创推荐）</span>';
+// 有选项的字段：「自己描述」是选项行末尾的小输入框，只显示选项以外的说法（2026-10-30 用户确认），长提示放悬停提示
 function styleField(work, ss, field, label, options, placeholder, full = true) {
   const value = work.style[field] || '';
   const rec = ss.picks[field]?.value;
+  const custom = options && !options.includes(value) ? value : '';
+  const input = options
+    ? `<input type="text" id="style-${field}" class="choice-input ${custom ? 'filled' : ''}" data-bind="style.${field}" value="${esc(custom)}" maxlength="60" placeholder="自己描述…" title="${esc(placeholder)}">`
+    : `<input type="text" id="style-${field}" data-bind="style.${field}" value="${esc(value)}" maxlength="60" placeholder="${esc(placeholder)}">`;
   return `<div class="field ${full ? 'full' : ''}">
     <span class="field-label">${label}${srcTag(work.styleSrc[field])}</span>
-    ${options ? `<div class="choices">${options.map(o => `<button class="choice ${rec === o ? 'rec' : ''}" data-action="style-set" data-field="${field}" data-value="${esc(o)}" aria-pressed="${value === o}">${esc(o)}${rec === o ? recMark : ''}</button>`).join('')}</div>` : ''}
     <label class="sr-only" for="style-${field}">${label}${options ? '（自己描述）' : ''}</label>
-    <input type="text" id="style-${field}" data-bind="style.${field}" value="${esc(value)}" maxlength="60" placeholder="${esc(placeholder)}">
+    ${options ? `<div class="choices">${options.map(o => `<button class="choice ${rec === o ? 'rec' : ''}" data-action="style-set" data-field="${field}" data-value="${esc(o)}" aria-pressed="${value === o}">${esc(o)}${rec === o ? recMark : ''}</button>`).join('')}${input}</div>` : input}
     ${suggestRow(work.styleSuggest, field, 'style')}
     ${storyNoteRow(work, field, ss)}</div>`;
 }
@@ -470,7 +481,7 @@ function viewPlanLower(work) {
     ${showPlan ? `<div class="plan-table">${rows}</div>
 
     <details class="prompt" ${parsed ? 'open' : ''}>
-      <summary>完整提示词 ${parsed ? '<span class="chip chip-warn">已手动修改</span>' : '<span class="chip">与方案一致</span>'}</summary>
+      <summary>${icon('down', 'sum-icon')}完整提示词 ${parsed ? '<span class="chip chip-warn">已手动修改</span>' : '<span class="chip">与方案一致</span>'}</summary>
       <div class="prompt-box">
         <p class="field-hint">风格相关的行改了能同步回方案；其他行来自前面的步骤，请回原步骤改。</p>
         <label class="sr-only" for="prompt-text">完整提示词</label>
@@ -485,7 +496,7 @@ function viewPlanLower(work) {
 
     <div class="approve-box approve-bar">
       ${valid ? `<div class="grow"><strong>已批准 v${plan.v}</strong> · ${fmtTime(plan.approvedAt)} · 再改任何一项都要重新批准</div>
-        <button class="btn btn-primary" data-action="goto-step" data-step="output">去出图 →</button>`
+        <button class="btn btn-primary" data-action="goto-step" data-step="output">去出图${icon('next')}</button>`
       : `<div class="grow">${blockers.length ? `<span class="approve-warn">还不能批准：${blockers.map(esc).join('；')}</span>`
           : `<strong>可以批准 v${nextV}</strong> · 锁定当前方案（${esc(work.ratio)} · ${CANDIDATE_COUNT} 张候选），保存和聊天都不算批准`}</div>
         <button class="btn btn-primary" data-action="approve-plan" ${blockers.length ? 'disabled' : ''}>批准 v${nextV}</button>`}
@@ -497,8 +508,7 @@ function viewPlanStep(work, state) {
   const valid = approvalValid(work);
   const diff = plan && !valid ? diffSnapshot(plan.snapshot, snapshotOf(work)) : [];
   const parent = work.revision && work.results.find(r => r.id === work.revision.fromResultId);
-  return `<div class="panel-head"><h2>摄影方案</h2>
-      ${valid ? `<span class="chip chip-ok">已批准 v${plan.v}</span>` : plan ? '<span class="chip chip-warn">批准已失效</span>' : '<span class="chip">未批准</span>'}</div>
+  return `<div class="panel-head"><h2>摄影方案</h2></div>
     <div class="panel-body">
       ${parent ? `<div class="banner warn"><span class="grow">正在从「任务 #${work.tasks.findIndex(t => t.id === parent.taskId) + 1} · 候选 ${parent.slot}」修改${work.revision.reasons.length ? `（不满意：${esc(work.revision.reasons.join('、'))}）` : ''}。改好后重新批准，原结果会保留。</span><button class="btn btn-ghost btn-sm" data-action="cancel-revision">取消修改</button></div>` : ''}
       ${diff.length ? `<div class="banner warn"><span class="grow">v${plan.v} 批准后改了：<strong>${esc(diff.join('、'))}</strong>，需要重新批准。</span></div>` : ''}
@@ -506,8 +516,8 @@ function viewPlanStep(work, state) {
       ${viewPlanLower(work)}
     </div>
     <div class="panel-foot"><span class="hint"></span>
-      <div class="choices"><button class="btn btn-outline" data-action="goto-step" data-step="story">← 共创</button>
-        <button class="btn btn-outline" data-action="goto-step" data-step="output">出图 →</button></div></div>`;
+      <div class="choices"><button class="btn btn-outline" data-action="goto-step" data-step="story">${icon('back')}共创</button>
+        <button class="btn btn-outline" data-action="goto-step" data-step="output">出图${icon('next')}</button></div></div>`;
 }
 
 /* ---------- 05 出图（FR-08 ~ FR-10） ---------- */
@@ -542,7 +552,7 @@ function candidateCard(work, r, compareIds) {
       ${verdictRow(r, 'style', '风格')}
     </div>
     <div class="cand-actions">
-      ${isComplete(r) ? `<button class="btn btn-primary btn-sm" data-action="export" data-id="${r.id}">导出图片</button>
+      ${isComplete(r) ? `<button class="btn btn-primary btn-sm" data-action="export" data-id="${r.id}">${icon('download')}导出图片</button>
         <button class="btn btn-outline btn-sm" data-action="save-scene-from-result" data-id="${r.id}">存为布景</button>`
         : r.fidelity === 'bad' || r.style === 'bad' ? `<button class="btn btn-primary btn-sm" data-action="revise" data-id="${r.id}">从这一版修改</button>` : ''}
       <label class="check"><input type="checkbox" data-action-change="compare" data-id="${r.id}" ${compareIds.includes(r.id) ? 'checked' : ''}>加入对比</label>
@@ -583,21 +593,20 @@ function viewOutputStep(work, state) {
         <span class="grow">方案 v${task.planV} · ${task.ratio} · ${fmtTime(task.createdAt)}</span></div>
       <div class="task-body">${results.map(r => candidateCard(work, r, compareIds)).join('')}</div></div>`;
   }).join('');
-  return `<div class="panel-head"><h2>出图与验收</h2>
-      ${work.results.some(isComplete) ? '<span class="chip chip-ok">已有完成结果</span>' : ''}</div>
+  return `<div class="panel-head"><h2>出图与验收</h2></div>
     <div class="panel-body">
-      <div class="banner warn"><span class="grow">演示模式：候选图是本地拼出的示意图，不代表 AI 出图效果。</span></div>
       ${blockers.length ? `<div class="banner bad"><span class="grow"><strong>还不能生成：</strong><br>${blockers.map(([step, text]) => `${esc(text)}${STEP_FIX[step] ? ` <button class="link-btn" data-action="goto-step" data-step="${step}">${STEP_FIX[step]}</button>` : ''}`).join('<br>')}</span></div>` : ''}
       <div class="approve-box">
         <div class="grow">${plan && approvalValid(work) ? `用方案 <strong>v${plan.v}</strong>（${esc(work.ratio)}）生成 ${CANDIDATE_COUNT} 张候选，两项都满意才算完成。` : '方案批准后才能生成。'}</div>
         <button class="btn btn-primary" data-action="generate" ${blockers.length ? 'disabled' : ''}>生成 ${CANDIDATE_COUNT} 张候选（演示）</button>
       </div>
+      <p class="field-hint demo-note">演示模式：候选图是本地拼出的示意图，不代表 AI 出图效果。</p>
       ${viewCompare(work, compareIds)}
       ${tasks || '<p class="field-hint">还没有生成过。</p>'}
       ${work.needs.length ? `<div class="section-title">记下的后续需求</div><ul class="intro-list small">${work.needs.map(n => `<li>${esc(n.text)} <span class="muted">· 本期不支持</span></li>`).join('')}</ul>` : ''}
     </div>
     <div class="panel-foot"><span class="hint">${work.results.some(isComplete) ? '可以导出已完成的结果' : '验收两项都满意才算完成'}</span>
-      <div class="choices"><button class="btn btn-outline" data-action="goto-step" data-step="plan">← 方案</button></div></div>`;
+      <div class="choices"><button class="btn btn-outline" data-action="goto-step" data-step="plan">${icon('back')}方案</button></div></div>`;
 }
 
 /* ---------- 我的风格（FR-06） ---------- */
@@ -610,8 +619,8 @@ function viewLongTerm(state) {
     const changed = Object.keys(STYLE_LABELS).filter(k => (entry.from[k] || '') !== (entry.to[k] || '')).map(k => STYLE_LABELS[k]);
     return `<li>${fmtTime(entry.at)} · 来自「${esc(workName(entry.workId))}」 · 改了：${esc(changed.join('、') || '无')}</li>`;
   }).join('');
-  return `<section class="hero"><div><h1>我的风格</h1>
-      <p>店铺长期的视觉偏好。新作品可以一键套用，单件作品里的调整不会改到这里。</p></div></section>
+  return `<section class="hero"><h1>我的风格</h1>
+      <p>店铺长期的视觉偏好，新作品可一键套用；单件作品里的调整不会改到这里。</p></section>
     ${has ? `<div class="page-stack"><div class="plan-table">${rows}</div>
         <p class="field-hint">要修改，在作品的方案步骤里调整后点「更新为我的长期风格」，确认后才会写入。</p>
         <div class="section-title">修改记录</div>
@@ -628,30 +637,30 @@ function viewScenes(state) {
     return `<article class="scene-card">
       <div class="palette-strip">${(tone ? tone.colors : ['#eee', '#ddd', '#ccc']).map(c => `<span style="background:${c}"></span>`).join('')}</div>
       <div class="body">
-        <div class="title-row"><h3>${esc(scene.name)}</h3><span class="chip">v${scene.version}</span></div>
+        <div class="title-row"><h2>${esc(scene.name)}</h2><span class="chip">v${scene.version}</span>
+          <button class="icon-btn" data-action="delete-scene" data-id="${scene.id}" aria-label="删除布景「${esc(scene.name)}」" title="删除布景">${icon('trash')}</button></div>
         <dl>${Object.entries(STYLE_LABELS).map(([k, label]) => `<dt>${label}</dt><dd>${esc(k === 'tone' ? toneText(p[k]) || '—' : p[k] || '—')}</dd>`).join('')}</dl>
-        <p class="small muted">${used ? `${used} 件作品正在使用` : '暂未被使用'} · 更新于 ${fmtTime(scene.history.length ? scene.history.at(-1).at : scene.createdAt)}</p>
-        ${scene.history.length ? `<details class="small"><summary>历史版本（${scene.history.length}）</summary><ul class="intro-list">${scene.history.slice().reverse().map(h => `<li>v${h.version} · ${esc(h.params.background || '—')} · ${esc(h.params.light || '—')}</li>`).join('')}</ul></details>` : ''}
-        <div class="choices"><button class="btn btn-danger btn-sm" data-action="delete-scene" data-id="${scene.id}">删除布景</button></div>
+        <p class="muted">${used ? `${used} 件作品正在使用` : '暂未被使用'} · 更新于 ${fmtTime(scene.history.length ? scene.history.at(-1).at : scene.createdAt)}</p>
+        ${scene.history.length ? `<details class="more"><summary>${icon('down', 'sum-icon')}历史版本（${scene.history.length}）</summary><ul class="intro-list">${scene.history.slice().reverse().map(h => `<li>v${h.version} · ${esc(h.params.background || '—')} · ${esc(h.params.light || '—')}</li>`).join('')}</ul></details>` : ''}
       </div></article>`;
   };
-  return `<section class="hero"><div><h1>摄影布景</h1>
-      <p>可复用的背景、色调、光线、道具和布局组合。布景是方案参数，不是某张结果图。</p></div></section>
+  return `<section class="hero"><h1>摄影布景</h1>
+      <p>可复用的背景、色调、光线、道具和布局组合；布景是方案参数，不是某张结果图。</p></section>
     ${state.scenes.length ? `<div class="scene-grid">${state.scenes.map(card).join('')}</div>`
       : '<div class="empty"><h2>还没有布景</h2><p>在方案步骤点「把当前风格存为布景」，或在满意的候选图下点「存为布景」，下一件作品就能复用。</p></div>'}`;
 }
 
-/* ---------- 历史结果（FR-09 / FR-10） ---------- */
+/* ---------- 历史结果（FR-09 / FR-10）：图片网格，图下写明来源与验收，点图打开作品 ---------- */
 function viewHistory(state) {
   const items = state.works.flatMap(w => w.results.filter(r => r.status === 'success').map(r => ({ w, r, task: w.tasks.find(t => t.id === r.taskId) })))
     .sort((a, b) => b.task.createdAt - a.task.createdAt);
-  const list = items.map(({ w, r, task }) => `<div class="history-item">
-      <img src="${r.dataUrl}" alt="${esc(w.name)} 候选 ${r.slot}（演示图）">
-      <div><strong>${esc(w.name)}</strong> <span class="chip chip-demo">演示</span> ${isComplete(r) ? '<span class="chip chip-ok">已完成</span>' : ''}
-        <p class="small muted">任务 #${w.tasks.indexOf(task) + 1} · 候选 ${r.slot} · 方案 v${r.planV} · ${r.ratio} · ${fmtTime(task.createdAt)}</p>
-        <p class="small">还原度 ${VERDICT_TEXT[r.fidelity]} · 风格 ${VERDICT_TEXT[r.style]}${r.issues.length ? ` · 问题：${esc(r.issues.join('、'))}` : ''}${r.exportedAt ? ` · 已导出 ${fmtTime(r.exportedAt)}` : ''}</p></div>
-      <button class="btn btn-outline btn-sm" data-action="open-result" data-work="${w.id}">打开作品</button></div>`).join('');
-  return `<section class="hero"><div><h1>历史结果</h1>
-      <p>每张图都能追溯到作品、任务、方案版本、比例和验收状态。</p></div></section>
-    ${list ? `<div class="history-list">${list}</div>` : '<div class="empty"><h2>还没有结果</h2><p>在作品的「出图」步骤生成候选后，会出现在这里。</p></div>'}`;
+  const list = items.map(({ w, r, task }) => `<button class="result-card" data-action="open-result" data-work="${w.id}" title="打开作品">
+      <span class="result-img stage" style="aspect-ratio:${RATIOS[r.ratio].w}/${RATIOS[r.ratio].h}"><img src="${r.dataUrl}" alt="候选 ${r.slot}（演示图）">
+        <span class="media-tag"><span class="chip chip-demo">演示</span>${isComplete(r) ? '<span class="chip chip-ok">已完成</span>' : ''}</span></span>
+      <span class="result-meta"><span class="result-title"><strong>${esc(w.name)}</strong><span class="tnum">${fmtTime(task.createdAt)}</span></span>
+        <span class="tnum">任务 #${w.tasks.indexOf(task) + 1} · 候选 ${r.slot} · 方案 v${r.planV} · ${r.ratio}</span>
+        <span class="verdicts">还原度 ${VERDICT_TEXT[r.fidelity]} · 风格 ${VERDICT_TEXT[r.style]}${r.issues.length ? ` · 问题：${esc(r.issues.join('、'))}` : ''}${r.exportedAt ? ` · 已导出 ${fmtTime(r.exportedAt)}` : ''}</span></span>
+    </button>`).join('');
+  return `<section class="hero"><h1>历史结果</h1></section>
+    ${list ? `<div class="result-grid">${list}</div>` : '<div class="empty"><h2>还没有结果</h2><p>在作品的「出图」步骤生成候选后，会出现在这里。</p></div>'}`;
 }
