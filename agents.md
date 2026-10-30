@@ -187,6 +187,7 @@
 - 推断（未核实）：最初在本地初始化的 Git 仓库与远端历史很可能不一致（远端只有一次网页上传提交）；继续在该本地仓库开发前，应先改为基于远端 `main` 重新克隆或同步，避免两套历史冲突。
 - 2026-10-29：目录修正、原型分离与 PRD v0.2 共 3 个提交已推到 fork（`wh3474812446-design/handmade-ai-studio` 的 `docs/prd-v0.2`），并向上游 `main` 提交 PR #2：https://github.com/Fuuuuu24/handmade-ai-studio/pull/2 ，待所有者评审合并。
 - 2026-10-29：原型 v2（含审查整理）提交到 fork 的 `feat/prototype-v2`，向上游 `main` 提交 PR #3：https://github.com/Fuuuuu24/handmade-ai-studio/pull/3 。该分支叠在 PR #2 之上（上游 `main` 仍为首次网页上传结构，无法直接基于它拉分支），需先合并 #2，待所有者评审。
+- 2026-10-30：PR #2、#3 已由所有者合并。原型 v2 第二次改版与共创→风格联动提交到 fork 的 `feat/prototype-v2-density`（基于最新上游 `main`），向上游提交 PR #4：https://github.com/Fuuuuu24/handmade-ai-studio/pull/4 ，待所有者评审。
 - 分支保护尚未配置（远端 `main` 查询为未保护）。
 - 计划将仓库所有者设为唯一 CODEOWNER，要求 PR、至少一个批准及代码所有者评审；新提交使旧批准失效，禁止强推／删除，不开启自动合并，不为外部贡献者授予写入／管理权限。
 - 管理员绕过保留给所有者自身维护；如未来增加管理员，必须重新评估“只有所有者决定合并”的要求。
