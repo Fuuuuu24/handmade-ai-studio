@@ -21,11 +21,11 @@ const setPath = (obj, path, value) => {
 
 /* ---------- 2. 常量 ---------- */
 const STEPS = [
-  { id: 'asset', no: '01', name: '资产' },
-  { id: 'info', no: '02', name: '信息' },
-  { id: 'story', no: '03', name: '共创' },
-  { id: 'plan', no: '04', name: '方案' },
-  { id: 'output', no: '05', name: '出图' },
+  { id: 'asset', name: '资产' },
+  { id: 'info', name: '信息' },
+  { id: 'story', name: '共创' },
+  { id: 'plan', name: '方案' },
+  { id: 'output', name: '出图' },
 ];
 
 const ASSET_KINDS = { overall: '整体', back: '背面', detail: '细节' };
@@ -46,6 +46,8 @@ const STORY_QUESTIONS = [
   {
     key: 'inspiration', label: '灵感来源',
     ask: '先聊聊这件作品的来处：它的灵感从哪里来？可以是一个场景、一段记忆，或者某种材料带给你的感觉。',
+    help: '灵感来源就是你做这件作品时想到的东西：一个场景、一段记忆、一种材料带来的感觉都算。',
+    short: '它的灵感从哪里来？一个场景、一段记忆或某种材料都可以。',
     allowNoStory: true,
     cards: [
       [
@@ -63,6 +65,8 @@ const STORY_QUESTIONS = [
   {
     key: 'theme', label: '主题',
     ask: '如果给这件作品起一个主题，你会怎么说？一个词或一句话都可以。',
+    help: '主题就是用一个词或一句话概括这件作品，比如「安静」「复古」「送给妈妈的生日」。',
+    short: '用一个词或一句话概括它。',
     cards: [
       [
         { title: '安静', text: '不张扬，慢慢看才发现细节', why: '适合留白多、光线柔的画面' },
@@ -79,6 +83,8 @@ const STORY_QUESTIONS = [
   {
     key: 'mood', label: '期望感受',
     ask: '你希望顾客第一眼看到这张主图时，是什么感觉？',
+    help: '期望感受是你希望顾客第一眼看到主图时的感觉，比如「想靠近看」「很舒服」「觉得精致」。',
+    short: '希望顾客第一眼看到主图时，是什么感觉？',
     cards: [
       [
         { title: '想靠近看', text: '被细节吸引，想放大看做工', why: '主体占比要大，光线要把细节照清楚' },
@@ -95,6 +101,8 @@ const STORY_QUESTIONS = [
   {
     key: 'avoid', label: '明确避免',
     ask: '最后一个问题：有没有你明确不想要的感觉或画面？比如太花、太亮、像廉价批发货。',
+    help: '明确避免就是你不想在主图里看到的画面或感觉，比如「太花」「太暗」「像批发货」。',
+    short: '有没有明确不想要的画面或感觉？比如太花、太亮。',
     cards: [
       [
         { title: '太花哨', text: '道具多、颜色杂', why: '会抢走饰品的注意力' },
@@ -111,12 +119,13 @@ const STORY_QUESTIONS = [
 ];
 
 const STYLE_OPTIONS = {
+  // words：对话里明确指这个色调的说法；不用「对比」「玫瑰」这类会和光线、道具撞车的短词
   tone: [
-    { id: 'moss', name: '雨后苔绿', desc: '低饱和绿，偏冷', colors: ['#dfe4d5', '#b9c4a6', '#7e8f6c'] },
-    { id: 'cream', name: '奶油米白', desc: '暖白，柔和', colors: ['#f3ede2', '#e6dac6', '#c9b79a'] },
-    { id: 'stone', name: '石灰浅灰', desc: '中性灰，干净', colors: ['#ecebe8', '#d5d3ce', '#a8a49d'] },
-    { id: 'rose', name: '干燥玫瑰', desc: '灰调粉，温柔', colors: ['#efe3e1', '#ddc5c1', '#b8928c'] },
-    { id: 'ink', name: '深墨对比', desc: '深色底，高对比', colors: ['#3a3a38', '#2a2a28', '#8d8a82'] },
+    { id: 'moss', name: '雨后苔绿', desc: '低饱和绿，偏冷', colors: ['#dfe4d5', '#b9c4a6', '#7e8f6c'], words: ['苔绿', '绿色调'] },
+    { id: 'cream', name: '奶油米白', desc: '暖白，柔和', colors: ['#f3ede2', '#e6dac6', '#c9b79a'], words: ['米白', '奶油色'] },
+    { id: 'stone', name: '石灰浅灰', desc: '中性灰，干净', colors: ['#ecebe8', '#d5d3ce', '#a8a49d'], words: ['浅灰', '石灰色'] },
+    { id: 'rose', name: '干燥玫瑰', desc: '灰调粉，温柔', colors: ['#efe3e1', '#ddc5c1', '#b8928c'], words: ['干燥玫瑰', '玫瑰色', '灰粉'] },
+    { id: 'ink', name: '深墨对比', desc: '深色底，高对比', colors: ['#3a3a38', '#2a2a28', '#8d8a82'], words: ['深墨', '深色底'] },
   ],
   background: ['手工纸', '亚麻布', '原木', '石材', '纯色背景'],
   light: ['柔和自然光', '窗边侧光', '暖调午后光', '清冷晨光', '明暗对比光'],
@@ -136,6 +145,34 @@ const PRESET_DIRECTIONS = [
   { name: '干净陈列', tone: 'stone', background: '石材', light: '柔和自然光', props: '', composition: '主体放大，突出细节', why: '适合想显得干净、精致、可信的作品' },
 ];
 
+/* ---------- 3b. 共创 → 风格：关键词规则模版（2026-10-30 用户确认） ----------
+   模版覆盖不到的说法，接入大模型后由 AI 共创优化；原型里如实列出没匹配上的话，不冒充 AI。
+   正向规则扫「作品表达」和「期望感受」：words 命中任一词即生效，set 是推荐值，against 是和这条故事相冲突的取值（用来提醒）。
+   词表覆盖了共创推荐卡里的说法；props 为空字符串表示「无道具」。 */
+const STORY_STYLE_RULES = [
+  { words: ['温暖', '阳光', '午后', '治愈', '暖'], set: { tone: 'cream', light: '暖调午后光' }, against: { light: ['清冷晨光'], tone: ['ink'] } },
+  { words: ['温柔', '浪漫', '柔美', '送给', '私密'], set: { tone: 'rose', light: '柔和自然光' }, against: { light: ['明暗对比光'], tone: ['ink'] } },
+  { words: ['安静', '宁静', '不张扬', '慢慢', '克制', '舒服', '放松'], set: { composition: '主体居中，留白多', light: '柔和自然光' }, against: { light: ['明暗对比光'] } },
+  { words: ['自然', '苔藓', '青苔', '森林', '林间', '雨后', '植物', '野趣', '山里'], set: { tone: 'moss', background: '手工纸', props: '一小片苔藓' } },
+  { words: ['清晨', '清新', '清冷', '晨光'], set: { light: '清冷晨光' }, against: { light: ['暖调午后光'] } },
+  { words: ['复古', '旧物', '年代', '怀旧', '旧书'], set: { tone: 'cream', background: '原木', props: '一本旧书的一角' } },
+  { words: ['日常', '生活', '书桌', '一杯茶', '窗边', '每天'], set: { background: '亚麻布', light: '窗边侧光' } },
+  { words: ['干净', '简约', '利落', '可信', '清爽', '极简'], set: { tone: 'stone', background: '纯色背景', props: '' } },
+  { words: ['精致', '高级', '仪式感', '值得'], set: { tone: 'stone', background: '石材', light: '明暗对比光' } },
+  { words: ['有点特别', '不一样', '记得住', '反差'], set: { tone: 'ink', light: '明暗对比光' } },
+  { words: ['细节', '做工', '靠近', '材质', '质感', '造型', '纹理'], set: { composition: '主体放大，突出细节' } },
+  { words: ['轻盈', '灵动', '旅行', '海边', '随性', '呼吸'], set: { composition: '主体偏一侧，留出呼吸感' } },
+];
+// 「明确避免」里的说法：exclude 是不推荐的取值，set 是顺带的推荐；set 为空表示认得这句话，但它管的是保真，不改风格
+const AVOID_STYLE_RULES = [
+  { words: ['太亮', '刺眼', '过曝'], exclude: { light: ['明暗对比光'] } },
+  { words: ['太暗', '压抑', '看不清'], exclude: { tone: ['ink'], light: ['明暗对比光'] } },
+  { words: ['太冷', '冷冰冰'], exclude: { light: ['清冷晨光'], tone: ['ink'] } },
+  { words: ['太花', '花哨', '道具多', '颜色杂', '杂乱', '太满', '挤'], set: { props: '', composition: '主体居中，留白多' } },
+  { words: ['廉价', '批发', '影棚'], exclude: { background: ['纯色背景'] } },
+  { words: ['过度修饰', '不像实物', '修图'], set: {} },
+];
+
 /* ---------- 4. 数据模型 ---------- */
 const STORE_KEY = 'yijian.v2';
 const emptyStyle = () => ({ tone: '', background: '', light: '', placement: '', props: '', propsBanned: '', composition: '' });
@@ -149,11 +186,12 @@ function newWork(name) {
     assets: [],                       // { id, kind, name, dataUrl, w, h, low }
     whiteBg: null,                    // { sourceId, dataUrl, w, h, demo: true }
     assetsConfirmed: false,
-    route: 'B',                       // A：白底资产 → 场景；B：原图直出（AC-02.6）
+    route: 'A',                       // A：白底资产 → 场景（默认，Q14）；B：原图直出。只在演示设置里切换，每次生成都记录（AC-02.6）
     info: { category: '', material: '', materialUnknown: false, size: '', sizeUnknown: false, keep: '', price: '', audience: '' },
     infoSuggest: [],                  // 对话中识别到、待确认的信息 { field, value }
     story: { answers: {}, sources: {}, q: 0, cardSet: {}, picking: null, noStory: false, summary: null, summarySrc: null, summaryConfirmed: false },
     style: emptyStyle(), styleSrc: {}, styleSuggest: [], sceneRef: null,
+    styleAck: {},                     // 用户对「和故事不太搭」的提醒点过保留的取值 { field: value }
     ratio: '3:4',
     promptEdited: null,               // 用户手动改过的提示词全文
     plans: [],                        // 批准记录 { v, snapshot, prompt, approvedAt }
@@ -168,7 +206,7 @@ function newWork(name) {
 
 function defaultState() {
   return {
-    version: 1,
+    version: 2,                        // v2：路线改由演示设置控制；批准快照只锁核心商品信息（升级见 app.js 启动部分）
     view: 'works',
     currentId: null,
     works: [],
@@ -225,6 +263,8 @@ const Store = {
 
 /* ---------- 6. 规则：信息、总结、提示词、快照、状态 ---------- */
 const STYLE_LABELS = { tone: '色调', background: '背景', light: '光线', placement: '摆放', props: '道具', propsBanned: '禁止出现', composition: '构图' };
+const STYLE_REQUIRED = ['tone', 'background', 'light', 'placement', 'composition'];   // 道具、禁止出现可以留空
+const styleReady = work => STYLE_REQUIRED.every(k => work.style[k]);
 const toneText = tone => {
   const option = STYLE_OPTIONS.tone.find(t => t.id === tone);
   return option ? `${option.name}（${option.desc}）` : tone;
@@ -235,6 +275,9 @@ function infoReady(work) {
   const i = work.info;
   return Boolean(i.category && (i.material || i.materialUnknown) && (i.size || i.sizeUnknown));
 }
+// 批准只锁定会写进提示词的信息；售价、目标顾客是选填，改了不让批准失效
+const INFO_CORE = ['category', 'material', 'materialUnknown', 'size', 'sizeUnknown', 'keep'];
+const coreInfo = info => JSON.stringify(Object.fromEntries(INFO_CORE.map(k => [k, info[k]])));
 
 function draftSummary(work) {
   const a = work.story.answers;
@@ -305,7 +348,7 @@ function snapshotOf(work) {
   return {
     assets: work.assets.map(a => `${a.id}:${a.kind}`).join('|'),
     route: work.route + (work.route === 'A' && work.whiteBg ? `:${work.whiteBg.sourceId}` : ''),
-    info: JSON.stringify(work.info),
+    info: coreInfo(work.info),
     summary: JSON.stringify(work.story.summary),
     ...Object.fromEntries(Object.keys(STYLE_LABELS).map(k => [`style.${k}`, work.style[k] || ''])),
     scene: work.sceneRef ? `${work.sceneRef.id}@${work.sceneRef.version}` : '',
@@ -364,6 +407,55 @@ function workStatus(work) {
   if (work.results.some(r => r.status === 'success' && (r.fidelity === 'none' || r.style === 'none'))) return { text: '待验收', tone: 'warn' };
   if (!approvalValid(work)) return { text: '方案待确认', tone: 'warn' };
   return { text: '可生成', tone: 'ok' };
+}
+
+// 共创 → 风格推荐：用规则模版扫共创总结。期望感受优先，其次作品表达；同一项先命中的作推荐，后命中的留作备选
+const styleValueText = (field, value) => (field === 'tone' ? toneOption(value)?.name || value : field === 'props' && !value ? '无道具' : value);
+function storyStyle(work) {
+  const sum = work.story.summary || draftSummary(work);
+  const picks = {};
+  const alts = {};
+  const excludes = [];
+  const against = [];
+  const unmatched = [];
+  [['feel', sum.feel], ['express', sum.express], ['avoid', sum.avoid]].forEach(([part, text]) => {
+    const rules = part === 'avoid' ? AVOID_STYLE_RULES : STORY_STYLE_RULES;
+    String(text || '').split(/[；;。\n]/).map(s => s.trim()).filter(Boolean).forEach(clause => {
+      const hits = rules.map(rule => ({ rule, word: rule.words.find(w => clause.includes(w)) })).filter(h => h.word);
+      if (!hits.length) { unmatched.push(clause); return; }   // 模版没覆盖：留给 AI 共创
+      hits.forEach(({ rule, word }) => {
+        Object.entries(rule.set || {}).forEach(([field, value]) => {
+          if (!picks[field]) picks[field] = { value, word, part };
+          else if (picks[field].value !== value && !(alts[field] || []).some(a => a.value === value)) (alts[field] ||= []).push({ value, word, part });
+        });
+        Object.entries(rule.exclude || {}).forEach(([field, values]) => values.forEach(value => excludes.push({ field, value, word })));
+        Object.entries(rule.against || {}).forEach(([field, values]) => values.forEach(value => against.push({ field, value, word })));
+      });
+    });
+  });
+  // 推荐值被「明确避免」排除时，换成第一个没被排除的备选
+  const excluded = (field, value) => excludes.some(e => e.field === field && e.value === value);
+  Object.keys(picks).forEach(field => {
+    if (!excluded(field, picks[field].value)) return;
+    const next = (alts[field] || []).find(a => !excluded(field, a.value));
+    if (next) picks[field] = next; else delete picks[field];
+  });
+  return { picks, excludes, against, unmatched };
+}
+
+// 风格和故事对不上时的提醒：只提醒，用户可以换成推荐值或保留（AC-05.3）
+function storyNote(work, field, ss = storyStyle(work)) {
+  const value = work.style[field];
+  if (!value || (work.styleAck || {})[field] === value) return null;
+  const ex = ss.excludes.find(e => e.field === field && e.value === value);
+  const ag = ss.against.find(a => a.field === field && a.value === value);
+  if (!ex && !ag) return null;
+  const pick = ss.picks[field];
+  const shown = styleValueText(field, value);
+  return {
+    text: ex ? `你想避免「${ex.word}」，「${shown}」可能会这样` : `「${shown}」和你说的「${ag.word}」可能不太搭`,
+    fix: pick && pick.value !== value ? pick.value : null,
+  };
 }
 
 /* ---------- 7. 图片：读取压缩、白底演示、候选演示合成（都在本地，不上传） ---------- */
@@ -472,12 +564,23 @@ async function renderDemoCandidate(work, slot) {
 
 /* ---------- 8. 小间的对话规则（规则引导，不是大模型） ---------- */
 const CATEGORY_WORDS = ['耳饰', '耳环', '耳钉', '耳夹', '项链', '吊坠', '手链', '手镯', '戒指', '胸针', '发夹', '发簪', '脚链'];
-const MATERIAL_WORDS = ['925银', '纯银', '银', '黄铜', '铜', '金', '珍珠', '淡水珍珠', '树脂', '滴胶', '玻璃', '琉璃', '水晶', '陶瓷', '贝壳', '木', '布', '棉线', '皮革', '天然石', '玉'];
+// 含镀金、K金等复合说法，避免「黄铜镀金」被拆成「黄铜、金」
+const MATERIAL_WORDS = ['925银', '纯银', '银', '黄铜', '铜', '镀金', '镀银', '包金', '18K金', '14K金', 'K金', '金', '合金', '不锈钢', '钛钢', '珍珠', '淡水珍珠', '树脂', '滴胶', '亚克力', '软陶', '珐琅', '玻璃', '琉璃', '水晶', '锆石', '陶瓷', '贝壳', '木', '布', '棉线', '皮革', '天然石', '玉'];
 const INFO_LABELS = { category: '品类', material: '材料', size: '尺寸' };
-const firstMatch = (text, words) => words.slice().sort((a, b) => b.length - a.length).filter(w => text.includes(w));
+// 文中出现的词：去掉被更长的词包含的短词（如「淡水珍珠」里的「珍珠」），按出现顺序排列
+function matchWords(text, words) {
+  const hits = words.map(w => ({ w, i: text.indexOf(w) })).filter(h => h.i >= 0).sort((a, b) => b.w.length - a.w.length);
+  return hits.filter((h, k) => !hits.slice(0, k).some(x => x.w.includes(h.w))).sort((a, b) => a.i - b.i);
+}
+// 紧挨着的词合成一个说法：黄铜＋镀金 → 黄铜镀金
+const joinAdjacent = hits => hits.reduce((list, h) => {
+  const last = list[list.length - 1];
+  if (last && last.i + last.w.length === h.i) last.w += h.w; else list.push({ ...h });
+  return list;
+}, []).map(h => h.w);
 
 function interpretChat(work, text) {
-  const out = { reply: '', infoSuggest: [], styleSuggest: [], answer: null, need: null };
+  const out = { reply: '', infoSuggest: [], styleSuggest: [], answer: null, recommend: null, need: null };
   const t = text.trim();
   if (/佩戴|戴在|上身|模特|真人|上耳/.test(t)) {
     out.need = t;
@@ -486,35 +589,48 @@ function interpretChat(work, text) {
   }
   if (work.step === 'story' && work.story.q < STORY_QUESTIONS.length && !work.story.summaryConfirmed) {
     const q = STORY_QUESTIONS[work.story.q];
+    // 短句说不知道：等同点「我不知道，给我推荐」，不把它记成答案
+    if (t.length <= 12 && /不知道|不清楚|没想好|想不出|说不上来|给我推荐|推荐一下|帮我选|随便/.test(t)) { out.recommend = q.key; return out; }
+    // 在问题目是什么意思：解释（点名了哪一题就解释哪一题），不记成答案
+    if (/[？?]$|什么叫|什么是|什么意思|啥意思|怎么写|怎么填/.test(t)) {
+      const about = STORY_QUESTIONS.find(x => [x.label, x.label.slice(0, 2), x.label.slice(-2)].some(w => t.includes(w))) || q;
+      out.reply = `${about.help}\n用你自己的话说就好；说不上来，可以点「我不知道，给我推荐」。`;
+      return out;
+    }
     out.answer = { key: q.key, value: t };
     const next = STORY_QUESTIONS[work.story.q + 1];
     out.reply = next && !work.story.answers[next.key] ? `记下了「${q.label}」。\n${next.ask}` : `记下了「${q.label}」。`;
     return out;
   }
   if (work.step === 'info') {
-    const size = t.match(/(\d+(?:\.\d+)?)\s*(cm|mm|厘米|毫米|公分)/i);
-    if (size) out.infoSuggest.push({ field: 'size', value: `${size[1]}${size[2]}` });
-    const mats = firstMatch(t, MATERIAL_WORDS);
-    if (mats.length) out.infoSuggest.push({ field: 'material', value: mats.filter((m, i) => !mats.slice(0, i).some(x => x.includes(m))).join('、') });
-    const cat = firstMatch(t, CATEGORY_WORDS);
-    if (cat.length) out.infoSuggest.push({ field: 'category', value: cat[0] });
+    const size = t.match(/(长|宽|高|直径|周长)?\s*(\d+(?:\.\d+)?)\s*(cm|mm|厘米|毫米|公分)/i);
+    if (size) out.infoSuggest.push({ field: 'size', value: `${size[1] || ''}${size[2]}${size[3]}` });
+    const mats = joinAdjacent(matchWords(t, MATERIAL_WORDS));
+    if (mats.length) out.infoSuggest.push({ field: 'material', value: mats.join('、') });
+    const cat = matchWords(t, CATEGORY_WORDS);
+    if (cat.length) out.infoSuggest.push({ field: 'category', value: cat[0].w });
     out.reply = out.infoSuggest.length
       ? `我从你的话里识别到：${out.infoSuggest.map(s => `${INFO_LABELS[s.field]}「${s.value}」`).join('，')}。在左边卡片里点「采纳」才会写进去。`
       : '没识别到具体的品类、材料或尺寸。你可以直接在左边填，不确定的勾「未知」就行，我不会替你猜。';
     return out;
   }
   if (work.step === 'plan') {
-    const pick = (field, words) => { const hit = words.find(w => t.includes(w.replace(/光$/, '')) || t.includes(w)); if (hit) out.styleSuggest.push({ field, value: hit }); };
+    // 先拿掉「不要……」的部分，再从剩下的话里找要加的东西，避免「不要放花」同时变成道具「花」
+    let rest = t;
+    const cut = phrase => { rest = rest.replace(phrase, '，'); };
+    const noProps = rest.match(/无道具|不要道具|不放道具|不用道具/);
+    if (noProps) { out.styleSuggest.push({ field: 'props', value: '' }); cut(noProps[0]); }
+    const ban = rest.match(/不要(?:放|出现|用|加)?([^，。,.！!？?\s]{1,10})/);
+    if (ban) { if (!/光|背景|色调/.test(ban[1])) out.styleSuggest.push({ field: 'propsBanned', value: ban[1] }); cut(ban[0]); }
+    const pick = (field, words) => { const hit = words.find(w => rest.includes(w.replace(/光$/, '')) || rest.includes(w)); if (hit) out.styleSuggest.push({ field, value: hit }); };
     pick('background', STYLE_OPTIONS.background);
     pick('light', STYLE_OPTIONS.light);
     pick('placement', STYLE_OPTIONS.placement);
-    const tone = STYLE_OPTIONS.tone.find(o => t.includes(o.name) || t.includes(o.name.slice(-2)));
+    const tone = STYLE_OPTIONS.tone.find(o => rest.includes(o.name) || o.words.some(w => rest.includes(w)));
     if (tone) out.styleSuggest.push({ field: 'tone', value: tone.id });
-    const ban = t.match(/不要(?:放|出现)?([^，。,.！!？?\s]{1,10})/);
-    if (ban) out.styleSuggest.push({ field: 'propsBanned', value: ban[1] });
-    const add = t.match(/(?:加|放|摆|配)(?:一个|一些|点|上)?([^，。,.！!？?\s]{1,10})/);
-    if (add && !/^(光|背景)/.test(add[1])) out.styleSuggest.push({ field: 'props', value: add[1] });
-    if (/无道具|不要道具|不放道具/.test(t)) out.styleSuggest.push({ field: 'props', value: '' });
+    // 「放亮一点」「加点暖色」说的是光线和颜色，不是道具
+    const add = rest.match(/(?:加|放|摆|配)(?:一个|一些|一点|点|上)?([^，。,.！!？?\s、]{1,10})/);
+    if (add && !/^(亮|暗|大|小|高|低|远|近|多|少|一点|些)|光|色|背景|构图/.test(add[1])) out.styleSuggest.push({ field: 'props', value: add[1] });
     out.reply = out.styleSuggest.length
       ? `整理成了 ${out.styleSuggest.length} 条建议，标在左边对应的卡片上，点「采纳」才会改方案。`
       : '这句话我没能对应到具体的风格项。可以试试说「换成亚麻布背景」「要窗边侧光」「不要花」，或者直接在左边改。';

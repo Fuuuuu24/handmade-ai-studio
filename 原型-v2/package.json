@@ -5,7 +5,7 @@
   "description": "一间 · 手作影像工作台，按 PRD v0.2 重做的本地交互原型（生图为演示，未接入 AI）",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check js/core.js && node --check js/views.js && node --check js/app.js"
+    "check": "node --check server.mjs && node --check js/core.js && node --check js/sample.js && node --check js/views.js && node --check js/app.js"
   },
   "engines": { "node": ">=18" }
 }

@@ -73,6 +73,11 @@ function closeConfirm(result) {
   if (confirmResolve) confirmResolve(result);
   confirmResolve = null;
 }
+// 演示设置弹窗：只给演示和试用的人用（路线 A/B、模拟失败），内容随当前作品刷新
+function renderDemo() {
+  const work = currentWork();
+  if (work) $('#demo-body').innerHTML = viewDemoSettings(work, state);
+}
 function openLightbox(src, caption) {
   $('#lightbox-body').innerHTML = `<img src="${esc(src)}" alt="${esc(caption)}"><p class="lightbox-caption">${esc(caption)}</p>`;
   $('#lightbox').showModal();
@@ -89,13 +94,14 @@ function createWork(name) {
   openWork(work.id);
   return work;
 }
+// 示例图内联在 js/sample.js：直接用 file:// 打开页面也能载入；图片就绪后才建作品，失败不留空作品
 async function loadSample() {
-  const work = createWork('雨后青苔 · 耳饰');
   try {
-    const svg = await fetch('assets/earrings.svg').then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); });
-    const img = await compressImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+    const img = await compressImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(SAMPLE_SVG)}`);
+    const work = createWork('雨后青苔 · 耳饰');
     work.assets.push({ id: uid('a'), kind: 'overall', name: '示例 · 自制耳饰示意图', ...img });
     work.chat.push({ role: 'bot', text: '已载入示例作品。注意：示例图是自制的示意插画，不是真实商品照片。', at: now() });
+    await ensureWhiteBg(work);
     save(work); render();
   } catch (error) {
     toast(`示例图片载入失败：${error.message}`);
@@ -134,7 +140,7 @@ function gotoStep(work, step) {
   const hello = {
     info: '这一步填商品的核心信息。不确定的勾「未知」，我不会替你猜材料或尺寸。也可以直接跟我说，比如「黄铜耳饰，2.4cm」。',
     story: work.story.summaryConfirmed ? '共创总结已经确认过了。要改的话直接编辑总结，改完需要重新确认。' : STORY_QUESTIONS[Math.min(work.story.q, STORY_QUESTIONS.length - 1)].ask,
-    plan: '这一步定风格和比例，再审核方案。可以直接跟我说想要的画面，比如「亚麻布背景，窗边侧光，不要花」。',
+    plan: '这一步定风格和比例。最上面是按你的共创回答整理的推荐（规则模版），可以一键套用，也可以自己选；也可以直接跟我说，比如「亚麻布背景，窗边侧光，不要花」。',
     output: '方案批准后就能生成两张候选。记得分别看还原度和风格。',
   }[step];
   const last = work.chat[work.chat.length - 1];
@@ -180,6 +186,7 @@ function handleChat(work, text) {
   const result = interpretChat(work, text);
   if (result.reply) botSay(work, result.reply);
   if (result.need) work.needs.push({ text: result.need, at: now() });
+  if (result.recommend) openStoryPicker(work, result.recommend);
   if (result.answer) {
     applyStoryAnswer(work, result.answer.key, result.answer.value, 'chat');
     const next = STORY_QUESTIONS[work.story.q];
@@ -200,8 +207,10 @@ function syncSummary(work) {
   s.q = nextQuestion(work);
   if (s.q < STORY_QUESTIONS.length && !s.summary) return;
   const wasConfirmed = s.summaryConfirmed;
+  const firstDraft = !s.summary;
   if (!s.summary || s.summarySrc !== 'user') { s.summary = draftSummary(work); s.summarySrc = 'draft'; }
   s.summaryConfirmed = false;
+  if (firstDraft) botSay(work, '四个问题都聊完了。我按你的回答起草了三项总结，请检查后确认。');
   if (wasConfirmed) botSay(work, '故事有改动，三项总结退回待确认。已批准的方案也会因此失效。');
 }
 function applyStoryAnswer(work, key, value, src) {
@@ -209,23 +218,20 @@ function applyStoryAnswer(work, key, value, src) {
   s.answers[key] = value;
   s.sources[key] = src;
   s.picking = null;
-  const before = s.summary;
   syncSummary(work);
-  if (!before && s.summary) botSay(work, '四个问题都聊完了。我按你的回答起草了三项总结，请检查后确认。');
 }
 function storyAdvanceMessage(work) {
   const q = STORY_QUESTIONS[work.story.q];
   if (q) botSay(work, q.ask);
 }
+function openStoryPicker(work, key) {
+  work.story.picking = key;
+  work.step = 'story';
+  botSay(work, '给你几个方向参考，每个都写了理由。选一个之后还能改成你自己的话；都不合适可以换一组。');
+}
 
 Object.assign(actions, {
-  'story-recommend': el => {
-    const work = currentWork();
-    work.story.picking = el.dataset.key;
-    if (work.step !== 'story') work.step = 'story';
-    botSay(work, '给你几个方向参考，每个都写了理由。选一个之后还能改成你自己的话；都不合适可以换一组。');
-    save(work); render();
-  },
+  'story-recommend': el => { const work = currentWork(); openStoryPicker(work, el.dataset.key); save(work); render(); },
   'story-shuffle': el => { const work = currentWork(); const k = el.dataset.key; work.story.cardSet[k] = (work.story.cardSet[k] || 0) + 1; save(work); render(); },
   'story-none': el => {
     const work = currentWork();
@@ -252,7 +258,6 @@ Object.assign(actions, {
     save(work); render();
   },
   'story-nostory-undo': () => { const work = currentWork(); work.story.noStory = false; syncSummary(work); save(work); render(); },
-  'story-next': () => { const work = currentWork(); syncSummary(work); if (!work.story.summary) storyAdvanceMessage(work); else if (work.story.summarySrc === 'draft') botSay(work, '三项总结起草好了，请检查后确认。'); save(work); render(); },
   'story-confirm': () => {
     const work = currentWork();
     work.story.summaryConfirmed = true;
@@ -264,6 +269,15 @@ Object.assign(actions, {
 /* ---------- 01 资产 ---------- */
 function invalidateAssets(work, why) {
   if (work.assetsConfirmed) { work.assetsConfirmed = false; botSay(work, `${why}，资产确认已撤销，请重新检查后确认。`); }
+}
+// A 路线：整体图变了就重做白底演示图（只是把原图放到白底上，未真实抠图）
+async function ensureWhiteBg(work) {
+  const source = work.assets.find(a => a.kind === 'overall');
+  if (work.route !== 'A' || !source || work.whiteBg?.sourceId === source.id) return;
+  try {
+    work.whiteBg = await makeWhiteBgDemo(source);
+    botSay(work, '已按整体图做了白底图（演示，未真实抠图），请和原图对照检查。');
+  } catch (error) { toast(`白底演示生成失败：${error.message}`); }
 }
 
 async function addFiles(work, files) {
@@ -287,6 +301,7 @@ async function addFiles(work, files) {
       ? `「${markedOverall}」标成了「整体」${added > 1 ? '，其余先标成「细节」' : ''}`
       : '已有整体图，新加的先标成「细节」';
     botSay(work, `收到 ${added} 张照片。${kinds}；标错了可以在图下面改成整体、背面或细节。`);
+    await ensureWhiteBg(work);
   }
   if (errors.length) botSay(work, `有 ${errors.length} 张没有添加：\n${errors.join('\n')}`);
   save(work); render();
@@ -302,16 +317,19 @@ Object.assign(actions, {
     work.assets = work.assets.filter(a => a.id !== asset.id);
     if (work.whiteBg && work.whiteBg.sourceId === asset.id) work.whiteBg = null;
     invalidateAssets(work, '照片被删除');
+    await ensureWhiteBg(work);
     save(work); render();
   },
-  route: el => {
+  // 路线只在演示设置里切换，商家流程里不出现
+  route: async el => {
     const work = currentWork();
-    if (work.routeChosen && work.route === el.dataset.route) return;
+    if (work.route === el.dataset.route) return;
     work.route = el.dataset.route;
-    work.routeChosen = true;
     invalidateAssets(work, '资产路线改了');
-    save(work); render();
+    await ensureWhiteBg(work);
+    save(work); render(); renderDemo();
   },
+  'open-demo': () => { renderDemo(); $('#demo-dialog').showModal(); },
   'make-white': async () => {
     const work = currentWork();
     const source = work.assets.find(a => a.kind === 'overall');
@@ -326,7 +344,7 @@ Object.assign(actions, {
   'confirm-assets': () => {
     const work = currentWork();
     work.assetsConfirmed = true;
-    botSay(work, `资产已确认，路线 ${work.route}。下一步填商品信息。`);
+    botSay(work, '资产已确认。下一步填商品信息。');
     save(work); render();
   },
   'unconfirm-assets': () => { const work = currentWork(); work.assetsConfirmed = false; save(work); render(); },
@@ -409,6 +427,28 @@ Object.assign(actions, {
     save(work); render();
   },
   'set-ratio': el => { const work = currentWork(); work.ratio = el.dataset.ratio; save(work); render(); },
+  // 按共创回答套用推荐（规则模版）；摆放没选时先按「平铺」
+  'apply-story': () => {
+    const work = currentWork();
+    const defaulted = !work.style.placement;
+    applyStyle(work, Object.fromEntries(Object.entries(storyStyle(work).picks).map(([f, p]) => [f, p.value])), 'story');
+    if (defaulted) { work.style.placement = '平铺'; work.styleSrc.placement = 'preset'; }
+    botSay(work, `已按你的共创回答套用推荐（规则模版），每一项都还能改${defaulted ? '；摆放先按「平铺」，要悬挂或支架可以改' : ''}。`);
+    save(work); render();
+  },
+  'story-fix': el => {
+    const work = currentWork();
+    const { field, value } = el.dataset;
+    work.style[field] = value;
+    work.styleSrc[field] = 'story';
+    work.sceneRef = null;
+    save(work); render();
+  },
+  'story-keep': el => {
+    const work = currentWork();
+    work.styleAck = { ...work.styleAck, [el.dataset.field]: work.style[el.dataset.field] };
+    save(work); render();
+  },
   'plan-recommend': () => {
     const work = currentWork();
     state.showPresets = !state.showPresets;
@@ -616,7 +656,7 @@ Object.assign(actions, {
 // input：边打字边写回数据，只做轻量刷新，保持输入框焦点
 document.addEventListener('input', event => {
   const el = event.target;
-  if (el.id === 'chat-input') { $('#chat-count').textContent = `${el.value.length} / 500`; return; }
+  if (el.id === 'chat-input') { $('#chat-count').textContent = el.value.length > 400 ? `${el.value.length} / 500` : ''; return; }
   const work = currentWork();
   if (!work) return;
   if (el.id === 'prompt-text') {
@@ -635,9 +675,10 @@ document.addEventListener('input', event => {
 
 // change：选择完成或输入框失焦后的处理
 const changeActions = {
-  'asset-kind': (el, work) => {
+  'asset-kind': async (el, work) => {
     work.assets.find(a => a.id === el.dataset.id).kind = el.value;
     invalidateAssets(work, '照片类型改了');
+    await ensureWhiteBg(work);
     save(work); render();
   },
   'apply-scene': (el, work) => {
@@ -698,7 +739,26 @@ state.works.forEach(work => work.tasks.forEach(task => {
   });
   finishTask(task, work);
 }));
-if (interrupted || Store.status === 'dirty') Store.flush();
+// 旧数据升级到 v2：①路线改由演示设置控制，没选过路线的作品改用新的默认 A（Q14 白底流程）；
+// ②批准快照里的商品信息只保留核心字段，免得旧批准因售价、目标顾客被误判失效
+let unreadable = 0;
+const upgrading = state.version < 2;
+if (upgrading) {
+  state.works.forEach(work => {
+    if (!work.routeChosen) work.route = 'A';
+    delete work.routeChosen;
+    work.plans.forEach(plan => {
+      try { plan.snapshot.info = coreInfo(JSON.parse(plan.snapshot.info)); } catch { unreadable++; }
+    });
+  });
+  state.version = 2;
+}
+if (interrupted || upgrading || Store.status === 'dirty') Store.flush();
+document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); });   // 页面里写死的图标位，用 views 里同一套图标填充
 render();
-if (interrupted) toast(`${interrupted} 张演示图因页面刷新中断，可在出图页单独补齐`);
+const notices = [
+  interrupted && `${interrupted} 张演示图因页面刷新中断，可在出图页单独补齐`,
+  unreadable && `${unreadable} 个旧方案的快照无法读取，对应作品需要重新批准方案`,
+].filter(Boolean);
+if (notices.length) toast(notices.join('；'));
 if (!state.seenIntro) $('#intro-dialog').showModal();
