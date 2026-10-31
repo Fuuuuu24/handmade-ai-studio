@@ -10,7 +10,7 @@ import { useBlobUrl } from '@/client/hooks';
 import { retrySlot } from '@/client/generation';
 import { mutateWork } from '@/client/work-store';
 import { db } from '@/data/db';
-import { getBlob, logEvent, updateResult } from '@/data/repo';
+import { getBlob, logEvent, patchResult } from '@/data/repo';
 import { approvalStatus } from '@/domain/approval';
 import { passed, roundSlots, slotState } from '@/domain/generation';
 import { activeUploads } from '@/domain/snapshot';
@@ -84,15 +84,23 @@ function Candidate({ result, ratio, approval }: { result: Result; ratio: Ratio; 
   const anyBad = result.verdict.real === 'bad' || result.verdict.style === 'bad';
   const locked = ctx.isGenerating;
   const parent = result.parentId ? ctx.results.find((r) => r.id === result.parentId) : undefined;
-  const save = (patch: Partial<Result>) => void updateResult({ ...result, ...patch });
+  // 每次只改自己的字段，基于数据库里的最新记录（连着点「像」「对」不会互相覆盖）
+  const patch = (fn: (r: Result) => void) => void patchResult(result.id, fn);
+  const saveNote = (note: string) =>
+    patch((r) => {
+      r.note = note;
+    });
 
   const pick = (kind: 'real' | 'style', v: Verdict) => {
-    const verdict = { ...result.verdict, [kind]: v };
-    save({ verdict });
-    void logEvent('verdict', result.workId, { round: result.round, slot: result.slot, real: verdict.real, style: verdict.style });
+    patch((r) => {
+      r.verdict = { ...r.verdict, [kind]: v };
+    });
+    void logEvent('verdict', result.workId, { round: result.round, slot: result.slot, kind, value: v });
   };
   const toggleIssue = (issue: string) =>
-    save({ issues: result.issues.includes(issue) ? result.issues.filter((i) => i !== issue) : [...result.issues, issue] });
+    patch((r) => {
+      r.issues = r.issues.includes(issue) ? r.issues.filter((i) => i !== issue) : [...r.issues, issue];
+    });
 
   // 从这一版修改（AC-09.4）：恢复那一版的方案并记下父结果，原结果保留
   const revise = async () => {
@@ -110,7 +118,9 @@ function Candidate({ result, ratio, approval }: { result: Result; ratio: Ratio; 
     a.download = `${ctx.work.name}-第${result.round}轮-候选${result.slot + 1}.${ext}`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-    save({ exports: [...result.exports, Date.now()] });
+    patch((r) => {
+      r.exports = [...r.exports, Date.now()];
+    });
     void logEvent('export', result.workId, { round: result.round, slot: result.slot });
   };
 
@@ -157,7 +167,7 @@ function Candidate({ result, ratio, approval }: { result: Result; ratio: Ratio; 
               aria-label="具体哪里不对"
               placeholder="具体哪里不对？比如：链子变长了"
               value={result.note}
-              onCommit={(note) => save({ note })}
+              onCommit={saveNote}
             />
             <button
               type="button"
@@ -165,7 +175,7 @@ function Candidate({ result, ratio, approval }: { result: Result; ratio: Ratio; 
               disabled={busy || locked}
               onClick={async () => {
                 const note = (noteRef.current?.value ?? result.note).trim();
-                if (note !== result.note) save({ note });
+                if (note !== result.note) saveNote(note);
                 await revise();
                 const parts = [
                   result.verdict.real === 'bad' ? '不像实物' : '',

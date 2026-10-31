@@ -148,7 +148,7 @@ const isTransient = (e: unknown) => e instanceof ApiCallError && (e.code === 'ne
 
 class DownloadError extends Error {}
 
-// 图片已经生成（已扣费），取回时遇到临时错误就再试几次，免得让商家花钱补齐；仍然失败时如实说明
+// 图片已经生成（已扣费），取回时遇到临时错误（断网、网关 5xx）就再试几次，免得让商家花钱补齐；仍然失败时如实说明
 async function collectWithRetry(task: Task) {
   for (let attempt = 1; ; attempt++) {
     try {
@@ -156,7 +156,7 @@ async function collectWithRetry(task: Task) {
       return;
     } catch (e) {
       if (!isTransient(e) || attempt >= GENERATION.downloadTries) {
-        throw new DownloadError(`生成好了，但取回图片失败：${errorText(e)}（网关只保留 1 小时，可以补齐这一张）`);
+        throw new DownloadError(`生成好了，但取回或保存图片失败：${errorText(e)}（网关只保留 1 小时，可以补齐这一张）`);
       }
       await sleep(GENERATION.pollMs);
     }

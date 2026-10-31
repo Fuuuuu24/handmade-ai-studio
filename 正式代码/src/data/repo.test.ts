@@ -14,6 +14,7 @@ import {
   listResults,
   listWorks,
   loadMessages,
+  patchResult,
   removeAsset,
   replaceAsset,
   saveMessages,
@@ -99,6 +100,28 @@ describe('素材：原图始终保留（PRD 4.2 第 5 条）', () => {
     expect(all.find((x) => x.id === a.id)?.removed).toBe(true);
     expect(all.find((x) => x.id === wb.id)).toMatchObject({ origin: 'white', parentId: a.id, method: 'matting' });
     expect((await getBlob(a.blobId))?.size).toBe(100);
+  });
+});
+
+describe('结果', () => {
+  it('按最新记录修改：连着改两项不会互相覆盖（验收连点、补存说明）', async () => {
+    const w = fresh();
+    const t = task(w.id, 1, 0, 'succeeded');
+    const r = { ...result(w.id, 1, 0), taskId: t.id };
+    await saveResult(t, r, new Blob([new Uint8Array(10)]));
+    // 两次修改都基于同一份旧记录发起，模拟界面还没刷新时连着点
+    await Promise.all([
+      patchResult(r.id, (x) => {
+        x.verdict = { ...x.verdict, real: 'ok' };
+      }),
+      patchResult(r.id, (x) => {
+        x.verdict = { ...x.verdict, style: 'ok' };
+      }),
+      patchResult(r.id, (x) => {
+        x.note = '链子对了';
+      }),
+    ]);
+    expect((await listResults(w.id))[0]).toMatchObject({ verdict: { real: 'ok', style: 'ok' }, note: '链子对了' });
   });
 });
 

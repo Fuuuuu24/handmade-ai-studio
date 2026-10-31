@@ -9,6 +9,7 @@ import { createWork } from '@/client/create-work';
 import { setFirstMessage } from '@/client/first-message';
 import { checkFile } from '@/client/images';
 import { addPhotos } from '@/client/uploads';
+import { deleteWork } from '@/data/repo';
 import { Icon } from '@/components/ui/icon';
 
 // 首页：输入框居中（上传照片、说一句话即开始），下面是摄影布景模版（PRD 5.1，照 v3 原型）
@@ -46,6 +47,7 @@ export function HomePage() {
         const r = await addPhotos(work.id, [file]);
         assetIds = r.assetIds;
         if (!assetIds.length) {
+          await deleteWork(work.id); // 照片没加上：刚建的空作品一并删掉，不留在作品页里
           setProblem(r.notes.join('；'));
           setStarting(false);
           return;

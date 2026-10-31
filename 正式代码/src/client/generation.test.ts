@@ -99,7 +99,7 @@ describe('生成：取回图片（图片已生成、已扣费）', () => {
     await approveAndGenerate(workId);
     const tasks = await settle(workId);
     expect(tasks.every((t) => t.status === 'failed')).toBe(true);
-    expect(tasks[0].error).toContain('生成好了，但取回图片失败');
+    expect(tasks[0].error).toContain('生成好了，但取回或保存图片失败');
     expect(calls.content).toBe(2 * GENERATION.downloadTries);
     expect(await listResults(workId)).toEqual([]);
   });
