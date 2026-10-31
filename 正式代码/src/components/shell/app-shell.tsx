@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { Suspense, useState, type ReactNode } from 'react';
 import { ConfirmProvider, Modal } from '@/components/ui/dialog';
 import { Icon, type IconName } from '@/components/ui/icon';
 
@@ -18,9 +18,29 @@ const item =
   'flex h-9 w-full items-center gap-2.5 whitespace-nowrap rounded-sm px-[9px] text-left text-ink-2 transition-colors hover:bg-black/[0.04] hover:text-ink';
 const label = 'text-body opacity-0 transition-opacity duration-150 group-hover/rail:opacity-100 group-hover/rail:delay-200 group-has-[:focus-visible]/rail:opacity-100';
 
+function NavLinks({ pathname }: { pathname: string | null }) {
+  return (
+    <nav aria-label="主导航" className="flex flex-col gap-0.5">
+      {NAV.map((n) => {
+        const on = pathname != null && n.match(pathname);
+        return (
+          <Link key={n.href} href={n.href} aria-current={on ? 'page' : undefined} className={`${item} ${on ? 'bg-black/[0.07] text-ink' : ''}`}>
+            <Icon name={n.icon} />
+            <span className={label}>{n.name}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+// 读当前路径的部分单独成组件：动态路由（/works/[id]）上 usePathname 会挂起，挂起时先显示不带高亮的导航
+function CurrentNav() {
+  return <NavLinks pathname={usePathname()} />;
+}
+
 // 图标栏（沿用 v2／v3）：收起 60px 只显示图标，悬停或键盘聚焦时展开到 196px、盖在内容上
 export function AppShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
   const [help, setHelp] = useState(false);
   return (
     <ConfirmProvider>
@@ -41,23 +61,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Icon name="plus" />
             <span className={label}>新建作品</span>
           </Link>
-          <nav aria-label="主导航" className="flex flex-col gap-0.5">
-            {NAV.map((n) => {
-              const on = n.match(pathname);
-              return (
-                <Link key={n.href} href={n.href} aria-current={on ? 'page' : undefined} className={`${item} ${on ? 'bg-black/[0.07] text-ink' : ''}`}>
-                  <Icon name={n.icon} />
-                  <span className={label}>{n.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
+          <Suspense fallback={<NavLinks pathname={null} />}>
+            <CurrentNav />
+          </Suspense>
           <button type="button" className={`${item} mt-auto`} onClick={() => setHelp(true)}>
             <Icon name="help" />
             <span className={label}>使用说明</span>
           </button>
         </aside>
-        <div className="ml-[60px] flex h-full min-w-0 flex-col">{children}</div>
+        <main className="ml-[60px] flex h-full min-w-0 flex-col">{children}</main>
       </div>
       <Modal open={help} onClose={() => setHelp(false)} title="使用说明" sub="一间 · 手作影像工作台">
         <ul className="flex list-disc flex-col gap-1.5 pl-4 text-body leading-relaxed text-ink-2">
@@ -75,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </li>
         </ul>
         <div className="mt-5 flex justify-end">
-          <button type="button" className="btn btn-primary" onClick={() => setHelp(false)} autoFocus>
+          <button type="button" className="btn btn-primary" onClick={() => setHelp(false)} data-autofocus>
             知道了
           </button>
         </div>

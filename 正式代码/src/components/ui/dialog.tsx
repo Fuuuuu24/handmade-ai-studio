@@ -4,7 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { Icon } from './icon';
 
 /* 统一的弹窗：用原生 <dialog>（自带焦点管理与 Esc 关闭）。确认弹窗用 useConfirm() 以 Promise 形式拿到结果，
-   替代浏览器自带的 confirm（样式不统一，也会挡住自动化测试）。 */
+   替代浏览器自带的 confirm（样式不统一，也会挡住自动化测试）。
+   打开时聚焦带 data-autofocus 的元素：弹窗内容早已挂载，React 的 autoFocus 只在首次挂载时生效。 */
 
 export function Modal({ open, onClose, title, sub, children, labelledBy }: { open: boolean; onClose: () => void; title: string; sub?: string; children: ReactNode; labelledBy?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -12,7 +13,10 @@ export function Modal({ open, onClose, title, sub, children, labelledBy }: { ope
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
+    if (open && !d.open) {
+      d.showModal();
+      d.querySelector<HTMLElement>('[data-autofocus]')?.focus();
+    }
     if (!open && d.open) d.close();
   }, [open]);
   return (
@@ -59,11 +63,17 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       {children}
       <Modal open={!!req} onClose={() => close(false)} title={req?.title ?? ''} labelledBy="confirm-title">
         <div className="text-body leading-relaxed text-ink-2">{req?.body}</div>
+        {/* 删除这类危险操作默认聚焦「取消」，误按回车不会删掉 */}
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" className="btn btn-ghost" onClick={() => close(false)}>
+          <button type="button" className="btn btn-ghost" onClick={() => close(false)} data-autofocus={req?.danger ? '' : undefined}>
             取消
           </button>
-          <button type="button" className={`btn ${req?.danger ? 'bg-bad text-white hover:bg-[#9a1d14]' : 'btn-primary'}`} onClick={() => close(true)} autoFocus>
+          <button
+            type="button"
+            className={`btn ${req?.danger ? 'bg-bad text-white hover:bg-[#9a1d14]' : 'btn-primary'}`}
+            onClick={() => close(true)}
+            data-autofocus={req?.danger ? undefined : ''}
+          >
             {req?.ok ?? '确定'}
           </button>
         </div>

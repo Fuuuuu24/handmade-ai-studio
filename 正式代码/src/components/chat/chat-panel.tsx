@@ -9,18 +9,12 @@ import { BUDGET } from '@/config/budget';
 import type { StepId } from '@/config/steps';
 import { errorText } from '@/client/api';
 import { chatErrorMessage, chatRequestBody } from '@/client/chat-body';
+import { takeFirstMessage } from '@/client/first-message';
 import { addPhotos } from '@/client/uploads';
 import { loadMessages, saveMessages } from '@/data/repo';
 import { useWorkspace } from '@/components/workspace/context';
 import { Composer } from './composer';
 import { MessageView } from './message-view';
-
-const FIRST_KEY = (workId: string) => `yijian:first:${workId}`;
-
-// 首页带过来的第一句话和照片：新建作品后在工作区里自动发出
-export function setFirstMessage(workId: string, text: string, assetIds: string[]) {
-  sessionStorage.setItem(FIRST_KEY(workId), JSON.stringify({ text, assetIds }));
-}
 
 interface Props {
   registerSend: (fn: (text: string) => void) => void;
@@ -148,13 +142,14 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep }
     registerSend((text) => send(text));
   }, [registerSend, send]);
 
-  // 首页带过来的第一条消息只发一次
+  // 首页、布景页带过来的第一条消息只发一次。推迟到下一轮再取：开发模式的严格模式会先演练一次卸载，
+  // 卸载时 useChat 会中止进行中的请求；推迟后演练卸载会取消定时器，消息留到真正挂载后再发
   useEffect(() => {
-    const raw = sessionStorage.getItem(FIRST_KEY(workId));
-    if (!raw) return;
-    sessionStorage.removeItem(FIRST_KEY(workId));
-    const first = JSON.parse(raw) as { text: string; assetIds: string[] };
-    post(first.text, first.assetIds);
+    const timer = setTimeout(() => {
+      const first = takeFirstMessage(workId);
+      if (first) post(first.text, first.assetIds);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [workId, post]);
 
   const onFiles = async (files: File[], text: string) => {

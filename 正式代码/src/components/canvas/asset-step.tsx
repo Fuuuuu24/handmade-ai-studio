@@ -9,12 +9,14 @@ import { removeAsset, setAssetKind } from '@/data/repo';
 import { activeUploads } from '@/domain/snapshot';
 import type { Asset, AssetKind } from '@/domain/types';
 import { assetsChanged, confirmAssets } from '@/domain/work';
+import { useConfirm } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { useWorkspace } from '@/components/workspace/context';
 import { StepHead } from './canvas';
 
 function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
   const { workId } = useWorkspace();
+  const confirm = useConfirm();
   const url = useBlobUrl(asset.blobId);
   const low = Math.max(asset.width, asset.height) < UPLOAD.lowEdge;
   return (
@@ -56,7 +58,12 @@ function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
           title="不再使用这张照片（原图记录保留）"
           disabled={locked}
           onClick={async () => {
-            if (!window.confirm('不再使用这张照片？原图记录会保留，之后的方案需要重新确认。')) return;
+            const ok = await confirm({
+              title: '不再使用这张照片？',
+              body: '原图记录会保留；资产和之后的方案需要重新确认。',
+              ok: '不再使用',
+            });
+            if (!ok) return;
             await removeAsset(asset);
             await mutateWork(workId, (c) => assetsChanged(c.work));
           }}

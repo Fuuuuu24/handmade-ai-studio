@@ -11,9 +11,9 @@ import { WorkspaceProvider, type WorkspaceValue } from './context';
 import { Topbar } from './topbar';
 
 // 工作区：左对话（主）、右画布（当前步骤），顶栏细进度（PRD 5.1，照 v3 原型）
-export function Workspace({ ctx }: { ctx: WorkContext }) {
+export function Workspace({ ctx, initialStep = null }: { ctx: WorkContext; initialStep?: StepId | null }) {
   const { config, error: configError } = useAppConfig();
-  const [picked, setPicked] = useState<StepId | null>(null);
+  const [picked, setPicked] = useState<StepId | null>(initialStep);
   const [busy, setBusy] = useState(false);
   const sendRef = useRef<(text: string) => void>(() => undefined);
 

@@ -1,18 +1,66 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { STEPS, type StepId } from '@/config/steps';
 import { mutateWork } from '@/client/work-store';
+import { deleteWork, logEvent } from '@/data/repo';
 import { workStatus, type StepState } from '@/domain/status';
 import { renameWork } from '@/domain/work';
+import { useConfirm } from '@/components/ui/dialog';
 import { DraftInput } from '@/components/ui/draft-field';
+import { Icon } from '@/components/ui/icon';
+import { StatusChip } from '@/components/ui/status-chip';
 import { SaveStatusText } from './save-status';
 import { useWorkspace } from './context';
 
-const TONE_CLASS = { '': 'chip', warn: 'chip chip-warn', ok: 'chip chip-ok' } as const;
-
 // 顶栏：作品 / 名称（可直接改）· 状态，右侧细进度（v3 原型）
+// 删除作品（PRD 4.2 第 5 条）：用户确认后才删；生成中不能删，避免轮询把结果写回已删除的作品
+function DeleteWork() {
+  const { ctx, workId } = useWorkspace();
+  const confirm = useConfirm();
+  const router = useRouter();
+  const [problem, setProblem] = useState<string | null>(null);
+  const locked = ctx.isGenerating;
+  return (
+    <>
+      {problem && (
+        <span role="alert" className="ml-2 text-aux text-bad">
+          {problem}
+        </span>
+      )}
+      <button
+        type="button"
+        className="icon-btn ml-1"
+        aria-label="删除作品"
+        title={locked ? '正在生成，等这一轮结束再删' : '删除作品'}
+        disabled={locked}
+        onClick={async () => {
+          const ok = await confirm({
+            title: `删除「${ctx.work.name}」？`,
+            body: '照片、对话、方案和生成结果会一起删除，不能恢复。',
+            ok: '删除',
+            danger: true,
+          });
+          if (!ok) return;
+          try {
+            const cost = ctx.work.costUSD;
+            await deleteWork(workId);
+            // 试用记录：作品删了，花费仍要算进总成本
+            void logEvent('delete_work', undefined, { costUSD: cost });
+            router.push('/works');
+          } catch (e) {
+            setProblem(`没有删掉：${e instanceof Error ? e.message : String(e)}`);
+          }
+        }}
+      >
+        <Icon name="trash" />
+      </button>
+    </>
+  );
+}
+
 export function Topbar({ states }: { states: Record<StepId, StepState> }) {
   const { ctx, viewing, current, setViewing, workId } = useWorkspace();
   const status = workStatus({
@@ -41,7 +89,7 @@ export function Topbar({ states }: { states: Record<StepId, StepState> }) {
           value={ctx.work.name}
           onCommit={(v) => v.trim() && void mutateWork(workId, (c) => renameWork(c.work, v))}
         />
-        <span className={`${TONE_CLASS[status.tone]} ml-1`}>{status.text}</span>
+        <StatusChip text={status.text} tone={status.tone} className="ml-1" />
       </nav>
       <SaveStatusText />
       <nav aria-label="流程进度" className="ml-auto flex items-center gap-0.5">
@@ -77,6 +125,7 @@ export function Topbar({ states }: { states: Record<StepId, StepState> }) {
           );
         })}
       </nav>
+      <DeleteWork />
     </header>
   );
 }

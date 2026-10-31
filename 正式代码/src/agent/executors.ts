@@ -1,12 +1,11 @@
 import { INFO_FIELDS } from '@/config/info';
-import { builtinScene } from '@/config/scenes';
 import type { StepId } from '@/config/steps';
 import { STYLE_LABELS } from '@/config/style';
-import { getScene } from '@/data/repo';
 import { approvalBlockers } from '@/domain/approval';
 import { addStoryNote, applyScene, draftSummary, resolvePromptSync, setRatio, setStyle, suggestInfo, writePrompt } from '@/domain/work';
 import type { Work } from '@/domain/types';
 import { startGeneration } from '@/client/generation';
+import { findScene } from '@/client/scenes';
 import { loadContext, mutateWork, type WorkContext } from '@/client/work-store';
 import type { AgentTools, ToolName, ToolOutput } from './tools';
 import type { InferToolInput } from 'ai';
@@ -67,9 +66,7 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
     }
     case 'apply_scene': {
       const { sceneId } = rawInput as Input<'apply_scene'>;
-      const builtin = builtinScene(sceneId);
-      const saved = builtin ? null : await getScene(sceneId);
-      const scene = builtin ? { id: builtin.id, name: builtin.name, params: builtin.params } : saved;
+      const scene = await findScene(sceneId);
       if (!scene) return refuse(`没有编号为 ${sceneId} 的布景`);
       await change(workId, (c) => applyScene(c.work, scene.id, scene.params));
       return done(`已套用布景「${scene.name}」`, [`布景「${scene.name}」`]);

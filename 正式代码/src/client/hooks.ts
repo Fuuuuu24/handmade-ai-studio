@@ -3,7 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { db } from '@/data/db';
-import type { Id } from '@/domain/types';
+import type { Approval, Id } from '@/domain/types';
 import { fetchConfig, type AppConfig } from './api';
 import { acquireBlobUrl, blobUrlSnapshot, releaseBlobUrl, subscribeBlobUrls } from './blob-urls';
 import { deriveContext, type WorkContext } from './work-store';
@@ -22,6 +22,43 @@ export function useWorkContext(workId: Id): WorkContext | null | undefined {
     ]);
     return deriveContext(work, assets, approval ?? null, tasks, results);
   }, [workId]);
+}
+
+const groupByWork = <T extends { workId: Id }>(list: T[]) => {
+  const map = new Map<Id, T[]>();
+  for (const x of list) {
+    const arr = map.get(x.workId);
+    if (arr) arr.push(x);
+    else map.set(x.workId, [x]);
+  }
+  return map;
+};
+
+export interface Library {
+  works: WorkContext[]; // 按最近更新排序
+  approvals: Approval[]; // 全部批准记录，历史结果用来查方案版本
+}
+
+// 全部作品及其素材、任务、结果（作品页、历史结果页、布景页用）；只读元数据，不读图片本身
+export function useLibrary(): Library | undefined {
+  return useLiveQuery(async () => {
+    const d = db();
+    const [works, assets, tasks, results, approvals] = await Promise.all([
+      d.works.orderBy('updatedAt').reverse().toArray(),
+      d.assets.toArray(),
+      d.tasks.toArray(),
+      d.results.toArray(),
+      d.approvals.toArray(),
+    ]);
+    const [a, t, r] = [groupByWork(assets), groupByWork(tasks), groupByWork(results)];
+    const byId = new Map(approvals.map((x) => [x.id, x]));
+    return {
+      works: works.map((w) =>
+        deriveContext(w, a.get(w.id) ?? [], (w.approvalId && byId.get(w.approvalId)) || null, t.get(w.id) ?? [], r.get(w.id) ?? []),
+      ),
+      approvals,
+    };
+  }, []);
 }
 
 // 本地图片转成可显示的地址（client/blob-urls.ts 负责缓存和释放）

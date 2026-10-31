@@ -1,5 +1,5 @@
 import { GENERATION } from '@/config/budget';
-import { activeTasks, getApproval, getAsset, getBlob, logEvent, putTask, saveApproval, saveResult } from '@/data/repo';
+import { activeTasks, getApproval, getAsset, getBlob, getWork, logEvent, putTask, saveApproval, saveResult } from '@/data/repo';
 import { approvalStatus } from '@/domain/approval';
 import { retryCheck, roundSlots } from '@/domain/generation';
 import type { Approval, Id, Result, Task } from '@/domain/types';
@@ -77,7 +77,11 @@ async function referenceImages(approval: Approval): Promise<string[]> {
   return out;
 }
 
+// 作品已被删除时不再写回任务和结果，免得留下没有作品的记录
+const workGone = async (workId: Id) => !(await getWork(workId));
+
 async function fail(task: Task, error: string) {
+  if (await workGone(task.workId)) return;
   await putTask({ ...task, status: 'failed', error, updatedAt: now() });
   void logEvent('task_failed', task.workId, { round: task.round ?? null, slot: task.slot ?? null, error: error.slice(0, 80) });
 }
@@ -142,6 +146,7 @@ function poll(task: Task) {
 
 // 结果立刻存进本地数据库：网关只保留 1 小时，下载次数也有限
 async function collect(task: Task) {
+  if (await workGone(task.workId)) return;
   const blob = await downloadImageResult(task.gatewayId!, 0);
   const { width, height } = await imageSize(blob);
   const result: Result = {
