@@ -84,8 +84,8 @@ export function Composer({ busy, onSend, onFiles, onStop }: Props) {
           type="button"
           className="grid size-[30px] place-items-center rounded-full text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line-strong)] hover:text-ink hover:shadow-[inset_0_0_0_1px_var(--color-line-hover)]"
           aria-label="上传作品照片"
-          title="上传作品照片"
-          disabled={busy || uploading}
+          title={ctx.isGenerating ? '正在生成，等这一轮结束再加照片' : '上传作品照片'}
+          disabled={busy || uploading || ctx.isGenerating}
           onClick={() => fileRef.current?.click()}
         >
           <Icon name="plus" className="size-4" />

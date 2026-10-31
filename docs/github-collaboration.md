@@ -1,6 +1,6 @@
 # GitHub 协作与权限说明
 
-> 更新：2026-10-31。
+> 更新：2026-11-01。
 
 ## 公开协作方式
 
@@ -15,6 +15,7 @@
 - 仓库：[Fuuuuu24/handmade-ai-studio](https://github.com/Fuuuuu24/handmade-ai-studio)，公开，默认分支 `main`，Issue 已开启。
 - CODEOWNERS：`.github/CODEOWNERS` 指定 `@Fuuuuu24` 为所有文件的评审人；需配合分支保护中的「要求代码所有者评审」才生效。
 - Pull Request：#1—#5 已由所有者合并（2026-10-29 至 2026-10-30）。贡献者账号 `wh3474812446-design` 通过自己的 fork 提交。
+- 正式代码（M2）在贡献者本机的分支 `feat/m2-workbench` 上开发（2026-10-31 从 `origin/main` 拉出），每个检查点只在本地提交，**还没推送、没建 PR**；推送和建 PR 每次需发起人明确授权。
 - 分支保护：尚未配置。
 - Issue 模板、PR 模板和基础源码语法检查（`.github/workflows/source-checks.yml`）已纳入项目；该检查目前只覆盖旧 `原型/`，尚未覆盖 `原型-v2/`、`原型-v3/` 与 `正式代码/`。
 - 自定义许可证尚未选择；仓库公开不能表述为已经采用某项开源许可。
