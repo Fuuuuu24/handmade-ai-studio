@@ -3,36 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f8f7f4">
+  <meta name="theme-color" content="#ffffff">
   <meta name="description" content="一间，陪手作人把作品的故事变成商品主图。">
   <title>一间 · 手作影像工作台</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="app-shell">
-  <aside class="sidebar" aria-label="侧边栏">
+  <!-- 图标栏：收起 60px，悬停或键盘聚焦时展开显示文字（参考 Lovart） -->
+  <aside class="rail" aria-label="侧边栏">
     <button class="brand" data-action="go" data-view="works" aria-label="一间，回到作品列表">
-      <span class="brand-mark" aria-hidden="true">间</span>
-      <span class="brand-text">一间<small>HANDMADE STUDIO</small></span>
+      <span class="brand-mark" aria-hidden="true">间</span><span class="brand-text rail-label" aria-hidden="true">一间</span>
     </button>
-    <button class="btn btn-primary btn-block" data-action="new-work"><span aria-hidden="true">＋</span> 新建作品</button>
-    <nav class="side-nav" aria-label="主导航" id="side-nav"></nav>
-    <div class="side-section">
-      <div class="mono-label">RECENT · 最近作品</div>
-      <div id="recent-works" class="recent-works"></div>
-    </div>
-    <div class="side-foot">
-      <p><span class="dot dot-muted" aria-hidden="true"></span>数据只保存在此浏览器，清除浏览器数据会丢失记录。</p>
-      <button class="link-btn" data-action="open-intro">使用说明</button>
-    </div>
+    <button class="rail-item rail-new" data-action="new-work"><span class="rail-icon" data-icon="plus"></span><span class="rail-label">新建作品</span></button>
+    <nav class="rail-nav" aria-label="主导航" id="side-nav"></nav>
+    <button class="rail-item rail-foot" data-action="open-intro"><span class="rail-icon" data-icon="help"></span><span class="rail-label">使用说明</span></button>
   </aside>
 
   <div class="main-shell">
     <header class="topbar">
-      <nav class="breadcrumb" id="breadcrumb" aria-label="当前位置"></nav>
-      <div class="top-actions">
-        <div class="save-state" id="save-state" role="status" aria-live="polite"></div>
-        <button class="icon-btn" data-action="open-intro" aria-label="使用说明">?</button>
+      <div class="topbar-inner">
+        <div class="topbar-main" id="topbar-main"></div>
+        <div class="save-state" id="save-state" role="status" aria-live="polite" title="数据只保存在这个浏览器里，清除浏览器数据会丢失记录"></div>
       </div>
     </header>
     <main id="view" tabindex="-1"></main>
@@ -43,9 +35,9 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <dialog id="intro-dialog" aria-labelledby="intro-title">
-  <button class="dialog-close" data-action="close-dialog" aria-label="关闭">×</button>
-  <div class="mono-label">PROTOTYPE · v0.2</div>
+  <button class="dialog-close" data-action="close-dialog" aria-label="关闭" data-icon="close"></button>
   <h2 id="intro-title">一间小小的线上摄影间</h2>
+  <p class="dialog-sub">原型 v0.2</p>
   <p>这是按 PRD v0.2 做的本地交互原型，用来走通「资产 → 信息 → 共创 → 方案 → 出图」的流程。</p>
   <ul class="intro-list">
     <li><strong>未接入 AI。</strong>助手「小间」按固定规则引导；白底图只是把原图放到白底上，没有真实抠图；候选图是本地拼出的演示图，都会标注「演示」。</li>
@@ -64,12 +56,20 @@
   </div>
 </dialog>
 
+<dialog id="demo-dialog" aria-labelledby="demo-title">
+  <button class="dialog-close" data-action="close-dialog" aria-label="关闭" data-icon="close"></button>
+  <h2 id="demo-title">演示设置</h2>
+  <p class="dialog-sub">只在演示和试用时用，商家流程里不出现</p>
+  <div id="demo-body"></div>
+</dialog>
+
 <dialog id="lightbox" aria-label="大图查看">
-  <button class="dialog-close" data-action="close-dialog" aria-label="关闭">×</button>
+  <button class="dialog-close" data-action="close-dialog" aria-label="关闭" data-icon="close"></button>
   <div id="lightbox-body"></div>
 </dialog>
 
 <script src="js/core.js"></script>
+<script src="js/sample.js"></script>
 <script src="js/views.js"></script>
 <script src="js/app.js"></script>
 </body>
