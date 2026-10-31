@@ -1,0 +1,82 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect } from 'react';
+import { STEPS, type StepId } from '@/config/steps';
+import { mutateWork } from '@/client/work-store';
+import { workStatus, type StepState } from '@/domain/status';
+import { renameWork } from '@/domain/work';
+import { DraftInput } from '@/components/ui/draft-field';
+import { SaveStatusText } from './save-status';
+import { useWorkspace } from './context';
+
+const TONE_CLASS = { '': 'chip', warn: 'chip chip-warn', ok: 'chip chip-ok' } as const;
+
+// 顶栏：作品 / 名称（可直接改）· 状态，右侧细进度（v3 原型）
+export function Topbar({ states }: { states: Record<StepId, StepState> }) {
+  const { ctx, viewing, current, setViewing, workId } = useWorkspace();
+  const status = workStatus({
+    work: ctx.work,
+    assets: ctx.assets,
+    tasks: ctx.tasks,
+    results: ctx.results,
+    approval: ctx.approval,
+    current: ctx.snapshot,
+  });
+  useEffect(() => {
+    document.title = `${ctx.work.name} · 一间`;
+  }, [ctx.work.name]);
+
+  return (
+    <header className="flex h-12 shrink-0 items-center gap-1 px-4 pl-5 shadow-[0_1px_0_var(--color-line)]">
+      <nav aria-label="位置" className="flex min-w-0 items-center gap-1 text-body text-muted">
+        <Link href="/works" className="-ml-1.5 rounded-md px-1.5 py-0.5 hover:bg-soft hover:text-ink">
+          作品
+        </Link>
+        <span className="text-faint">/</span>
+        <DraftInput
+          aria-label="作品名称"
+          name="work-name"
+          className="h-7 min-w-12 max-w-[26ch] rounded-md bg-transparent px-1.5 text-body font-medium text-ink [field-sizing:content] hover:bg-soft focus:bg-white focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-ring)] focus:outline-none"
+          value={ctx.work.name}
+          onCommit={(v) => v.trim() && void mutateWork(workId, (c) => renameWork(c.work, v))}
+        />
+        <span className={`${TONE_CLASS[status.tone]} ml-1`}>{status.text}</span>
+      </nav>
+      <SaveStatusText />
+      <nav aria-label="流程进度" className="ml-auto flex items-center gap-0.5">
+        {STEPS.map((s) => {
+          const st = states[s.id];
+          const isCurrent = s.id === current;
+          const isViewing = s.id === viewing;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              aria-current={isViewing ? 'step' : undefined}
+              onClick={() => setViewing(s.id === current ? null : s.id)}
+              className={`inline-flex h-[26px] items-center gap-1.5 rounded-full px-2.5 text-aux transition-colors hover:bg-soft hover:text-ink ${
+                isViewing ? 'bg-fill font-medium text-ink' : isCurrent ? 'text-ink' : 'text-muted'
+              }`}
+            >
+              <i
+                aria-hidden="true"
+                className={`size-1.5 rounded-full ${
+                  isCurrent
+                    ? 'bg-accent shadow-[0_0_0_3px_var(--color-accent-ring)]'
+                    : st === 'done'
+                      ? 'bg-ink-2'
+                      : st === 'stale'
+                        ? 'bg-warn'
+                        : 'shadow-[inset_0_0_0_1.2px_var(--color-faint)]'
+                }`}
+              />
+              {s.name}
+              <span className="sr-only">{st === 'done' ? '（完成）' : st === 'stale' ? '（已失效）' : isCurrent ? '（当前）' : ''}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </header>
+  );
+}

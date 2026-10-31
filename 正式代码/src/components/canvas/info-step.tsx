@@ -1,0 +1,86 @@
+'use client';
+
+import { INFO_FIELDS, INFO_KEYS, INFO_REQUIRED, type InfoKey } from '@/config/info';
+import { mutateWork } from '@/client/work-store';
+import { infoReady } from '@/domain/info';
+import { acceptSuggestion, dismissSuggestion, markUnknown, setInfo } from '@/domain/work';
+import { DraftInput, DraftTextarea } from '@/components/ui/draft-field';
+import { useWorkspace } from '@/components/workspace/context';
+import { StepHead } from './canvas';
+
+const OPTIONAL: readonly InfoKey[] = ['price', 'audience'];
+
+function InfoRow({ k }: { k: InfoKey }) {
+  const { ctx, workId } = useWorkspace();
+  const field = ctx.work.info[k];
+  const required = (INFO_REQUIRED as readonly InfoKey[]).includes(k);
+  const missing = required && !field.value && !field.unknown;
+  const common = {
+    id: `info-${k}`,
+    name: k,
+    value: field.unknown ? '' : field.value,
+    placeholder: field.unknown ? '已标为未知' : INFO_FIELDS[k].placeholder,
+    disabled: field.unknown,
+    onCommit: (v: string) => void mutateWork(workId, (c) => setInfo(c.work, k, v)),
+    className: 'field',
+  };
+
+  return (
+    <div className="grid grid-cols-[96px_1fr] items-start gap-2.5 border-b border-line py-2 last:border-b-0">
+      <label htmlFor={`info-${k}`} className="flex flex-col gap-0.5 pt-1.5 text-aux text-muted">
+        {INFO_FIELDS[k].label}
+        {missing && <em className="text-label not-italic text-warn">需要你补</em>}
+        {OPTIONAL.includes(k) && <em className="text-label not-italic">选填</em>}
+      </label>
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-start gap-2">
+          {k === 'keep' ? <DraftTextarea {...common} rows={2} /> : <DraftInput {...common} />}
+          {required && (
+            <label className="mt-1.5 flex shrink-0 items-center gap-1 text-aux text-muted">
+              <input
+                type="checkbox"
+                checked={field.unknown}
+                onChange={(e) => void mutateWork(workId, (c) => markUnknown(c.work, k, e.target.checked))}
+              />
+              未知
+            </label>
+          )}
+        </div>
+        {field.suggestion && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg bg-accent-soft px-2.5 py-1.5 text-aux">
+            <span className="text-accent">小间建议</span>
+            <span className="text-ink">{field.suggestion.value}</span>
+            {field.suggestion.note && <span className="text-muted">（{field.suggestion.note}）</span>}
+            <span className="ml-auto flex gap-1.5">
+              <button type="button" className="mini-btn" onClick={() => void mutateWork(workId, (c) => acceptSuggestion(c.work, k))}>
+                接受
+              </button>
+              <button type="button" className="mini-btn" onClick={() => void mutateWork(workId, (c) => dismissSuggestion(c.work, k))}>
+                忽略
+              </button>
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 商品信息（PRD FR-03）：核心字段可标未知；小间写的只是建议，接受后才生效；售价与目标顾客选填
+export function InfoStep() {
+  const { ctx } = useWorkspace();
+  const ready = infoReady(ctx.work.info);
+  return (
+    <div>
+      <StepHead step="info">
+        <span className={ready ? 'chip chip-ok' : 'chip chip-warn'}>{ready ? '已填好' : '待补充'}</span>
+      </StepHead>
+      <div className="max-w-[640px] rounded-xl bg-white px-5 py-3">
+        {INFO_KEYS.map((k) => (
+          <InfoRow key={k} k={k} />
+        ))}
+      </div>
+      <p className="mt-3 text-aux text-muted">改动材料、尺寸或不能改的细节后，已经写好的提示词和批准需要重新确认。</p>
+    </div>
+  );
+}

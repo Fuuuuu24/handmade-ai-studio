@@ -197,6 +197,7 @@ export interface Task {
   model: string;
   status: TaskStatus;
   gatewayId?: string;
+  ledgerId?: string; // 服务端账本里的记录，内容被拦截不收费时据此退回
   costUSD?: number;
   error?: string;
   createdAt: number;

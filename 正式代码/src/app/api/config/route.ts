@@ -1,0 +1,18 @@
+import { CHAT_MODELS, DEFAULT_CHAT_MODEL, DEFAULT_IMAGE_MODEL, IMAGE_MODELS } from '@/config/models';
+import { errorResponse } from '@/server/errors';
+import { budgetSummary } from '@/server/ledger';
+
+// 可选模型与预算余量（不含密钥）。读账本文件，每次请求都实时计算
+export async function GET() {
+  try {
+    return Response.json({
+      configured: Boolean(process.env.AIHUBMIX_API_KEY?.trim()),
+      chatModels: CHAT_MODELS.map(({ id, label, vision }) => ({ id, label, vision })),
+      imageModels: IMAGE_MODELS.map(({ id, label, perImageUSD }) => ({ id, label, perImageUSD })),
+      defaults: { chatModel: DEFAULT_CHAT_MODEL, imageModel: DEFAULT_IMAGE_MODEL },
+      budget: await budgetSummary(),
+    });
+  } catch (e) {
+    return errorResponse(e);
+  }
+}

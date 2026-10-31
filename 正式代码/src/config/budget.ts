@@ -12,3 +12,10 @@ export const BUDGET = {
 };
 
 export const CANDIDATES_PER_ROUND = 2;
+
+// 生图任务轮询：网关建议 15 秒查一次，这里取 6 秒让界面更及时；等太久按失败处理，可补齐
+export const GENERATION = {
+  pollMs: 6000,
+  timeoutMs: 10 * 60 * 1000,
+  maxPollErrors: 10, // 连续查询失败（断网等）超过这个次数才判失败
+};
