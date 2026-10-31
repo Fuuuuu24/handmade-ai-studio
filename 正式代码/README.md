@@ -1,5 +1,21 @@
 # 正式代码
 
-本目录存放产品的正式实现。目前尚无代码，技术栈与架构待确定。
+产品的正式实现（M2）。Next.js 项目，包名 `yijian`。
 
-可交互原型见 [`../原型/`](../原型/)。原型用于验证流程与交互，不等同于正式实现；原型代码不应直接复制为正式代码而不经评审。
+- **状态（2026-10-31）**：[技术写法](../docs/tech-design.md) v0.2 已确认，按其第 10 节顺序开发中。
+- **技术栈**：Next.js 16 + React 19 + TypeScript + Tailwind 4 + shadcn/ui + motion + Vercel AI SDK 7；Dexie（IndexedDB）；Vitest、Playwright、ESLint、Prettier。版本见技术写法第 1 节。
+- **注意**：Next.js 16 与 AI SDK 7 有破坏性变化，写法以 `node_modules/next/dist/docs/`、`node_modules/ai/docs/` 的本地文档为准。`AGENTS.md` 由 Next.js 自动生成，`next dev` 会重新写入，不要删。
+
+## 运行
+
+需要 Node.js 24。
+
+```sh
+npm install
+npm run dev      # http://localhost:3000
+npm run lint
+```
+
+密钥写在本目录 `.env.local`：`AIHUBMIX_API_KEY=...`。该文件不入库，也不要写进代码、文档或对话。
+
+原型（`../原型-v3/` 布局与交互、`../原型-v2/` 业务规则）用于对照，不应未经评审直接复制为正式代码。
