@@ -307,7 +307,8 @@
 
 - 已完成：create-next-app 生成空项目（因目录名为中文，在临时目录以包名 `yijian` 生成后移入）；安装全部依赖（`@types/node` 升到 24 以满足 Vitest 5 的要求）；AIHubMix 密钥放在 `.env.local`（权限 600，已确认被 .gitignore 忽略）。
 - 技术写法 `docs/tech-design.md` v0.2 已确认（2026-10-31）；按其第 10 节顺序开发，分支 `feat/m2-workbench`（从 `origin/main` 拉出），检查点本地提交。
-- 未开始：业务代码、测试、shadcn 初始化、React Bits 组件接入、CI 覆盖（随检查点推进更新本条）。
+- 检查点 1（数据层与规则层）已完成：`src/config/`（信息字段、风格选项、内置布景、比例、上传限制、预算、步骤名）、`src/domain/`（类型、快照与差异、批准条件、提示词状态与手改核对、生成与补齐、作品状态、风格冲突、花费，作品修改全部为纯函数）、`src/data/`（Dexie 表结构、读写、保存状态）。验证：`npm test` 55 个单元测试通过（含 fake-indexeddb 存储测试；做过一次变异检查确认测试能抓到规则被破坏），`npm run typecheck`、`npm run lint` 通过。
+- 未开始：界面、接口、小间、shadcn 初始化、React Bits 组件接入、CI 覆盖（随检查点推进更新本条）。
 - AIHubMix 账户（用户的 Google 账号登录）：已开通异步任务（用户本人同意《异步数据存储协议》）；专用密钥 `handmade-m1-probe` 额度 8 美元、已用 1.48；账户余额约 2.26 美元，**余额 6 个月过期**，充值需用户本人操作。
 
 
