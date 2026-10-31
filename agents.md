@@ -291,9 +291,20 @@
 │  ├─ styles.css         # 沿用 v2 第三次改版的视觉规范；图标栏、面包屑、作品／布景／结果页样式原样复制自 v2
 │  ├─ js/sample.js       # 同 v2 的自制耳饰示意图
 │  └─ js/app.js          # 剧本、对话卡片、画布、作品／我的风格／摄影布景／历史结果页、事件
-└─ 正式代码/            # 正式代码（Next.js，M2）；技术写法见 docs/tech-design.md
-   ├─ package.json      # 包名 yijian；Next.js 16 + AI SDK 7 等依赖（2026-10-31 安装）
-   ├─ src/app/          # 仍是脚手架默认页面，尚无业务代码
+└─ 正式代码/            # 正式代码（Next.js，M2）；技术写法见 docs/tech-design.md，各目录内容与完成情况见 docs/handoff.md 第 6 节
+   ├─ package.json      # 包名 yijian；脚本：dev、build、lint、test（vitest）、typecheck（next typegen + tsc）
+   ├─ vitest.config.mts # 单元测试配置（server-only 换成空模块）
+   ├─ src/
+   │  ├─ domain/        # 业务规则（纯函数，有单元测试）：类型、快照与差异、批准条件、提示词状态、生成与补齐、作品状态、风格冲突、花费、作品修改操作
+   │  ├─ config/        # 模型清单与价格、预算、布景模版、风格选项、比例、上传限制、步骤名、资产路线默认值
+   │  ├─ data/          # 浏览器本地数据库（Dexie，10 张表）、读写、保存状态
+   │  ├─ server/        # 仅服务端：AIHubMix 网关、中文错误、花费账本
+   │  ├─ agent/         # 小间：工具定义、系统规则、作品状态摘要、浏览器端执行器
+   │  ├─ client/        # 浏览器端流程：生图、照片处理、修改排队、对话请求内容、数据钩子
+   │  ├─ components/    # 界面：首页、工作区（顶栏、对话、批准卡片、画布五步）、弹窗与图标栏（已写未接入）
+   │  ├─ app/           # 路由：首页、/works/[id]；接口 /api/chat、/api/images、/api/images/[id]、/api/images/[id]/content、/api/config
+   │  └─ test/          # 测试用样例
+   ├─ data/ledger.json  # 服务端花费账本（运行时生成，不入库）
    ├─ AGENTS.md         # Next.js 自动生成的代理提示（next dev 会重新写入，勿删）
    ├─ README.md         # 正式代码说明
    └─ .env.local        # AIHubMix 密钥（不入库）
@@ -320,7 +331,7 @@
   - 已写、尚未接入：`src/components/ui/dialog.tsx`（统一弹窗 `Modal`、确认弹窗 `ConfirmProvider`／`useConfirm`）、`src/components/shell/app-shell.tsx`（图标栏、使用说明弹窗）。
   - 接入前必须先改：`AppShell` 里直接调用了 `usePathname`。挂到根布局后，遇到 `/works/[id]` 这类动态路由会挂起，构建会失败。要把导航拆成单独组件，包进 `<Suspense>`，加载时先显示不带高亮的导航（见 `node_modules/next/dist/docs/01-app/03-api-reference/04-functions/use-pathname.md`「Cache Components」）。之后在 `src/app/layout.tsx` 用 `<AppShell>` 包住页面。
   - 还没做：作品页 `/works`、我的风格 `/style`、摄影布景 `/scenes`、历史结果 `/history`、顶栏删除作品（用 `useConfirm`）、资产页把浏览器自带的 `window.confirm` 换成 `useConfirm`、历史结果点图跳到作品的出图步骤（`?step=output`）。
-- 未开始：检查点 4–8（画布细节、白底两种做法与抠图选型、小间其余工具与模型切换细节、布景／风格／对比／导出／试用记录、全流程测试），shadcn 与 React Bits 组件，CI 覆盖。
+- 未开始：检查点 4–8（画布细节、白底两种做法与抠图选型、小间其余工具与模型切换细节、布景／风格／对比／导出／试用记录、全流程测试），shadcn 与 React Bits 组件，CI 覆盖。小间还缺 7 个工具（技术写法第 6 节）：`offer_picks` 推荐方向卡片、`note_feedback` 记录验收意见、`retry_candidate` 补齐、`propose_scene_save` 提议存布景、`propose_shop_style` 提议改我的风格、`make_white_asset` 做白底、`set_image_model` 换生图模型。
 - AIHubMix 账户（用户的 Google 账号登录）：已开通异步任务（用户本人同意《异步数据存储协议》）；专用密钥 `handmade-m1-probe` 额度 8 美元、已用 1.48；账户余额约 2.26 美元，**余额 6 个月过期**，充值需用户本人操作。
 
 
@@ -387,7 +398,7 @@ npm start
 
 `原型-v2/`、`原型-v3/` 同样无需依赖：进入对应目录运行 `npm start`，默认地址分别为 `http://127.0.0.1:4174`、`http://127.0.0.1:4175`；也可以直接用浏览器打开各自的 `index.html`。
 
-`正式代码/`（需 Node.js 24）：进入目录运行 `npm install`、`npm run dev`，默认地址 `http://localhost:3000`；目前只有脚手架默认页面。密钥放 `正式代码/.env.local`（`AIHUBMIX_API_KEY=...`），不入库。
+`正式代码/`（需 Node.js 24）：进入目录运行 `npm install`、`npm run dev`，默认地址 `http://localhost:3000`；首页和作品工作区可用，会真实调用对话和生图模型（花钱，受 `src/config/budget.ts` 上限约束）。检查：`npm test`、`npm run typecheck`、`npm run lint`。密钥放 `正式代码/.env.local`（`AIHUBMIX_API_KEY=...`），不入库。
 
 ## 最近变更
 

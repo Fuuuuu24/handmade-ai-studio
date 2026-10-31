@@ -1,6 +1,6 @@
 # 交接文档
 
-> 更新：2026-10-31。给下一位接手的人或代理：先读本文，再按需查 [agents.md](../agents.md)（完整上下文与决策沿革）和 [PRD](PRD.md)。
+> 更新：2026-11-01。给下一位接手的人或代理：先读本文，再按需查 [agents.md](../agents.md)（完整上下文与决策沿革）和 [PRD](PRD.md)。
 
 ## 1. 一句话现状
 
@@ -69,7 +69,26 @@
 | `原型-v3/` | 对话为主的布局原型（演示剧本，未接模型）——**正式界面照它做** | 已定稿 |
 | `原型-v2/` | 表单驱动的完整流程原型——**业务规则参考**（快照、批准失效、冲突检测） | 已定稿 |
 | `原型/` | 最早的原型，缺 `app.js`，不可用 | 废弃 |
-| `正式代码/` | Next.js 项目（包名 `yijian`） | 开发中 |
+| `正式代码/` | Next.js 项目（包名 `yijian`），目录见下表 | 开发中 |
+
+### 正式代码目录（2026-11-01，约 87 个文件、6,600 行，72 个单元测试）
+
+| 目录 | 内容 | 状态 |
+| --- | --- | --- |
+| `src/domain/` | 业务规则，全部是纯函数，界面和小间共用：批准条件、方案快照与差异（改选填的售价不失效）、提示词状态（没写／过期／手改待核对／有矛盾／有效）、生成与补齐上限（一版批准生成一轮，每张最多补齐 2 次）、作品状态、风格冲突、花费检查、作品的全部修改操作（小间写信息只能是建议、总结只能是草稿） | 完成，有单元测试 |
+| `src/config/` | 模型清单与价格估算（对话：Qwen 3.8 Flash 默认、DeepSeek 看图实验版；生图：Seedream 5.0 Lite 默认、Gemini 3.1 Flash 图像、GPT Image 2、Qwen Image 3.0）、预算与次数上限、4 套布景模版、风格选项、比例、上传限制、步骤名、资产路线默认值 | 完成 |
+| `src/data/` | 浏览器本地数据库（10 张表：作品、照片、图片、对话、任务、结果、批准、布景、我的风格、试用事件）；原图不覆盖；保存状态（保存中／已保存／失败可重试） | 完成，有单元测试 |
+| `src/server/`、`src/app/api/` | AIHubMix 网关（对话走兼容接口，生图走原生异步任务）、网关错误转中文、花费账本（先按估价记账，超预算拒绝；内容被拦截时退回）；5 个接口：`chat`、`images`、`images/[id]`、`images/[id]/content`、`config` | 完成，账本有单元测试 |
+| `src/agent/` | 小间：11 个工具定义、系统规则、作品状态摘要、浏览器端执行器（违反硬规则时拒绝并说明原因） | 主链完成，还缺 7 个工具（见下） |
+| `src/client/` | 生图流程（批准即生成、两张各自提交、轮询、完成后立刻存本地、补齐、刷新后恢复不重复提交）、照片处理（缩略图、参考图压缩，原图原样保存）、同一作品的修改排队、对话请求内容、数据钩子 | 完成 |
+| `src/components/`、`src/app/` | 首页（输入框、布景模版）；工作区（顶栏、对话面板、批准卡片、画布五步：资产／信息／共创／方案／出图）；统一弹窗、图标栏 | 首页和工作区完成；弹窗、图标栏已写未接入 |
+
+**还没写：**
+
+- 页面：作品 `/works`、我的风格 `/style`、摄影布景 `/scenes`、历史结果 `/history`；删除作品；图标栏接入（先把导航包进 Suspense，见 agents.md 检查点 3）。
+- 白底图的两种做法与抠图选型（资产路线默认暂为 B，接入后恢复 A，见 `src/config/route.ts`）。
+- 小间还缺的工具：`offer_picks` 推荐方向卡片、`note_feedback` 记录验收意见、`retry_candidate` 补齐、`propose_scene_save` 提议存布景、`propose_shop_style` 提议改我的风格、`make_white_asset` 做白底、`set_image_model` 换生图模型。
+- 两版对比、导出完善与试用记录导出、React Bits 动效组件、Playwright 全流程测试、CI 检查。
 
 ## 7. 下一步
 
@@ -93,3 +112,23 @@
   - Qwen Image 3.0 较弱。
 - **提示词要写明**：整件饰品完整入框并留边距、保持闭合、不添加原图看不到的结构。白底图常常不能完整入框，而 A 路线（先白底再场景）会把白底的好坏传给所有模型。
 - **浏览器自动化**：用发起人的日常 Chrome（chrome-devtools）时，只开自己的标签页，用完就关。在发起人账户里新建凭据、替发起人同意协议，会被 Claude Code 的权限规则拦截，必须由发起人本人操作或明确再授权。
+- **chrome-devtools 只能读写系统临时目录**（`$TMPDIR`）：截图和要上传的测试照片都要放在那里，放 `/tmp` 会被拒绝。建议用隔离标签页（`isolatedContext`）测试，本地数据干净，也不影响发起人的浏览器。
+
+2026-11-01 开发中新踩的坑：
+
+- **AIHubMix 生图接口**：
+  - 提交用 `POST /ai/v1/images/generations`，带 `async: true`。
+  - 轮询用 `GET /ai/v1/images/{id}`，状态有 pending、in_progress、completed、failed、cancelled 五种。
+  - 完成后带密钥下载 `output[].content_url`。结果约 1 小时过期，下载次数有限。
+  - 各模型参数以 `https://aihubmix.com/call/schema/models/{模型}/endpoints` 为准：Gemini、Seedream 用比例，GPT、Qwen 用像素尺寸。Qwen 要关掉 `prompt_extend`，否则会改写提示词。
+  - 按张计价的模型（Seedream、Qwen）价格在 aihubmix.com 的模型页上，公开模型接口里没有。
+- **模型能力以实测为准**：`deepseek-v4-flash` 在模型目录里标了能看图，但带图请求返回 404（没有支持图片的通道），改用 `deepseek-v4-flash-vision-exp`。
+- **Seedream 默认在图右下角加「AI生成」字样**，提示词里写不要水印也没用；关不关等发起人决定。
+- **AI SDK 7**：工具要声明 `outputSchema`，`addToolOutput` 的类型才对得上；流式响应用 `createUIMessageStreamResponse` 加 `toUIMessageStream`，`result.toUIMessageStreamResponse` 已废弃。
+- **Next 16 开启了 cacheComponents**：读浏览器数据的页面要包 `<Suspense>` 并调用 `use(browser())`；`useParams`、`usePathname` 在动态路由上会挂起，不包 Suspense 构建会失败。类型检查前要先跑 `next typegen`（`npm run typecheck` 已包含）。
+- **React 写法**：
+  - `useEffect(() => 注册函数(...))` 如果注册函数有返回值，会被当成清理函数调用，这次因此崩溃过，要写成带花括号的函数体。
+  - 对话面板每次挂载都要从数据库现读记录，内容变了才保存；否则会用旧的初始记录覆盖数据库，这次因此丢过一次对话。
+  - lint 不允许在副作用里同步设置状态、不允许在渲染时改 ref。编辑框用 `components/ui/draft-field.tsx`，本地图片显示用 `client/blob-urls.ts`。
+- **开发模式热更新会让对话面板重新挂载**：正在进行的对话会中断，改浏览器端代码前先等小间说完。
+- **本机网络很慢**（TLS 握手 18–35 秒，疑似代理）：对话一轮 14–70 秒、生图约 4 分钟。这是网络问题，不是代码问题；网络正常时要复测速度。
