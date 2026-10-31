@@ -2,13 +2,13 @@
 
 import { RATIOS, RATIO_NOTES } from '@/config/ratios';
 import { BUILTIN_SCENES } from '@/config/scenes';
-import { NO_PROPS, STYLE_KEYS, STYLE_LABELS, STYLE_OPTIONS, type StyleKey } from '@/config/style';
+import { NO_PROPS, STYLE_KEYS, STYLE_LABELS, STYLE_OPTIONS, TONE_OPTIONS, type StyleKey } from '@/config/style';
 import { mutateWork } from '@/client/work-store';
 import { approvalStatus, promptStatus } from '@/domain/approval';
 import { styleConflicts } from '@/domain/conflicts';
 import { styleValuesOf } from '@/domain/snapshot';
 import type { StyleSource } from '@/domain/types';
-import { applyScene, editPrompt, markPromptChecked, revertPrompt, setRatio, setStyle } from '@/domain/work';
+import { applyScene, cancelRevision, editPrompt, markPromptChecked, revertPrompt, setRatio, setStyle } from '@/domain/work';
 import { ApproveButton } from '@/components/plan/approve-button';
 import { DraftInput, DraftTextarea } from '@/components/ui/draft-field';
 import { BlockerList } from '@/components/plan/plan-summary';
@@ -22,11 +22,16 @@ const SOURCE_TAG: Partial<Record<StyleSource, [string, string]>> = {
   shop: ['我的风格', 'text-muted'],
 };
 
+const toneSwatch = (name: string) => TONE_OPTIONS.find((t) => t.name === name)?.colors;
+
+// 有常用选项的项：选项胶囊＋行末「自己描述」小输入框，输入框只显示选项以外的说法（v2 第三次改版已确认）；
+// 道具、禁止出现、表达没有选项，用整行输入
 function StyleRow({ k, locked }: { k: StyleKey; locked: boolean }) {
   const { ctx, workId } = useWorkspace();
   const v = ctx.work.style[k];
   const options = STYLE_OPTIONS[k] ?? [];
   const tag = v.value ? SOURCE_TAG[v.source] : undefined;
+  const custom = v.value && !options.includes(v.value) ? v.value : '';
   const set = (value: string) => void mutateWork(workId, (c) => setStyle(c.work, k, value, 'user'));
 
   return (
@@ -42,24 +47,47 @@ function StyleRow({ k, locked }: { k: StyleKey; locked: boolean }) {
         )}
       </div>
       <div className="flex flex-col gap-2">
-        {options.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {options.map((o) => (
-              <button key={o} type="button" className="choice" aria-pressed={v.value === o} disabled={locked} onClick={() => set(o)}>
-                {o}
-              </button>
-            ))}
+        {options.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {options.map((o) => {
+              const swatch = k === 'tone' ? toneSwatch(o) : undefined;
+              return (
+                <button key={o} type="button" className="choice gap-2" aria-pressed={v.value === o} disabled={locked} onClick={() => set(o)}>
+                  {swatch && (
+                    <span className="inline-flex overflow-hidden rounded-sm" aria-hidden="true">
+                      {swatch.map((c) => (
+                        <i key={c} className="h-3 w-2" style={{ background: c }} />
+                      ))}
+                    </span>
+                  )}
+                  {o}
+                </button>
+              );
+            })}
+            <DraftInput
+              id={`style-${k}`}
+              name={k}
+              className={`h-7 min-w-28 max-w-full rounded-full bg-white px-3 text-body [field-sizing:content] placeholder:text-placeholder focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-ring)] focus:outline-none disabled:bg-canvas ${
+                custom ? 'shadow-[inset_0_0_0_1.5px_var(--color-ink)]' : 'shadow-[inset_0_0_0_1px_var(--color-line-strong)] hover:shadow-[inset_0_0_0_1px_var(--color-line-hover)]'
+              }`}
+              disabled={locked}
+              placeholder="自己描述"
+              title="选项里没有的说法写在这里"
+              value={custom}
+              onCommit={(text) => text.trim() !== custom && set(text)}
+            />
           </div>
+        ) : (
+          <DraftInput
+            id={`style-${k}`}
+            name={k}
+            className="field"
+            disabled={locked}
+            placeholder={k === 'props' ? NO_PROPS : k === 'banned' ? '比如：花、玻璃器皿' : '用自己的话描述'}
+            value={v.value}
+            onCommit={(text) => text.trim() !== v.value && set(text)}
+          />
         )}
-        <DraftInput
-          id={`style-${k}`}
-          name={k}
-          className="field"
-          disabled={locked}
-          placeholder={k === 'props' ? NO_PROPS : k === 'banned' ? '比如：花、玻璃器皿' : options.length ? '或者用自己的话描述' : '用自己的话描述'}
-          value={v.value}
-          onCommit={(text) => text.trim() !== v.value && set(text)}
-        />
         {v.reason && v.source === 'recommend' && <p className="text-label text-muted">理由：{v.reason}</p>}
       </div>
     </div>
@@ -114,6 +142,12 @@ function PromptSection({ locked }: { locked: boolean }) {
             {ps.kind === 'missing' ? '让小间写' : '让小间重写'}
           </button>
         )}
+        {/* 小间不可用时也能继续（AC-11.6）：自己对照改动，确认提示词仍然适用 */}
+        {ps.kind === 'stale' && (
+          <button type="button" className="btn btn-ghost btn-sm" disabled={locked} onClick={() => void mutateWork(workId, (c) => markPromptChecked(c.work, c.basis))}>
+            我核对过，仍然适用
+          </button>
+        )}
         {(ps.kind === 'unchecked' || ps.kind === 'conflict') && (
           <>
             <button type="button" className="btn btn-outline btn-sm" disabled={busy || locked} onClick={() => askAgent('我改了提示词，帮我核对一下和方案是否一致')}>
@@ -134,6 +168,24 @@ function PromptSection({ locked }: { locked: boolean }) {
   );
 }
 
+// 正在从某张结果修改（AC-09.4）：说明来源，可以取消、恢复修改前的方案
+function RevisionNote() {
+  const { ctx, workId } = useWorkspace();
+  const rev = ctx.work.revision;
+  if (!rev) return null;
+  const from = ctx.results.find((r) => r.id === rev.fromResultId);
+  return (
+    <div className="-mt-2 flex items-center gap-3 rounded-lg bg-white px-3.5 py-2.5 text-aux text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line)]">
+      <span className="min-w-0 flex-1">
+        正在修改{from ? `第 ${from.round} 轮候选 ${from.slot + 1}` : '一张旧结果'}{rev.reasons.length ? `（不满意：${rev.reasons.join('、')}）` : ''}，已恢复那一版的方案。改好后重新批准，原结果会保留。
+      </span>
+      <button type="button" className="btn btn-quiet btn-sm" disabled={ctx.isGenerating} onClick={() => void mutateWork(workId, (c) => cancelRevision(c.work))}>
+        取消修改
+      </button>
+    </div>
+  );
+}
+
 // 方案（PRD FR-05、FR-07、FR-08）：风格卡与对话是同一份数据；批准绑定快照，改动后旧批准失效
 export function PlanStep() {
   const { ctx, workId } = useWorkspace();
@@ -150,6 +202,7 @@ export function PlanStep() {
       </StepHead>
       {ap.kind === 'stale' && <p className="-mt-3 text-aux text-warn">批准后改了：{ap.changed.join('、')}。需要重新批准才能生成。</p>}
       {locked && <p className="-mt-3 text-aux text-muted">正在生成这一轮，方案锁定中。</p>}
+      <RevisionNote />
 
       <section className="flex flex-col gap-2">
         <h3 className="text-block font-semibold">摄影布景</h3>

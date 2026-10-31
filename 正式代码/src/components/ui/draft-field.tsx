@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type InputHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { useState, type InputHTMLAttributes, type Ref, type TextareaHTMLAttributes } from 'react';
 
 /* 编辑中的输入框：聚焦时才有本地草稿，失焦时提交；不聚焦时直接显示数据库里的最新值。
    小间同时改了同一个字段时，不会覆盖用户正在输入的内容。 */
@@ -21,11 +21,18 @@ function useDraft(value: string, onCommit: (v: string) => void) {
 
 type Common = { value: string; onCommit: (v: string) => void };
 
-export function DraftInput({ value, onCommit, onKeyDown, ...rest }: Common & Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'onBlur' | 'onFocus'>) {
+export function DraftInput({
+  value,
+  onCommit,
+  onKeyDown,
+  ref,
+  ...rest
+}: Common & { ref?: Ref<HTMLInputElement> } & Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'onBlur' | 'onFocus'>) {
   const d = useDraft(value, onCommit);
   return (
     <input
       {...rest}
+      ref={ref}
       value={d.value}
       onFocus={d.onFocus}
       onChange={d.onChange}

@@ -4,7 +4,9 @@ import { imageEstimate, imageModel } from '@/config/models';
 import { RATIOS } from '@/config/ratios';
 import { imageCostCheck } from '@/domain/cost';
 import { submitImage } from '@/server/aihubmix';
+import { fakeGateway } from '@/server/env';
 import { errorResponse, GatewayError } from '@/server/errors';
+import { submitFake } from '@/server/fake-images';
 import { attachRef, refund, reserve } from '@/server/ledger';
 
 const Body = z.object({
@@ -28,6 +30,11 @@ export async function POST(req: Request) {
     const estUSD = imageEstimate(model, input.images.length);
     const cap = imageCostCheck(estUSD, BUDGET.maxImageUSD);
     if (!cap.ok) return Response.json({ error: { code: 'over_image_cap', message: cap.reason } }, { status: 400 });
+
+    if (fakeGateway()) {
+      const fake = submitFake(input.prompt, input.ratio);
+      return Response.json({ gatewayId: fake.id, status: fake.status, estUSD: 0, ledgerId: '' });
+    }
 
     const entry = await reserve('image', model.id, estUSD);
     ledgerId = entry.id;

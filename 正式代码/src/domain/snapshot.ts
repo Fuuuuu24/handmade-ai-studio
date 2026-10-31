@@ -46,6 +46,12 @@ export const snapshotOf = (work: Work, assets: readonly Asset[], maxRefs: number
   count: CANDIDATES_PER_ROUND,
 });
 
+// 快照里属于提示词依据的部分（去掉提示词原文和候选数量）
+export function basisOfSnapshot(s: Snapshot): Basis {
+  const { references, route, info, summary, style, sceneId, ratio, imageModel } = s;
+  return { references, route, info, summary, style, sceneId, ratio, imageModel };
+}
+
 const BASIS_PARTS: [keyof Basis, string][] = [
   ['references', '参考图'],
   ['route', '资产路线'],

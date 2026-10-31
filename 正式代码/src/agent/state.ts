@@ -94,6 +94,12 @@ export function stateSummary(i: SummaryInput): string {
   else if (ap.kind === 'stale') lines.push(`批准：第 ${i.approval.version} 版已失效，批准后改了：${ap.changed.join('、')}`);
   else lines.push(`批准：第 ${i.approval.version} 版有效${i.approval.usedRound != null ? `，已用于第 ${i.approval.usedRound} 轮生成` : '，还没生成'}`);
 
+  if (work.revision) {
+    const from = i.results.find((r) => r.id === work.revision!.fromResultId);
+    const reasons = work.revision.reasons.length ? `（用户指出的问题：${work.revision.reasons.join('、')}）` : '';
+    lines.push(`正在从${from ? `第 ${from.round} 轮候选 ${from.slot + 1}` : '一张旧结果'}修改${reasons}：方案已恢复成那一版，改好后请用户重新批准`);
+  }
+
   const blockers = approvalBlockers(work, i.assets, i.basis, i.isGenerating);
   lines.push(`批准前还缺：${blockers.length ? blockers.map((b) => b.text).join('；') : '无，可以请用户批准'}`);
 

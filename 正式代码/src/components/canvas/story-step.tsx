@@ -18,8 +18,9 @@ const EMPTY: StorySummary = { express: '', feel: '', avoid: '' };
 
 // 共创（PRD FR-04）：小间在对话里追问并起草三项总结，确认只能由用户点（PRD 4.2 第 3 条）
 export function StoryStep() {
-  const { ctx, workId, askAgent, busy } = useWorkspace();
+  const { ctx, workId, askAgent, busy, setViewing } = useWorkspace();
   const { story } = ctx.work;
+  const locked = ctx.isGenerating; // 总结锁进了批准快照，生成中不能改
   const summary = story.summary ?? EMPTY;
   // 每项单独提交，基于数据库里的最新总结，不会覆盖小间刚改的其他项
   const savePart = (k: keyof StorySummary, v: string) =>
@@ -33,6 +34,7 @@ export function StoryStep() {
   return (
     <div className="flex max-w-[640px] flex-col gap-5">
       <StepHead step="story">{stateChip}</StepHead>
+      {locked && <p className="-mt-3 text-aux text-muted">正在生成这一轮，共创总结暂时锁定。</p>}
 
       <section className="flex flex-col gap-2">
         <h3 className="text-block font-semibold">共创记录</h3>
@@ -60,20 +62,23 @@ export function StoryStep() {
             <label htmlFor={`sum-${k}`} className="text-aux text-muted">
               {label}
             </label>
-            <DraftTextarea id={`sum-${k}`} name={k} rows={2} className="field" placeholder={placeholder} value={summary[k]} onCommit={(v) => savePart(k, v)} />
+            <DraftTextarea id={`sum-${k}`} name={k} rows={2} className="field" placeholder={placeholder} disabled={locked} value={summary[k]} onCommit={(v) => savePart(k, v)} />
           </div>
         ))}
         <div className="flex items-center gap-2.5 pt-1">
           <button
             type="button"
             className="btn btn-primary btn-sm"
-            disabled={!summary.express.trim() || story.summaryState === 'confirmed'}
-            onClick={() => void mutateWork(workId, (c) => confirmSummary(c.work))}
+            disabled={!summary.express.trim() || story.summaryState === 'confirmed' || locked}
+            onClick={async () => {
+              await mutateWork(workId, (c) => confirmSummary(c.work));
+              setViewing(null);
+            }}
           >
             {story.summaryState === 'confirmed' ? '总结已确认' : '确认总结'}
           </button>
           {story.summaryState !== 'none' && (
-            <button type="button" className="btn btn-quiet btn-sm" disabled={busy} onClick={() => askAgent('总结不太对，我们再聊聊，重新整理一下')}>
+            <button type="button" className="btn btn-quiet btn-sm" disabled={busy || locked} onClick={() => askAgent('总结不太对，我们再聊聊，重新整理一下')}>
               让小间重新整理
             </button>
           )}

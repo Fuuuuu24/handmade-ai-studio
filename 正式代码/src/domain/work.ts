@@ -3,12 +3,15 @@ import type { Ratio } from '@/config/ratios';
 import { STYLE_KEYS, type StyleKey } from '@/config/style';
 import { approvalBlockers, generationBlockers, type Blocker } from './approval';
 import { emptyInfo } from './info';
+import { basisOfSnapshot } from './snapshot';
 import type {
   Approval,
   Asset,
   Basis,
   Id,
   InfoField,
+  PromptState,
+  Result,
   Route,
   SceneParams,
   Snapshot,
@@ -195,6 +198,33 @@ export function revertPrompt(w: Work): Work {
   });
 }
 
+/* ---------- 从指定版本修改（AC-09.4） ---------- */
+
+// 恢复那一版批准时的风格、布景、比例、生图模型和提示词；商品信息、共创总结和照片是作品本身的事实，保持现在的。
+// 之后改过商品信息等依据时，恢复的提示词会被判为过期，需要重写或确认
+export function reviseFrom(w: Work, result: Result, approval: Approval): Work {
+  const text = approval.snapshot.prompt;
+  const basis = basisOfSnapshot(approval.snapshot);
+  const style = { ...w.style };
+  for (const k of STYLE_KEYS) {
+    const v = approval.snapshot.style[k] ?? '';
+    if (style[k].value !== v) style[k] = { value: v, source: 'user' };
+  }
+  const prompt: PromptState = { text, basis, author: 'agent', edited: false, sync: 'ok', conflicts: [], original: { text, basis }, at: Date.now() };
+  // 连着从几张修改时，取消要回到最初的方案
+  const prev = w.revision?.prev ?? { style: w.style, sceneId: w.sceneId, ratio: w.ratio, imageModel: w.imageModel, prompt: w.prompt };
+  return touch(w, {
+    style,
+    sceneId: approval.snapshot.sceneId,
+    ratio: approval.snapshot.ratio,
+    imageModel: approval.snapshot.imageModel,
+    prompt,
+    revision: { fromResultId: result.id, reasons: [...result.issues], prev },
+  });
+}
+
+export const cancelRevision = (w: Work) => (w.revision ? touch(w, { ...w.revision.prev, revision: undefined }) : w);
+
 /* ---------- 批准与生成 ---------- */
 
 export type ApproveResult = { ok: true; work: Work; approval: Approval } | { ok: false; blockers: Blocker[] };
@@ -210,6 +240,7 @@ export function approve(w: Work, assets: readonly Asset[], current: Snapshot, is
     at: Date.now(),
     snapshot: current,
     usedRound: null,
+    parentResultId: w.revision?.fromResultId ?? null,
   };
   return { ok: true, work: touch(w, { approvalId: approval.id, approvalCount: approval.version }), approval };
 }
@@ -221,7 +252,7 @@ export function startRound(w: Work, approval: Approval | null, current: Snapshot
   const reasons = generationBlockers(approval, current, isGenerating);
   if (reasons.length || !approval) return { ok: false, reasons: reasons.length ? reasons : ['方案还没批准'] };
   const round = w.round + 1;
-  return { ok: true, work: touch(w, { round }), approval: { ...approval, usedRound: round }, round };
+  return { ok: true, work: touch(w, { round, revision: undefined }), approval: { ...approval, usedRound: round }, round };
 }
 
 export const addCost = (w: Work, usd: number) => touch(w, { costUSD: Math.round((w.costUSD + usd) * 1e6) / 1e6 });

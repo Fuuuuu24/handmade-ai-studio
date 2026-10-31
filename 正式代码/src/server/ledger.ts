@@ -26,11 +26,11 @@ interface LedgerFile {
   entries: LedgerEntry[];
 }
 
-// 同一进程内串行读写，避免两次请求同时改文件
-let chain: Promise<unknown> = Promise.resolve();
+// 同一进程内串行读写，避免两次请求同时改文件。锁放在 globalThis 上：各接口各自加载本模块时也共用同一把锁
+const lock = ((globalThis as { __yijianLedgerLock?: { chain: Promise<unknown> } }).__yijianLedgerLock ??= { chain: Promise.resolve() });
 function locked<T>(fn: () => Promise<T>): Promise<T> {
-  const run = chain.then(fn, fn);
-  chain = run.catch(() => undefined);
+  const run = lock.chain.then(fn, fn);
+  lock.chain = run.catch(() => undefined);
   return run;
 }
 

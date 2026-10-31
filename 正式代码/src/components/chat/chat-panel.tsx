@@ -20,6 +20,7 @@ interface Props {
   registerSend: (fn: (text: string) => void) => void;
   onBusyChange: (busy: boolean) => void;
   onShowStep: (step: StepId) => void;
+  onUserSend: () => void; // 用户发了消息：画布跟回当前步骤
 }
 
 // 每次挂载都从本地数据库读最新的对话，再交给对话会话；不用上层缓存的旧记录，避免把旧记录写回去覆盖新内容
@@ -49,7 +50,7 @@ export function ChatPanel(props: Props) {
   return <ChatSession key={workId} initialMessages={loaded.messages} {...props} />;
 }
 
-function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep }: Props & { initialMessages: AgentUIMessage[] }) {
+function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, onUserSend }: Props & { initialMessages: AgentUIMessage[] }) {
   const { workId } = useWorkspace();
   const savedRef = useRef(JSON.stringify(initialMessages));
   const autoSteps = useRef(0);
@@ -132,9 +133,10 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep }
     (text: string, assetIds: string[] = []) => {
       setCapHit(false);
       setRetries(0);
+      onUserSend();
       post(text, assetIds);
     },
-    [post],
+    [post, onUserSend],
   );
 
   // 用花括号包住：注册函数的返回值不能被 React 当成清理函数

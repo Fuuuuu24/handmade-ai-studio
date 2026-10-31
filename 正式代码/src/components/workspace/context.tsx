@@ -13,7 +13,7 @@ export interface WorkspaceValue {
   configError: string | null;
   viewing: StepId;
   current: StepId;
-  setViewing: (step: StepId | null) => void;
+  setViewing: (step: StepId | null) => void; // null：跟着当前该做的一步走
   askAgent: (text: string) => void; // 画布上的「让小间……」按钮通过它发消息
   busy: boolean; // 小间正在回复
 }

@@ -128,6 +128,14 @@ export interface Approval {
   at: number;
   snapshot: Snapshot;
   usedRound: number | null; // 每次批准只能发起一轮生成
+  parentResultId?: Id | null; // 这版方案是从哪张结果改出来的（AC-09.4）
+}
+
+// 从某张结果修改（AC-09.4）：记下父结果，以及修改前的方案，取消时恢复
+export interface Revision {
+  fromResultId: Id;
+  reasons: string[]; // 当时验收指出的问题
+  prev: Pick<Work, 'style' | 'sceneId' | 'ratio' | 'imageModel' | 'prompt'>;
 }
 
 /* ---------- 作品 ---------- */
@@ -152,6 +160,7 @@ export interface Work {
   approvalCount: number;
   round: number; // 已发起的生成轮数
   costUSD: number; // 这件作品累计花费（对话＋生图），试用记录用
+  revision?: Revision; // 正在从某张结果修改；开始生成后清掉
 }
 
 /* ---------- 素材 ---------- */
@@ -194,6 +203,7 @@ export interface Task {
   slot?: number;
   sourceAssetId?: Id; // 白底任务的来源图
   attempt: number; // 第几次尝试，补齐时加一
+  parentResultId?: Id; // 这一轮是从哪张结果改出来的，结果记为它的子版本
   model: string;
   status: TaskStatus;
   gatewayId?: string;

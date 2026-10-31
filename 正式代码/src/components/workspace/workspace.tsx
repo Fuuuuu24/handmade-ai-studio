@@ -27,6 +27,7 @@ export function Workspace({ ctx, initialStep = null }: { ctx: WorkContext; initi
   });
   const current = currentStep(states);
   const askAgent = useCallback((text: string) => sendRef.current(text), []);
+  const followCurrent = useCallback(() => setPicked(null), []);
 
   const value: WorkspaceValue = useMemo(
     () => ({
@@ -55,6 +56,7 @@ export function Workspace({ ctx, initialStep = null }: { ctx: WorkContext; initi
             }}
             onBusyChange={setBusy}
             onShowStep={setPicked}
+            onUserSend={followCurrent}
           />
           <Canvas />
         </div>

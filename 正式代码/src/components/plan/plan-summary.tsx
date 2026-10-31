@@ -62,7 +62,7 @@ export function PlanSummary({ compact = false }: { compact?: boolean }) {
 }
 
 export function BlockerList() {
-  const { ctx, setViewing } = useWorkspace();
+  const { ctx, setViewing, viewing } = useWorkspace();
   const blockers = approvalBlockers(ctx.work, ctx.assets, ctx.basis, ctx.isGenerating);
   if (!blockers.length) return null;
   return (
@@ -70,9 +70,11 @@ export function BlockerList() {
       {blockers.map((b) => (
         <li key={b.text} className="flex items-center gap-2">
           <span>还缺：{b.text}</span>
-          <button type="button" className="text-ink-2 underline decoration-line-hover underline-offset-2 hover:text-ink" onClick={() => setViewing(b.step)}>
-            去{STEPS.find((s) => s.id === b.step)?.name}
-          </button>
+          {b.step !== viewing && (
+            <button type="button" className="text-ink-2 underline decoration-line-hover underline-offset-2 hover:text-ink" onClick={() => setViewing(b.step)}>
+              去{STEPS.find((s) => s.id === b.step)?.name}
+            </button>
+          )}
         </li>
       ))}
     </ul>

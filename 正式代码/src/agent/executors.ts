@@ -22,8 +22,8 @@ export interface ExecDeps {
 const refuse = (message: string): ToolOutput => ({ ok: false, message });
 const done = (message: string, changes?: string[]): ToolOutput => ({ ok: true, message, changes });
 
-// 生成中锁定方案：改风格、比例、提示词要等这一轮结束（技术写法第 5 节第 7 条）
-const LOCKED_WHILE_GENERATING: ToolName[] = ['set_style', 'apply_scene', 'set_ratio', 'draft_prompt', 'resolve_prompt_sync'];
+// 生成中锁定方案：改风格、比例、提示词、共创总结要等这一轮结束（技术写法第 5 节第 7 条）
+const LOCKED_WHILE_GENERATING: ToolName[] = ['draft_summary', 'set_style', 'apply_scene', 'set_ratio', 'draft_prompt', 'resolve_prompt_sync'];
 
 // 修改经 mutateWork 排队执行，读到的总是最新的作品
 async function change(workId: string, fn: (ctx: WorkContext) => Work): Promise<void> {

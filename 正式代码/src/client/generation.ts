@@ -28,6 +28,7 @@ function newTask(workId: Id, approval: Approval, round: number, slot: number, at
     round,
     slot,
     attempt,
+    parentResultId: approval.parentResultId ?? undefined,
     model: approval.snapshot.imageModel,
     status: 'queued',
     createdAt: now(),
@@ -119,12 +120,11 @@ function poll(task: Task) {
           st = await getImageTaskStatus(task.gatewayId!, task.ledgerId);
           errors = 0;
         } catch (e) {
-          const transient = e instanceof ApiCallError && (e.code === 'network' || (e.status ?? 0) >= 500);
-          if (transient && ++errors < GENERATION.maxPollErrors) continue;
+          if (isTransient(e) && ++errors < GENERATION.maxPollErrors) continue;
           throw e;
         }
         if (st.status === 'completed') {
-          await collect(task);
+          await collectWithRetry(task);
           return;
         }
         if (st.status === 'failed' || st.status === 'cancelled') {
@@ -137,11 +137,30 @@ function poll(task: Task) {
         }
       }
     } catch (e) {
-      await fail(task, `查询生成结果失败：${errorText(e)}`);
+      await fail(task, e instanceof DownloadError ? e.message : `查询生成结果失败：${errorText(e)}`);
     } finally {
       polling.delete(task.id);
     }
   })();
+}
+
+const isTransient = (e: unknown) => e instanceof ApiCallError && (e.code === 'network' || (e.status ?? 0) >= 500);
+
+class DownloadError extends Error {}
+
+// 图片已经生成（已扣费），取回时遇到临时错误就再试几次，免得让商家花钱补齐；仍然失败时如实说明
+async function collectWithRetry(task: Task) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await collect(task);
+      return;
+    } catch (e) {
+      if (!isTransient(e) || attempt >= GENERATION.downloadTries) {
+        throw new DownloadError(`生成好了，但取回图片失败：${errorText(e)}（网关只保留 1 小时，可以补齐这一张）`);
+      }
+      await sleep(GENERATION.pollMs);
+    }
+  }
 }
 
 // 结果立刻存进本地数据库：网关只保留 1 小时，下载次数也有限
@@ -162,6 +181,7 @@ async function collect(task: Task) {
     verdict: { real: 'none', style: 'none' },
     issues: [],
     note: '',
+    parentId: task.parentResultId,
     createdAt: now(),
     exports: [],
   };

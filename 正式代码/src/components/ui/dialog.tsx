@@ -7,7 +7,17 @@ import { Icon } from './icon';
    替代浏览器自带的 confirm（样式不统一，也会挡住自动化测试）。
    打开时聚焦带 data-autofocus 的元素：弹窗内容早已挂载，React 的 autoFocus 只在首次挂载时生效。 */
 
-export function Modal({ open, onClose, title, sub, children, labelledBy }: { open: boolean; onClose: () => void; title: string; sub?: string; children: ReactNode; labelledBy?: string }) {
+interface ModalProps {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  sub?: string;
+  children: ReactNode;
+  labelledBy?: string;
+  wide?: boolean; // 看图、对照用的宽版
+}
+
+export function Modal({ open, onClose, title, sub, children, labelledBy, wide = false }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const id = labelledBy ?? `dlg-${title}`;
   useEffect(() => {
@@ -27,7 +37,7 @@ export function Modal({ open, onClose, title, sub, children, labelledBy }: { ope
       onClick={(e) => {
         if (e.target === ref.current) onClose(); // 点遮罩关闭
       }}
-      className="m-auto w-[min(92vw,440px)] rounded-xl bg-white p-6 text-ink shadow-pop backdrop:bg-black/25"
+      className={`m-auto ${wide ? 'w-[min(94vw,1080px)]' : 'w-[min(92vw,440px)]'} rounded-xl bg-white p-6 text-ink shadow-pop backdrop:bg-black/25`}
     >
       <button type="button" className="icon-btn absolute right-3.5 top-3.5" aria-label="关闭" onClick={onClose}>
         <Icon name="close" />

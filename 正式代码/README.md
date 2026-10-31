@@ -12,8 +12,10 @@
 
 ```sh
 npm install
-npm run dev      # http://localhost:3000
-npm run lint
+npm run dev                    # http://localhost:3000，真实调用模型（花钱）
+FAKE_GATEWAY=1 npm run dev     # 生图走假网关：不花钱，图片是测试图（只在开发环境生效）
+npm test                       # 单元测试
+npm run typecheck && npm run lint
 ```
 
 密钥写在本目录 `.env.local`：`AIHUBMIX_API_KEY=...`。该文件不入库，也不要写进代码、文档或对话。

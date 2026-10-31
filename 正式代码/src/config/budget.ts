@@ -18,4 +18,5 @@ export const GENERATION = {
   pollMs: 6000,
   timeoutMs: 10 * 60 * 1000,
   maxPollErrors: 10, // 连续查询失败（断网等）超过这个次数才判失败
+  downloadTries: 3, // 生成好了但取回图片遇到临时错误时最多试几次；网关每个文件最多下载 3 次
 };

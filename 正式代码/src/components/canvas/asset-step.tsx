@@ -77,7 +77,7 @@ function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
 
 // 资产（PRD FR-02）：多张参考图、类型标注、对照检查后确认才可用；原图始终保留
 export function AssetStep() {
-  const { ctx, workId } = useWorkspace();
+  const { ctx, workId, setViewing } = useWorkspace();
   const uploads = activeUploads(ctx.assets, workId);
   const fileRef = useRef<HTMLInputElement>(null);
   const [notes, setNotes] = useState<string[]>([]);
@@ -126,7 +126,10 @@ export function AssetStep() {
               type="button"
               className="btn btn-primary"
               disabled={ctx.work.assetsConfirmed || locked}
-              onClick={() => void mutateWork(workId, (c) => confirmAssets(c.work))}
+              onClick={async () => {
+                await mutateWork(workId, (c) => confirmAssets(c.work));
+                setViewing(null);
+              }}
             >
               {ctx.work.assetsConfirmed ? '资产已确认' : '确认资产'}
             </button>

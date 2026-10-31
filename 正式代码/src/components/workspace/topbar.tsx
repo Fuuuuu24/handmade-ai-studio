@@ -61,6 +61,22 @@ function DeleteWork() {
   );
 }
 
+// 服务状态（AC-08.6）：开发用的假网关、或服务端没配密钥时明确标出，不把测试图当 AI 生成
+function ServiceNote() {
+  const { config } = useWorkspace();
+  if (config?.fake) {
+    return (
+      <span className="chip chip-warn ml-2" title="开发用的假生图网关：生成的是测试图，不调用模型、不花钱">
+        测试网关 · 图片非 AI 生成
+      </span>
+    );
+  }
+  if (config && !config.configured) {
+    return <span className="chip chip-bad ml-2">模型服务未配置</span>;
+  }
+  return null;
+}
+
 export function Topbar({ states }: { states: Record<StepId, StepState> }) {
   const { ctx, viewing, current, setViewing, workId } = useWorkspace();
   const status = workStatus({
@@ -92,6 +108,7 @@ export function Topbar({ states }: { states: Record<StepId, StepState> }) {
         <StatusChip text={status.text} tone={status.tone} className="ml-1" />
       </nav>
       <SaveStatusText />
+      <ServiceNote />
       <nav aria-label="流程进度" className="ml-auto flex items-center gap-0.5">
         {STEPS.map((s) => {
           const st = states[s.id];

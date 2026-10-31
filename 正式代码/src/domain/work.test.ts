@@ -1,21 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { builtinScene } from '@/config/scenes';
-import { current, currentBasis, promptedWork, readyWork } from '@/test/fixtures';
+import { current, currentBasis, promptedWork, readyWork, result } from '@/test/fixtures';
+import { approvalStatus, promptStatus } from './approval';
+import type { Approval, Asset, Work } from './types';
 import {
   acceptSuggestion,
   addCost,
   applyScene,
   approve,
+  cancelRevision,
   confirmSummary,
   dismissSuggestion,
   draftSummary,
   editPrompt,
   editSummary,
+  markPromptChecked,
   markUnknown,
   newWork,
   renameWork,
+  reviseFrom,
   revertPrompt,
   setInfo,
+  setRatio,
   setRoute,
   setStyle,
   startRound,
@@ -117,6 +123,85 @@ describe('批准与生成', () => {
     expect(r2.approval.version).toBe(2);
     const s2 = startRound(r2.work, r2.approval, current(r2.work, assets), false);
     expect(s2.ok && s2.round).toBe(2);
+  });
+});
+
+describe('提示词过期后由用户确认（AC-07.2a、AC-11.6）', () => {
+  it('依据变了标过期；用户核对后确认仍然适用，依据更新为当前', () => {
+    const { work, assets } = promptedWork();
+    const changed = setStyle(work, 'light', '暖调午后光', 'user');
+    expect(promptStatus(changed, currentBasis(changed, assets))).toEqual({ kind: 'stale', changed: ['光线'] });
+    const checked = markPromptChecked(changed, currentBasis(changed, assets));
+    expect(promptStatus(checked, currentBasis(checked, assets))).toEqual({ kind: 'ok' });
+  });
+});
+
+// 生成一轮后，取第 1 轮第 2 张结果，便于测「从这一版修改」
+function generatedOnce(): { work: Work; assets: Asset[]; approval: Approval } {
+  const { work, assets } = promptedWork();
+  const a = approveOk(work, assets);
+  const s = startRound(a.work, a.approval, current(a.work, assets), false);
+  if (!s.ok) throw new Error('应当可以生成');
+  return { work: s.work, assets, approval: s.approval };
+}
+
+function approveOk(work: Work, assets: Asset[]) {
+  const r = approve(work, assets, current(work, assets), false);
+  if (!r.ok) throw new Error(`应当可以批准：${r.blockers.map((b) => b.text).join('；')}`);
+  return r;
+}
+
+describe('从指定版本修改（AC-09.4）', () => {
+  it('恢复那一版的风格、布景、比例、生图模型和提示词；商品信息、共创总结和照片保持现在的', () => {
+    const { work, assets, approval } = generatedOnce();
+    const r = { ...result(work.id, 1, 1), approvalId: approval.id, issues: ['光线'] };
+    let w = setStyle(work, 'light', '窗边侧光', 'user');
+    w = setRatio(w, '3:4');
+    w = setInfo(w, 'price', '128 元');
+    const revised = reviseFrom(w, r, approval);
+    expect(revised.style.light.value).toBe(approval.snapshot.style.light);
+    expect(revised.ratio).toBe(approval.snapshot.ratio);
+    expect(revised.prompt?.text).toBe(approval.snapshot.prompt);
+    expect(revised.info.price.value).toBe('128 元');
+    expect(revised.revision).toMatchObject({ fromResultId: r.id, reasons: ['光线'] });
+    // 恢复后和那一版一模一样：旧批准重新有效，提示词有效
+    expect(approvalStatus(approval, current(revised, assets)).kind).toBe('valid');
+    expect(promptStatus(revised, currentBasis(revised, assets)).kind).toBe('ok');
+  });
+
+  it('那一版之后改过商品信息：恢复的提示词标为过期，需要重写或确认', () => {
+    const { work, assets, approval } = generatedOnce();
+    const w = setInfo(work, 'material', '纯银');
+    const revised = reviseFrom(w, result(work.id, 1, 0), approval);
+    expect(revised.info.material.value).toBe('纯银');
+    expect(promptStatus(revised, currentBasis(revised, assets))).toEqual({ kind: 'stale', changed: ['商品信息'] });
+  });
+
+  it('取消修改恢复修改前的方案；连着从两张修改，取消回到最初', () => {
+    const { work, approval } = generatedOnce();
+    const before = setStyle(setRatio(work, '9:16'), 'tone', '深墨对比', 'user');
+    const once = reviseFrom(before, result(work.id, 1, 0), approval);
+    const twice = reviseFrom(setRatio(once, '3:4'), result(work.id, 1, 1), approval);
+    expect(twice.revision?.fromResultId).not.toBe(once.revision?.fromResultId);
+    const back = cancelRevision(twice);
+    expect(back.ratio).toBe('9:16');
+    expect(back.style.tone).toEqual(before.style.tone);
+    expect(back.prompt).toEqual(before.prompt);
+    expect(back.revision).toBeUndefined();
+    expect(cancelRevision(back)).toBe(back);
+  });
+
+  it('批准时记下父结果；开始生成后修改记录清掉', () => {
+    const { work, assets, approval } = generatedOnce();
+    const r = result(work.id, 1, 0);
+    const changed = setStyle(reviseFrom(work, r, approval), 'props', '一段丝带', 'user');
+    const revised = markPromptChecked(changed, currentBasis(changed, assets));
+    const a = approveOk(revised, assets);
+    expect(a.approval.parentResultId).toBe(r.id);
+    const s = startRound(a.work, a.approval, current(a.work, assets), false);
+    if (!s.ok) throw new Error('应当可以生成');
+    expect(s.work.revision).toBeUndefined();
+    expect(approveOk(s.work, assets).approval.parentResultId).toBeNull();
   });
 });
 

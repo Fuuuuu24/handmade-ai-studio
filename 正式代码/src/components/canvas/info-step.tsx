@@ -1,6 +1,6 @@
 'use client';
 
-import { INFO_FIELDS, INFO_KEYS, INFO_REQUIRED, type InfoKey } from '@/config/info';
+import { INFO_CORE, INFO_FIELDS, INFO_KEYS, INFO_REQUIRED, type InfoKey } from '@/config/info';
 import { mutateWork } from '@/client/work-store';
 import { infoReady } from '@/domain/info';
 import { acceptSuggestion, dismissSuggestion, markUnknown, setInfo } from '@/domain/work';
@@ -15,12 +15,14 @@ function InfoRow({ k }: { k: InfoKey }) {
   const field = ctx.work.info[k];
   const required = (INFO_REQUIRED as readonly InfoKey[]).includes(k);
   const missing = required && !field.value && !field.unknown;
+  // 核心信息锁进了批准快照，生成中不能改；售价、目标顾客不影响生成，随时可改
+  const locked = ctx.isGenerating && (INFO_CORE as readonly InfoKey[]).includes(k);
   const common = {
     id: `info-${k}`,
     name: k,
     value: field.unknown ? '' : field.value,
     placeholder: field.unknown ? '已标为未知' : INFO_FIELDS[k].placeholder,
-    disabled: field.unknown,
+    disabled: field.unknown || locked,
     onCommit: (v: string) => void mutateWork(workId, (c) => setInfo(c.work, k, v)),
     className: 'field',
   };
@@ -40,6 +42,7 @@ function InfoRow({ k }: { k: InfoKey }) {
               <input
                 type="checkbox"
                 checked={field.unknown}
+                disabled={locked}
                 onChange={(e) => void mutateWork(workId, (c) => markUnknown(c.work, k, e.target.checked))}
               />
               未知
@@ -52,7 +55,7 @@ function InfoRow({ k }: { k: InfoKey }) {
             <span className="text-ink">{field.suggestion.value}</span>
             {field.suggestion.note && <span className="text-muted">（{field.suggestion.note}）</span>}
             <span className="ml-auto flex gap-1.5">
-              <button type="button" className="mini-btn" onClick={() => void mutateWork(workId, (c) => acceptSuggestion(c.work, k))}>
+              <button type="button" className="mini-btn" disabled={locked} onClick={() => void mutateWork(workId, (c) => acceptSuggestion(c.work, k))}>
                 接受
               </button>
               <button type="button" className="mini-btn" onClick={() => void mutateWork(workId, (c) => dismissSuggestion(c.work, k))}>
@@ -75,6 +78,7 @@ export function InfoStep() {
       <StepHead step="info">
         <span className={ready ? 'chip chip-ok' : 'chip chip-warn'}>{ready ? '已填好' : '待补充'}</span>
       </StepHead>
+      {ctx.isGenerating && <p className="-mt-2 mb-3 text-aux text-muted">正在生成这一轮，品类、材料、尺寸和不能改的细节暂时锁定。</p>}
       <div className="max-w-[640px] rounded-xl bg-white px-5 py-3">
         {INFO_KEYS.map((k) => (
           <InfoRow key={k} k={k} />

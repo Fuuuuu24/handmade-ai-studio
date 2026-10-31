@@ -7,7 +7,7 @@ import { useWorkspace } from '@/components/workspace/context';
 
 // 「批准并生成两张」：批准只能由用户在界面上操作产生（PRD 4.2 第 1 条），小间没有对应工具
 export function ApproveButton({ className = '' }: { className?: string }) {
-  const { ctx, workId } = useWorkspace();
+  const { ctx, workId, setViewing } = useWorkspace();
   const [pending, setPending] = useState(false);
   const [reasons, setReasons] = useState<string[]>([]);
   const blockers = approvalBlockers(ctx.work, ctx.assets, ctx.basis, ctx.isGenerating);
@@ -24,6 +24,7 @@ export function ApproveButton({ className = '' }: { className?: string }) {
           try {
             const r = await approveAndGenerate(workId);
             if (!r.ok) setReasons(r.reasons);
+            else setViewing(null); // 跟到出图，看生成进度
           } catch (e) {
             setReasons([e instanceof Error ? e.message : String(e)]);
           } finally {

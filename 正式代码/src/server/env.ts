@@ -10,3 +10,6 @@ export function apiKey(): string {
 }
 
 export const ledgerPath = () => process.env.LEDGER_PATH || path.join(process.cwd(), 'data', 'ledger.json');
+
+// 假网关：只给开发和自动化测试用，生产环境即使设了也不生效（server/fake-images.tsx）
+export const fakeGateway = () => process.env.FAKE_GATEWAY === '1' && process.env.NODE_ENV !== 'production';
