@@ -95,6 +95,8 @@ export async function POST(req: Request) {
       tools: agentTools,
       reasoning: model.reasoning,
       maxOutputTokens: BUDGET.chat.maxOutputTokens,
+      // 对话超时（PRD 7.3）：模型一直不回时如实报错，界面可重试，不让「正在思考」一直转
+      timeout: { totalMs: BUDGET.chat.totalMs, firstChunkMs: BUDGET.chat.firstChunkMs },
       onEnd: async ({ totalUsage }) => {
         await settle(entry.id, chatCost(model.pricing, { inputTokens: totalUsage.inputTokens ?? 0, outputTokens: totalUsage.outputTokens ?? 0 }));
       },
@@ -105,7 +107,8 @@ export async function POST(req: Request) {
         stream: result.stream,
         originalMessages: messages,
         messageMetadata: ({ part }): MessageMeta | undefined => {
-          if (part.type === 'start') return { model: model.id, modelLabel: model.label };
+          // 每次请求开始把花费清零、结束时写本次花费，浏览器在 onFinish 里把它加进作品（技术写法第 2 节）
+          if (part.type === 'start') return { model: model.id, modelLabel: model.label, costUSD: 0 };
           if (part.type === 'finish') {
             return {
               costUSD: chatCost(model.pricing, {

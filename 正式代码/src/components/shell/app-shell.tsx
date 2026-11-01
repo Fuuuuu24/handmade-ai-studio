@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Suspense, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useState, type ReactNode } from 'react';
+import { resumeActiveTasks } from '@/client/generation';
+import { exportTrialRecord } from '@/client/trial';
 import { ConfirmProvider, Modal } from '@/components/ui/dialog';
 import { Icon, type IconName } from '@/components/ui/icon';
 
@@ -42,6 +44,11 @@ function CurrentNav() {
 // 图标栏（沿用 v2／v3）：收起 60px 只显示图标，悬停或键盘聚焦时展开到 196px、盖在内容上
 export function AppShell({ children }: { children: ReactNode }) {
   const [help, setHelp] = useState(false);
+  const [resumeProblem, setResumeProblem] = useState<string | null>(null);
+  // 打开任何页面都接着查询没结束的生成任务（网关结果只保留 1 小时），不只在工作区里（PRD 7.3）
+  useEffect(() => {
+    resumeActiveTasks().catch((e: unknown) => setResumeProblem(`没能接着查询上次的生成任务：${e instanceof Error ? e.message : String(e)}`));
+  }, []);
   return (
     <ConfirmProvider>
       <div className="h-full">
@@ -69,7 +76,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className={label}>使用说明</span>
           </button>
         </aside>
-        <main className="ml-[60px] flex h-full min-w-0 flex-col">{children}</main>
+        <main className="ml-[60px] flex h-full min-w-0 flex-col">
+          {resumeProblem && (
+            <p role="alert" className="bg-bad-bg px-5 py-2 text-aux text-bad">
+              {resumeProblem}（刷新页面再试）
+            </p>
+          )}
+          {children}
+        </main>
       </div>
       <Modal open={help} onClose={() => setHelp(false)} title="使用说明" sub="一间 · 手作影像工作台">
         <ul className="flex list-disc flex-col gap-1.5 pl-4 text-body leading-relaxed text-ink-2">
@@ -86,6 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <strong className="text-ink">数据只存在这台电脑的这个浏览器里。</strong>换电脑或换浏览器看不到；清除浏览器数据会丢失作品。照片和对话会发给模型服务（经 AIHubMix）用于生成。
           </li>
         </ul>
+        <TrialExport />
         <div className="mt-5 flex justify-end">
           <button type="button" className="btn btn-primary" onClick={() => setHelp(false)} data-autofocus>
             知道了
@@ -93,5 +108,31 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </Modal>
     </ConfirmProvider>
+  );
+}
+
+// 试用记录（PRD 6.2）：商家点一下下载 CSV，发给发起人；只含匿名编号和统计，不含作品名、照片和聊天原文
+function TrialExport() {
+  const [state, setState] = useState<string | null>(null);
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3 text-aux text-muted">
+      <span>试用中：</span>
+      <button
+        type="button"
+        className="text-ink-2 underline decoration-line-hover underline-offset-2 hover:text-ink"
+        onClick={async () => {
+          try {
+            const r = await exportTrialRecord();
+            setState(`已导出 ${r.works} 件作品的记录${r.missedEvents ? `；本次打开后有 ${r.missedEvents} 条事件没记上` : ''}，请把文件发给发起人`);
+          } catch (e) {
+            setState(`没有导出：${e instanceof Error ? e.message : String(e)}`);
+          }
+        }}
+      >
+        导出试用记录
+      </button>
+      <span>（只有统计和匿名编号，不含照片和聊天内容）</span>
+      {state && <p className="w-full text-ink-2" role="status">{state}</p>}
+    </div>
   );
 }

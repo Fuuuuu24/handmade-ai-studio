@@ -8,6 +8,9 @@ export const BUDGET = {
     maxSteps: 8, // 单轮里小间最多连续调用几次工具
     maxOutputTokens: 1500,
     retries: 2, // 对话失败后界面上的重试次数
+    // 超时：本机网络慢时一轮要 14—70 秒（交接文档第 9 节），留足余量；超时后如实报错，可重试
+    firstChunkMs: 75_000,
+    totalMs: 150_000,
   },
 };
 

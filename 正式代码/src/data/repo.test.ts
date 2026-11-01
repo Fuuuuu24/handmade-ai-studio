@@ -71,6 +71,31 @@ describe('作品', () => {
   });
 });
 
+describe('对话', () => {
+  it('不会用更短的旧记录覆盖已保存的对话', async () => {
+    const w = fresh();
+    await saveWork(w);
+    await saveMessages(w.id, [{ id: 'm1' }, { id: 'm2' }]);
+    await expect(saveMessages(w.id, [{ id: 'm1' }])).rejects.toThrow('没有覆盖');
+    expect(await loadMessages(w.id)).toHaveLength(2);
+    await saveMessages(w.id, [{ id: 'm1' }, { id: 'm2b' }, { id: 'm3' }]);
+    expect(await loadMessages(w.id)).toHaveLength(3);
+  });
+});
+
+describe('结果', () => {
+  it('同一个任务的结果只存一份（两个标签页同时轮询时）', async () => {
+    const w = fresh();
+    await saveWork(w);
+    const t = { ...task(w.id, 1, 0, 'succeeded') };
+    await saveResult(t, { ...result(w.id, 1, 0), taskId: t.id }, new Blob([new Uint8Array(10)]));
+    const second = { ...result(w.id, 1, 0), taskId: t.id };
+    await saveResult(t, second, new Blob([new Uint8Array(10)]));
+    expect(await listResults(w.id)).toHaveLength(1);
+    expect(await getBlob(second.blobId)).toBeUndefined();
+  });
+});
+
 describe('素材：原图始终保留（PRD 4.2 第 5 条）', () => {
   it('上传后原图和缩略图都能取回', async () => {
     const w = fresh();
@@ -100,6 +125,18 @@ describe('素材：原图始终保留（PRD 4.2 第 5 条）', () => {
     expect(all.find((x) => x.id === a.id)?.removed).toBe(true);
     expect(all.find((x) => x.id === wb.id)).toMatchObject({ origin: 'white', parentId: a.id, method: 'matting' });
     expect((await getBlob(a.blobId))?.size).toBe(100);
+  });
+});
+
+describe('对话', () => {
+  it('不会用更短的旧记录覆盖已保存的对话', async () => {
+    const w = fresh();
+    await saveWork(w);
+    await saveMessages(w.id, [{ id: 'm1' }, { id: 'm2' }]);
+    await expect(saveMessages(w.id, [{ id: 'm1' }])).rejects.toThrow('没有覆盖');
+    expect(await loadMessages(w.id)).toHaveLength(2);
+    await saveMessages(w.id, [{ id: 'm1' }, { id: 'm2b' }, { id: 'm3' }]);
+    expect(await loadMessages(w.id)).toHaveLength(3);
   });
 });
 

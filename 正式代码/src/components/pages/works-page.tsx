@@ -17,7 +17,7 @@ import { EmptyState, PageFrame, PageLoading } from './page-frame';
 function coverOf(c: WorkContext): string | null {
   const results = [...c.results].sort((a, b) => b.createdAt - a.createdAt);
   const result = results.find(passed) ?? results[0];
-  if (result) return result.blobId;
+  if (result) return result.thumbId ?? result.blobId;
   return activeUploads(c.assets, c.work.id)[0]?.thumbId ?? null;
 }
 

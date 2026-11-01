@@ -12,6 +12,8 @@ import { chatErrorMessage, chatRequestBody } from '@/client/chat-body';
 import { takeFirstMessage } from '@/client/first-message';
 import { addPhotos } from '@/client/uploads';
 import { loadMessages, saveMessages } from '@/data/repo';
+import { mutateWork } from '@/client/work-store';
+import { addCost } from '@/domain/work';
 import { useWorkspace } from '@/components/workspace/context';
 import { Composer } from './composer';
 import { MessageView } from './message-view';
@@ -77,6 +79,12 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
       }
       autoSteps.current += 1;
       return true;
+    },
+    // 对话花费累加进作品（试用记录的累计成本）；中止或出错的请求没有结束信息，服务端账本仍按估价记全
+    onFinish({ message, isAbort, isError }) {
+      const cost = message.metadata?.costUSD;
+      if (isAbort || isError || !cost) return;
+      void mutateWork(workId, (c) => addCost(c.work, cost)).catch((e) => console.error('对话花费没记上', e));
     },
     async onToolCall({ toolCall }) {
       if (toolCall.dynamic) return;

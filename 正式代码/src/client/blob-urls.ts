@@ -7,6 +7,7 @@ interface Entry {
   url: string | null; // null 表示正在读取或图片不存在
   refs: number;
   loading: boolean;
+  failed: boolean; // 读不出来或本地找不到：界面要如实说明，不能一直空着
   timer?: ReturnType<typeof setTimeout>;
 }
 
@@ -22,11 +23,12 @@ export function subscribeBlobUrls(fn: () => void) {
 }
 
 export const blobUrlSnapshot = (id: string | null | undefined) => (id ? (entries.get(id)?.url ?? null) : null);
+export const blobFailedSnapshot = (id: string | null | undefined) => (id ? (entries.get(id)?.failed ?? false) : false);
 
 export function acquireBlobUrl(id: string) {
   let e = entries.get(id);
   if (!e) {
-    e = { url: null, refs: 0, loading: false };
+    e = { url: null, refs: 0, loading: false, failed: false };
     entries.set(id, e);
   }
   if (e.timer) clearTimeout(e.timer);
@@ -38,13 +40,15 @@ export function acquireBlobUrl(id: string) {
     getBlob(id)
       .then((blob) => {
         entry.loading = false;
-        if (blob && entries.get(id) === entry) {
-          entry.url = URL.createObjectURL(blob);
-          notify();
-        }
+        if (entries.get(id) !== entry) return;
+        if (blob) entry.url = URL.createObjectURL(blob);
+        else entry.failed = true;
+        notify();
       })
       .catch((err) => {
         entry.loading = false;
+        entry.failed = true;
+        notify();
         console.error('图片读取失败', id, err);
       });
   }

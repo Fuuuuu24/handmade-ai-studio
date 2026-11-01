@@ -42,7 +42,7 @@ export function deleteWork(id: Id) {
     d.transaction('rw', [d.works, d.assets, d.blobs, d.messages, d.tasks, d.results, d.approvals, d.events], async () => {
       const assets = await d.assets.where('workId').equals(id).toArray();
       const results = await d.results.where('workId').equals(id).toArray();
-      const blobIds = [...assets.flatMap((a) => [a.blobId, a.thumbId]), ...results.map((r) => r.blobId)];
+      const blobIds = [...assets.flatMap((a) => [a.blobId, a.thumbId]), ...results.flatMap((r) => (r.thumbId ? [r.blobId, r.thumbId] : [r.blobId]))];
       await d.blobs.bulkDelete(blobIds);
       await d.assets.where('workId').equals(id).delete();
       await d.results.where('workId').equals(id).delete();
@@ -130,12 +130,18 @@ export const putTask = (task: Task) => tracked(`task:${task.id}`, () => db().tas
 export const listTasks = (workId: Id) => db().tasks.where('workId').equals(workId).toArray();
 export const activeTasks = () => db().tasks.where('status').anyOf('queued', 'running').toArray();
 
-// 任务成功：图片、结果和任务状态一起写
-export function saveResult(task: Task, result: Result, image: Blob) {
+// 任务成功：图片、结果和任务状态一起写。同一个任务已经存过结果时不再存（两个标签页同时轮询同一件作品）
+export function saveResult(task: Task, result: Result, image: Blob, thumb?: Blob) {
   const d = db();
   return tracked(`task:${task.id}`, () =>
     d.transaction('rw', [d.tasks, d.results, d.blobs], async () => {
+      const dup = await d.results.where('workId').equals(result.workId).filter((r) => r.taskId === task.id).count();
+      if (dup) {
+        await d.tasks.put(task);
+        return;
+      }
       await d.blobs.put({ id: result.blobId, data: image });
+      if (result.thumbId && thumb) await d.blobs.put({ id: result.thumbId, data: thumb });
       await d.results.put(result);
       await d.tasks.put(task);
     }),
@@ -150,11 +156,14 @@ export const allResults = () => db().results.orderBy('createdAt').reverse().toAr
 
 /* ---------- 对话 ---------- */
 
-// 每次整体写入这件作品的对话，保持顺序
+// 每次整体写入这件作品的对话，保持顺序。对话只会变长（重试只替换最后一条）：内存里的记录比已存的少，
+// 说明界面拿的是旧记录（比如开发时热更新重新挂载），拒绝覆盖，避免丢掉已有对话
 export function saveMessages(workId: Id, messages: { id: string }[]) {
   const d = db();
   return tracked(`messages:${workId}`, () =>
     d.transaction('rw', d.messages, async () => {
+      const stored = await d.messages.where('workId').equals(workId).count();
+      if (stored > messages.length) throw new Error(`对话记录比本地已保存的少（${messages.length} < ${stored}），没有覆盖；请刷新页面`);
       await d.messages.where('workId').equals(workId).delete();
       const at = Date.now();
       await d.messages.bulkPut(

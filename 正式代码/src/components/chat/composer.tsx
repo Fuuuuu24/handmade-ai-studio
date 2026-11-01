@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { UPLOAD } from '@/config/upload';
 import { mutateWork } from '@/client/work-store';
+import { logEvent } from '@/data/repo';
 import { setChatModel, setImageModel } from '@/domain/work';
 import { Icon } from '@/components/ui/icon';
 import { useWorkspace } from '@/components/workspace/context';
@@ -36,7 +37,10 @@ export function Composer({ busy, onSend, onFiles, onStop }: Props) {
     <div className="flex flex-col gap-2 rounded-xl bg-white px-3.5 pb-2.5 pt-3 shadow-[inset_0_0_0_1px_var(--color-line-strong)] transition-shadow focus-within:shadow-[inset_0_0_0_1px_var(--color-line-hover),var(--shadow-md)]">
       {showDontKnow && (
         <div className="flex">
-          <button type="button" className="mini-btn" disabled={busy} onClick={() => onSend('我不知道，给我推荐')}>
+          <button type="button" className="mini-btn" disabled={busy} onClick={() => {
+              void logEvent('dont_know', workId);
+              onSend('我不知道，给我推荐');
+            }}>
             我不知道，给我推荐
           </button>
         </div>

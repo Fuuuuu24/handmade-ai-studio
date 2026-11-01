@@ -233,6 +233,7 @@ export interface Result {
   round: number;
   slot: number;
   blobId: Id;
+  thumbId?: Id; // 缩略图，作品页和历史页用；早期的结果没有，按原图显示
   width: number;
   height: number;
   verdict: { real: Verdict; style: Verdict };
@@ -241,6 +242,7 @@ export interface Result {
   parentId?: Id; // 从哪张结果改出来的（AC-09.4）
   createdAt: number;
   exports: number[];
+  published?: number; // 商家说已经拿去发布的时间（AC-10.4：导出与实际发布分开记录）
 }
 
 /* ---------- 对话与试用记录 ---------- */

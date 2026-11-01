@@ -74,6 +74,14 @@ function ServiceNote() {
   if (config && !config.configured) {
     return <span className="chip chip-bad ml-2">模型服务未配置</span>;
   }
+  // 试用操作员看得到预算余量（打开页面时读的数，不实时刷新）
+  if (config?.operator) {
+    return (
+      <span className="ml-2 text-label text-muted" title="服务端花费账本，打开页面时读取">
+        预算余 {config.budget.remainingUSD.toFixed(2)} / {config.budget.totalUSD} 美元
+      </span>
+    );
+  }
   return null;
 }
 

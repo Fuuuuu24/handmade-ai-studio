@@ -67,12 +67,12 @@ export const blobToDataUrl = (blob: Blob) =>
     reader.readAsDataURL(blob);
   });
 
-// 发给生图模型的参考图：长边压到 UPLOAD.refEdge，减少从大陆到香港服务器的上传量
+// 发给生图模型的参考图：长边压到 UPLOAD.refEdge，减少从大陆到香港服务器的上传量。
+// 一律重新编码：按照片自带的方向信息摆正后再发，模型不会看到横着的图
 export async function referenceDataUrl(blob: Blob): Promise<string> {
   const bitmap = await decode(blob);
   try {
-    const small = Math.max(bitmap.width, bitmap.height) <= UPLOAD.refEdge && blob.type === 'image/jpeg';
-    return blobToDataUrl(small ? blob : await encode(bitmap, UPLOAD.refEdge, 'image/jpeg', 0.9));
+    return blobToDataUrl(await encode(bitmap, UPLOAD.refEdge, 'image/jpeg', 0.9));
   } finally {
     bitmap.close();
   }

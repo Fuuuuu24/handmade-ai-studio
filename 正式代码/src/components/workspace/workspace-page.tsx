@@ -2,10 +2,9 @@
 
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { use, useEffect } from 'react';
+import { use } from 'react';
 import { browser } from 'react-dom';
 import { STEPS } from '@/config/steps';
-import { resumeActiveTasks } from '@/client/generation';
 import { useWorkContext } from '@/client/hooks';
 import { Workspace } from './workspace';
 
@@ -16,9 +15,6 @@ export function WorkspacePage() {
   const step = useSearchParams().get('step');
   const initialStep = STEPS.find((s) => s.id === step)?.id ?? null;
   const ctx = useWorkContext(id);
-  useEffect(() => {
-    void resumeActiveTasks().catch((e) => console.error('恢复生成任务失败', e));
-  }, []);
 
   if (ctx === null) {
     return (

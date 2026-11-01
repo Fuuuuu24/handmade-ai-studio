@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { ASSET_KINDS, UPLOAD } from '@/config/upload';
 import { makeWhiteByGeneration } from '@/client/generation';
-import { useBlobUrl } from '@/client/hooks';
+import { useBlobFailed, useBlobUrl } from '@/client/hooks';
 import { addPhotos } from '@/client/uploads';
 import { mutateWork } from '@/client/work-store';
 import { removeAsset, setAssetKind } from '@/data/repo';
@@ -14,13 +14,15 @@ import { whiteCheck, whitesOf, whiteTasks } from '@/domain/white';
 import { assetsChanged, chooseWhite, confirmAssets, setRoute } from '@/domain/work';
 import { Modal, useConfirm } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
+import { MissingImage } from '@/components/ui/missing-image';
 import { useWorkspace } from '@/components/workspace/context';
 import { StepHead } from './canvas';
 
 function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
   const { workId } = useWorkspace();
   const confirm = useConfirm();
-  const url = useBlobUrl(asset.blobId);
+  const url = useBlobUrl(asset.thumbId);
+  const missing = useBlobFailed(asset.thumbId);
   const low = Math.max(asset.width, asset.height) < UPLOAD.lowEdge;
   return (
     <figure className="m-0 flex flex-col gap-2">
@@ -29,6 +31,7 @@ function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
           // eslint-disable-next-line @next/next/no-img-element -- 本地数据库里的原图
           <img src={url} alt={`${ASSET_KINDS[asset.kind]}照片`} className="size-full object-contain" />
         )}
+        {missing && <MissingImage />}
         {low && <span className="chip chip-warn absolute left-2 top-2">尺寸偏小</span>}
       </div>
       <figcaption className="flex items-center gap-1.5 text-aux text-ink-2">

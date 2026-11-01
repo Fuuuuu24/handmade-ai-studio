@@ -5,8 +5,8 @@ import { useRef, useState, type ReactNode } from 'react';
 import { imageModel } from '@/config/models';
 import type { Ratio } from '@/config/ratios';
 import { NO_PROPS, STYLE_LABELS } from '@/config/style';
-import { ISSUES } from '@/config/verdict';
-import { useBlobUrl } from '@/client/hooks';
+import { ISSUES, VERDICT_TEXT } from '@/config/verdict';
+import { useBlobFailed, useBlobUrl } from '@/client/hooks';
 import { retrySlot } from '@/client/generation';
 import { mutateWork } from '@/client/work-store';
 import { db } from '@/data/db';
@@ -14,13 +14,14 @@ import { logEvent, patchResult } from '@/data/repo';
 import { exportResult } from '@/client/export';
 import { approvalStatus } from '@/domain/approval';
 import { passed, roundSlots, slotState } from '@/domain/generation';
-import { activeUploads } from '@/domain/snapshot';
+import { activeUploads, diffSnapshot } from '@/domain/snapshot';
 import type { Approval, Result, Verdict } from '@/domain/types';
 import { reviseFrom } from '@/domain/work';
 import { useWorkspace } from '@/components/workspace/context';
 import { Modal } from '@/components/ui/dialog';
 import { DraftInput } from '@/components/ui/draft-field';
 import { Icon } from '@/components/ui/icon';
+import { MissingImage } from '@/components/ui/missing-image';
 import { StepHead } from './canvas';
 
 const ratioClass = { '1:1': 'aspect-square', '3:4': 'aspect-[3/4]', '9:16': 'aspect-[9/16]' } as const;
@@ -76,9 +77,10 @@ function CompareModal({ open, onClose, result, approval }: { open: boolean; onCl
   );
 }
 
-function Candidate({ result, ratio, approval }: { result: Result; ratio: Ratio; approval: Approval | undefined }) {
+function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }: { result: Result; ratio: Ratio; approval: Approval | undefined; comparing: boolean; onCompare: () => void }) {
   const { ctx, workId, askAgent, busy, setViewing } = useWorkspace();
   const url = useBlobUrl(result.blobId);
+  const missing = useBlobFailed(result.blobId);
   const noteRef = useRef<HTMLInputElement>(null);
   const [comparing, setComparing] = useState(false);
   const ok = passed(result);
@@ -124,6 +126,7 @@ function Candidate({ result, ratio, approval }: { result: Result; ratio: Ratio; 
           // eslint-disable-next-line @next/next/no-img-element -- 本地数据库里的生成结果
           <img src={url} alt={`候选 ${result.slot + 1}`} className="size-full object-cover" />
         )}
+        {missing && <MissingImage />}
       </a>
       {parent && (
         <p className="-mt-1 text-label text-muted">
@@ -202,7 +205,26 @@ function Candidate({ result, ratio, approval }: { result: Result; ratio: Ratio; 
           >
             从这一版修改
           </button>
+          <button type="button" className="btn btn-quiet btn-sm" aria-pressed={inCompare} onClick={onCompare}>
+            {inCompare ? '取消对比' : '加入对比'}
+          </button>
         </div>
+        {result.exports.length > 0 && (
+          <label className="flex items-center gap-1.5 text-aux text-muted">
+            <input
+              type="checkbox"
+              checked={!!result.published}
+              onChange={(e) => {
+                const on = e.target.checked;
+                patch((r) => {
+                  r.published = on ? Date.now() : undefined;
+                });
+                void logEvent(on ? 'publish' : 'unpublish', result.workId, { round: result.round, slot: result.slot });
+              }}
+            />
+            已经拿去发布了
+          </label>
+        )}
         {exportProblem && (
           <p role="alert" className="text-aux text-bad">
             {exportProblem}
@@ -269,7 +291,7 @@ function RoundPlan({ approval }: { approval: Approval }) {
   );
 }
 
-function Round({ round, approval, isCurrent }: { round: number; approval: Approval | undefined; isCurrent: boolean }) {
+function Round({ round, approval, isCurrent, compare, toggleCompare }: { round: number; approval: Approval | undefined; isCurrent: boolean; compare: string[]; toggleCompare: (id: string) => void }) {
   const { ctx, workId } = useWorkspace();
   const ratio = approval?.snapshot.ratio ?? ctx.work.ratio;
   return (
@@ -289,7 +311,7 @@ function Round({ round, approval, isCurrent }: { round: number; approval: Approv
       <div className="grid grid-cols-[repeat(2,minmax(0,320px))] gap-5">
         {roundSlots().map((slot) => {
           const result = ctx.results.find((r) => r.round === round && r.slot === slot);
-          if (result) return <Candidate key={slot} result={result} ratio={ratio} approval={approval} />;
+          if (result) return <Candidate key={slot} result={result} ratio={ratio} approval={approval} comparing={compare.includes(result.id)} onCompare={() => toggleCompare(result.id)} />;
           const st = slotState(ctx.tasks, workId, round, slot);
           const last = ctx.tasks.filter((t) => t.round === round && t.slot === slot).sort((a, b) => a.attempt - b.attempt).at(-1);
           if (st === 'failed') return <FailedSlot key={slot} round={round} slot={slot} error={last?.error} />;
@@ -307,16 +329,91 @@ function Round({ round, approval, isCurrent }: { round: number; approval: Approv
   );
 }
 
+// 两版对比（AC-09.5）：并排看图、比例、方案版本和验收，列出两版方案的差别
+function CompareView({ ids, approvals, onClose }: { ids: string[]; approvals: Approval[]; onClose: () => void }) {
+  const { ctx } = useWorkspace();
+  const items = ids.map((id) => ctx.results.find((r) => r.id === id)).filter((r): r is Result => !!r);
+  if (items.length < 2) return null;
+  const [a, b] = items;
+  const ap = (r: Result) => approvals.find((x) => x.id === r.approvalId);
+  const pa = ap(a);
+  const pb = ap(b);
+  const diff = pa && pb ? diffSnapshot(pa.snapshot, pb.snapshot) : [];
+  const col = (r: Result, p: Approval | undefined) => (
+    <CompareColumn key={r.id} result={r} approval={p} />
+  );
+  return (
+    <section className="flex flex-col gap-3 rounded-xl bg-white px-5 py-[18px]">
+      <div className="flex items-center gap-2">
+        <h3 className="text-block font-semibold">两版对比</h3>
+        <span className="text-aux text-muted">
+          {pa && pb && pa.id === pb.id ? '两张来自同一版方案' : diff.length ? `方案差别：${diff.join('、')}` : '两版方案内容相同'}
+        </span>
+        <button type="button" className="btn btn-quiet btn-sm ml-auto" onClick={onClose}>
+          关闭对比
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-5">
+        {col(a, pa)}
+        {col(b, pb)}
+      </div>
+    </section>
+  );
+}
+
+function CompareColumn({ result, approval }: { result: Result; approval: Approval | undefined }) {
+  const url = useBlobUrl(result.blobId);
+  const s = approval?.snapshot;
+  const rows: [string, string][] = [
+    ['来源', `第 ${result.round} 轮候选 ${result.slot + 1}`],
+    ['方案', approval ? `第 ${approval.version} 版` : '—'],
+    ['比例', s?.ratio ?? '—'],
+    ['模型', s ? (imageModel(s.imageModel)?.label ?? s.imageModel) : '—'],
+    ['光线', s?.style.light || '—'],
+    ['背景', s?.style.background || '—'],
+    ['验收', `像实物：${VERDICT_TEXT.real[result.verdict.real]} · 风格：${VERDICT_TEXT.style[result.verdict.style]}`],
+  ];
+  if (result.issues.length) rows.push(['问题', result.issues.join('、')]);
+  return (
+    <div className="flex min-w-0 flex-col gap-2.5">
+      <div className="grid max-h-[420px] place-items-center overflow-hidden rounded-lg bg-soft" style={{ aspectRatio: `${result.width} / ${result.height}` }}>
+        {url && (
+          // eslint-disable-next-line @next/next/no-img-element -- 本地数据库里的生成结果
+          <img src={url} alt={`第 ${result.round} 轮候选 ${result.slot + 1}`} className="size-full object-contain" />
+        )}
+      </div>
+      <dl className="grid grid-cols-[48px_1fr] gap-x-3 gap-y-1 text-aux text-ink-2">
+        {rows.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-muted">{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 // 出图（PRD FR-08、FR-09）：每次两张，状态如实显示；每张分别验收还原度和风格，两项都满意才算完成
 export function OutputStep() {
   const { ctx, workId } = useWorkspace();
   const approvals = useLiveQuery(() => db().approvals.where('workId').equals(workId).toArray(), [workId]) ?? [];
   const rounds = [...new Set(ctx.tasks.filter((t) => t.kind === 'scene' && t.round != null).map((t) => t.round!))].sort((a, b) => b - a);
   const valid = approvalStatus(ctx.approval, ctx.snapshot).kind === 'valid';
+  const [compare, setCompare] = useState<string[]>([]);
+  // 最多对比两张：再选一张时替换最早选的
+  const toggleCompare = (id: string) => setCompare((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id].slice(-2)));
 
   return (
     <div className="flex flex-col gap-8">
       <StepHead step="output" />
+      {ctx.results.length > 0 && (
+        <p className="-mt-6 text-aux text-muted">
+          两项都满意才算完成、才能导出。验收只代表你满意，不代表和实物完全一致，也不代表符合平台规则。
+          {compare.length === 1 && ' 再选一张就能对比。'}
+        </p>
+      )}
+      {compare.length === 2 && <CompareView ids={compare} approvals={approvals} onClose={() => setCompare([])} />}
       {rounds.length === 0 ? (
         <div className="flex min-h-[40vh] flex-col items-center justify-center gap-1.5 text-center text-muted">
           <Icon name="image" className="mb-1.5 size-7 text-faint [stroke-width:1.2]" />
@@ -326,7 +423,7 @@ export function OutputStep() {
       ) : (
         rounds.map((r) => {
           const approval = approvals.find((a) => a.usedRound === r);
-          return <Round key={r} round={r} approval={approval} isCurrent={valid && ctx.approval?.usedRound === r} />;
+          return <Round key={r} round={r} approval={approval} isCurrent={valid && ctx.approval?.usedRound === r} compare={compare} toggleCompare={toggleCompare} />;
         })
       )}
     </div>

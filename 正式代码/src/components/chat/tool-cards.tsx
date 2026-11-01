@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import type { StyleKey } from '@/config/style';
 import { exportResult } from '@/client/export';
 import { mutateWork } from '@/client/work-store';
+import { logEvent } from '@/data/repo';
 import { passed } from '@/domain/generation';
 import { decideProposal } from '@/domain/work';
 import { SceneSaveForm, ShopStyleForm } from '@/components/plan/library-forms';
@@ -27,7 +28,7 @@ function Closed({ children }: { children: ReactNode }) {
 
 // 「我不知道」时的方向卡片（AC-04.2）：点一张就把选择发给小间
 export function PicksCard({ input, active }: { input: { question?: string; options: { title: string; reason: string }[] }; active: boolean }) {
-  const { askAgent, busy } = useWorkspace();
+  const { askAgent, busy, workId } = useWorkspace();
   const off = !active || busy;
   return (
     <div className="flex flex-col gap-2">
@@ -38,7 +39,10 @@ export function PicksCard({ input, active }: { input: { question?: string; optio
             key={o.title}
             type="button"
             disabled={off}
-            onClick={() => askAgent(`我选「${o.title}」`)}
+            onClick={() => {
+              void logEvent('picks', workId, { options: input.options.length });
+              askAgent(`我选「${o.title}」`);
+            }}
             className="flex flex-col items-start gap-0.5 rounded-lg bg-white px-3 py-2 text-left shadow-[inset_0_0_0_1px_var(--color-line-strong)] enabled:hover:shadow-[inset_0_0_0_1px_var(--color-line-hover),var(--shadow-sm)] disabled:opacity-60"
           >
             <span className="text-body font-medium">{o.title}</span>

@@ -5,7 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { db } from '@/data/db';
 import type { Approval, Id } from '@/domain/types';
 import { fetchConfig, type AppConfig } from './api';
-import { acquireBlobUrl, blobUrlSnapshot, releaseBlobUrl, subscribeBlobUrls } from './blob-urls';
+import { acquireBlobUrl, blobFailedSnapshot, blobUrlSnapshot, releaseBlobUrl, subscribeBlobUrls } from './blob-urls';
 import { deriveContext, type WorkContext } from './work-store';
 
 // 实时读取一件作品的全部数据：数据库一变，界面跟着变（数据只存在 IndexedDB 一处）
@@ -71,6 +71,10 @@ export function useBlobUrl(blobId: Id | null | undefined): string | null {
   }, [blobId]);
   return url;
 }
+
+// 本地图片是否读不出来（找不到或损坏）：用来在图片位置显示原因
+export const useBlobFailed = (blobId: Id | null | undefined) =>
+  useSyncExternalStore(subscribeBlobUrls, () => blobFailedSnapshot(blobId), () => false);
 
 type ConfigState = { config: AppConfig | null; error: string | null };
 let cached: Promise<AppConfig> | null = null;

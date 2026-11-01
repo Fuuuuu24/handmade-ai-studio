@@ -9,7 +9,7 @@ import { newId } from '@/domain/util';
 import { whiteCheck } from '@/domain/white';
 import { addCost, approve, startRound } from '@/domain/work';
 import { ApiCallError, downloadImageResult, errorText, getImageTaskStatus, submitImageTask } from './api';
-import { imageSize, prepareDerived, referenceDataUrl } from './images';
+import { prepareDerived, referenceDataUrl } from './images';
 import { loadContext, mutateWork, serial } from './work-store';
 
 /* 生成两张候选（PRD FR-08）。批准只来自界面上的用户操作；每张候选是独立任务，一张失败不影响另一张。
@@ -188,7 +188,7 @@ async function collect(task: Task) {
   if (await workGone(task.workId)) return;
   const blob = await downloadImageResult(task.gatewayId!, 0);
   if (task.kind === 'white') return collectWhite(task, blob);
-  const { width, height } = await imageSize(blob);
+  const { thumb, width, height } = await prepareDerived(blob);
   const result: Result = {
     id: newId('res'),
     workId: task.workId,
@@ -197,6 +197,7 @@ async function collect(task: Task) {
     round: task.round!,
     slot: task.slot!,
     blobId: newId('blob'),
+    thumbId: newId('blob'),
     width,
     height,
     verdict: { real: 'none', style: 'none' },
@@ -206,7 +207,7 @@ async function collect(task: Task) {
     createdAt: now(),
     exports: [],
   };
-  await saveResult({ ...task, status: 'succeeded', updatedAt: now() }, result, blob);
+  await saveResult({ ...task, status: 'succeeded', updatedAt: now() }, result, blob, thumb);
   void logEvent('task_succeeded', task.workId, { round: task.round ?? null, slot: task.slot ?? null });
 }
 
