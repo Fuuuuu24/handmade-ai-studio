@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
 /* 全流程（技术写法第 9 节）：假对话模型按「【测试：xxx】」标记调用工具，假生图网关出测试图，不调用模型、不花钱。
@@ -33,6 +33,13 @@ async function testPhoto(page: Page): Promise<Buffer> {
 const chat = (page: Page) => page.getByRole('region', { name: '和小间对话' });
 const canvas = (page: Page) => page.getByRole('region', { name: '画布' });
 const step = (page: Page, name: string) => page.getByRole('navigation', { name: '流程进度' }).getByRole('button', { name: new RegExp(`^${name}`) });
+
+// 批准是滑动确认（Slide Commit），只认真实指针；测试走键盘：聚焦后按 End
+async function approveBy(slider: Locator) {
+  await expect(slider).not.toHaveAttribute('aria-disabled', 'true');
+  await slider.focus();
+  await slider.press('End');
+}
 
 async function say(page: Page, text: string) {
   const box = chat(page).getByRole('textbox', { name: '和小间说' });
@@ -83,7 +90,7 @@ test('主流程：从上传到导出，小间的工具和卡片都能用', async
   // 方案：布景、提示词、批准卡片；批准只能由用户点
   await say(page, '就用雨后那套【测试：布景】【测试：提示词】【测试：批准】');
   const card = chat(page).getByText('确认这版方案').locator('xpath=ancestor::div[contains(@class,"rounded-[14px]")]');
-  await card.getByRole('button', { name: '批准并生成两张' }).click();
+  await approveBy(card.getByRole('slider', { name: /滑动批准并生成两张/ }));
 
   // 出图：两张都出来（假网关几秒完成）
   await expect(canvas(page).getByRole('heading', { name: '第 1 轮' })).toBeVisible();
@@ -175,11 +182,11 @@ test('部分失败与补齐：一张失败可以补，次数受上限约束', as
   await prompt.fill('一对手作银耳坠，完整入框留边距，画面没有文字【测试：失败一张】');
   await prompt.blur();
   await canvas(page).getByRole('button', { name: '我已核对，两者一致' }).click();
-  await canvas(page).getByRole('button', { name: '批准并生成两张' }).click();
-  await expect(canvas(page).getByText(/没有生成出来/)).toBeVisible({ timeout: 60_000 });
-  await expect(canvas(page).getByRole('img', { name: /候选/ })).toHaveCount(1, { timeout: 60_000 });
+  await approveBy(canvas(page).getByRole('slider', { name: /滑动批准并生成两张/ }));
+  await expect(canvas(page).getByText(/候选 \d 没有生成出来/)).toBeVisible({ timeout: 60_000 });
+  await expect(canvas(page).getByRole('img', { name: /^候选 \d$/ })).toHaveCount(1, { timeout: 60_000 });
   await canvas(page).getByRole('button', { name: '补齐这一张' }).click();
-  await expect(canvas(page).getByRole('img', { name: /候选/ })).toHaveCount(2, { timeout: 60_000 });
+  await expect(canvas(page).getByRole('img', { name: /^候选 \d$/ })).toHaveCount(2, { timeout: 60_000 });
 });
 
 test('白底路线：操作员切到 A，做白底图、对照后选用，才能确认资产', async ({ page }) => {

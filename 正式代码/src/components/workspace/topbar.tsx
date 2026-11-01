@@ -14,12 +14,16 @@ import { Icon } from '@/components/ui/icon';
 import { StatusChip } from '@/components/ui/status-chip';
 import { SaveStatusText } from './save-status';
 import { useWorkspace } from './context';
+import WarmTooltip from '@/components/bits/WarmTooltip/WarmTooltip';
+import StatusMark from '@/components/bits/StatusMark/StatusMark';
+import { useToast } from '@/components/ui/toast';
 
 // 顶栏：作品 / 名称（可直接改）· 状态，右侧细进度（v3 原型）
 // 删除作品（PRD 4.2 第 5 条）：用户确认后才删；生成中不能删，避免轮询把结果写回已删除的作品
 function DeleteWork() {
   const { ctx, workId } = useWorkspace();
   const confirm = useConfirm();
+  const toast = useToast();
   const router = useRouter();
   const [problem, setProblem] = useState<string | null>(null);
   const locked = ctx.isGenerating || ctx.isMakingWhite;
@@ -30,33 +34,36 @@ function DeleteWork() {
           {problem}
         </span>
       )}
-      <button
-        type="button"
-        className="icon-btn ml-1"
-        aria-label="删除作品"
-        title={locked ? '正在生成，等结束后再删' : '删除作品'}
-        disabled={locked}
-        onClick={async () => {
-          const ok = await confirm({
-            title: `删除「${ctx.work.name}」？`,
-            body: '照片、对话、方案和生成结果会一起删除，不能恢复。',
-            ok: '删除',
-            danger: true,
-          });
-          if (!ok) return;
-          try {
-            const cost = ctx.work.costUSD;
-            await deleteWork(workId);
-            // 试用记录：作品删了，花费仍要算进总成本
-            void logEvent('delete_work', undefined, { costUSD: cost });
-            router.push('/works');
-          } catch (e) {
-            setProblem(`没有删掉：${e instanceof Error ? e.message : String(e)}`);
-          }
-        }}
-      >
-        <Icon name="trash" />
-      </button>
+      <WarmTooltip content="删除作品" side="bottom" disabled={locked}>
+        <button
+          type="button"
+          className="icon-btn ml-1"
+          aria-label="删除作品"
+          title={locked ? '正在生成，等结束后再删' : undefined}
+          disabled={locked}
+          onClick={async () => {
+            const ok = await confirm({
+              title: `删除「${ctx.work.name}」？`,
+              body: '照片、对话、方案和生成结果会一起删除，不能恢复。',
+              ok: '删除',
+              danger: true,
+            });
+            if (!ok) return;
+            try {
+              const cost = ctx.work.costUSD;
+              await deleteWork(workId);
+              // 试用记录：作品删了，花费仍要算进总成本
+              void logEvent('delete_work', undefined, { costUSD: cost });
+              toast(`已删除「${ctx.work.name}」`);
+              router.push('/works');
+            } catch (e) {
+              setProblem(`没有删掉：${e instanceof Error ? e.message : String(e)}`);
+            }
+          }}
+        >
+          <Icon name="trash" />
+        </button>
+      </WarmTooltip>
     </>
   );
 }
@@ -111,8 +118,28 @@ function ServiceNote() {
   return null;
 }
 
+// 步骤状态（React Bits Status Mark）：完成打勾、批准失效打叉、当前一步是蓝色虚线圈，小间回复或生成时转圈；还没到的是浅色虚线圈。
+// 文字说明在按钮里的读屏文字，图标对读屏隐藏
+function StepMark({ state, isCurrent, working }: { state: StepState; isCurrent: boolean; working: boolean }) {
+  const status = state === 'done' ? 'done' : state === 'stale' ? 'failed' : working ? 'running' : 'pending';
+  const color = isCurrent ? 'var(--color-accent)' : state === 'todo' ? 'var(--color-faint)' : 'var(--color-ink-2)';
+  return (
+    <StatusMark
+      status={status}
+      size={13}
+      strokeWidth={2.2}
+      dashes={6}
+      color={color}
+      doneColor={isCurrent ? 'var(--color-accent)' : 'var(--color-ink-2)'}
+      errorColor="var(--color-warn)"
+      fillOpacity={0.08}
+      decorative
+    />
+  );
+}
+
 export function Topbar({ states }: { states: Record<StepId, StepState> }) {
-  const { ctx, viewing, current, setViewing, workId } = useWorkspace();
+  const { ctx, viewing, current, setViewing, busy, workId } = useWorkspace();
   const status = workStatus({
     work: ctx.work,
     assets: ctx.assets,
@@ -159,18 +186,7 @@ export function Topbar({ states }: { states: Record<StepId, StepState> }) {
                 isViewing ? 'bg-fill font-medium text-ink' : isCurrent ? 'text-ink' : 'text-muted'
               }`}
             >
-              <i
-                aria-hidden="true"
-                className={`size-1.5 rounded-full ${
-                  isCurrent
-                    ? 'bg-accent shadow-[0_0_0_3px_var(--color-accent-ring)]'
-                    : st === 'done'
-                      ? 'bg-ink-2'
-                      : st === 'stale'
-                        ? 'bg-warn'
-                        : 'shadow-[inset_0_0_0_1.2px_var(--color-faint)]'
-                }`}
-              />
+              <StepMark state={st} isCurrent={isCurrent} working={isCurrent && (busy || ctx.isGenerating || ctx.isMakingWhite)} />
               {s.name}
               <span className="sr-only">{st === 'done' ? '（完成）' : st === 'stale' ? '（已失效）' : isCurrent ? '（当前）' : ''}</span>
             </button>

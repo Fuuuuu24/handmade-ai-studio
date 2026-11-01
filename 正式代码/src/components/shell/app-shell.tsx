@@ -7,6 +7,8 @@ import { resumeActiveTasks } from '@/client/generation';
 import { exportTrialRecord } from '@/client/trial';
 import { ConfirmProvider, Modal } from '@/components/ui/dialog';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { WarmTooltipGroup } from '@/components/bits/WarmTooltip/WarmTooltip';
+import { ToastProvider } from '@/components/ui/toast';
 
 const NAV: { href: string; icon: IconName; name: string; match: (p: string) => boolean }[] = [
   { href: '/', icon: 'home', name: '首页', match: (p) => p === '/' },
@@ -51,62 +53,67 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
   return (
     <ConfirmProvider>
-      <div className="h-full">
-        <aside
-          aria-label="侧边栏"
-          className="group/rail fixed inset-y-0 left-0 z-30 flex w-[60px] flex-col gap-0.5 overflow-hidden bg-rail p-3 shadow-[inset_-1px_0_0_var(--color-line)] transition-[width,box-shadow] duration-200 ease-soft hover:w-[196px] hover:shadow-[inset_-1px_0_0_var(--color-line),var(--shadow-pop)] hover:delay-100 has-[:focus-visible]:w-[196px]"
-        >
-          <Link href="/" aria-label="一间，回到首页" className="mb-3 flex h-9 items-center gap-2.5 whitespace-nowrap rounded-sm px-1">
-            <span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-sm bg-black text-body font-semibold text-white">
-              间
-            </span>
-            <span aria-hidden="true" className={`${label} text-block font-semibold tracking-[0.04em] text-ink`}>
-              一间
-            </span>
-          </Link>
-          <Link href="/" className={`${item} mb-3 bg-white text-ink shadow-[inset_0_0_0_1px_var(--color-line-strong),var(--shadow-sm)] hover:bg-white`}>
-            <Icon name="plus" />
-            <span className={label}>新建作品</span>
-          </Link>
-          <Suspense fallback={<NavLinks pathname={null} />}>
-            <CurrentNav />
-          </Suspense>
-          <button type="button" className={`${item} mt-auto`} onClick={() => setHelp(true)}>
-            <Icon name="help" />
-            <span className={label}>使用说明</span>
-          </button>
-        </aside>
-        <main className="ml-[60px] flex h-full min-w-0 flex-col">
-          {resumeProblem && (
-            <p role="alert" className="bg-bad-bg px-5 py-2 text-aux text-bad">
-              {resumeProblem}（刷新页面再试）
-            </p>
-          )}
-          {children}
-        </main>
-      </div>
-      <Modal open={help} onClose={() => setHelp(false)} title="使用说明" sub="一间 · 手作影像工作台">
-        <ul className="flex list-disc flex-col gap-1.5 pl-4 text-body leading-relaxed text-ink-2">
-          <li>
-            <strong className="text-ink">和小间说话就能往下走。</strong>上传作品照片，说说它是什么、想要什么感觉；小间会整理商品信息、陪你聊作品故事、配风格、写提示词。右边画布显示同一份内容，可以直接改。
-          </li>
-          <li>
-            <strong className="text-ink">小间写的都是建议。</strong>商品信息、共创总结要你接受或确认才生效；生成之前一定要你点「批准并生成两张」，小间不能代你批准。
-          </li>
-          <li>
-            <strong className="text-ink">每张图分别看两件事：</strong>像不像实物、风格对不对，两项都满意才算完成，才能导出。
-          </li>
-          <li>
-            <strong className="text-ink">数据只存在这台电脑的这个浏览器里。</strong>换电脑或换浏览器看不到；清除浏览器数据会丢失作品。照片和对话会发给模型服务（经 AIHubMix）用于生成。
-          </li>
-        </ul>
-        <TrialExport />
-        <div className="mt-5 flex justify-end">
-          <button type="button" className="btn btn-primary" onClick={() => setHelp(false)} data-autofocus>
-            知道了
-          </button>
-        </div>
-      </Modal>
+      <ToastProvider>
+        {/* 悬停提示成组：移到相邻图标时提示直接滑过去，不用再等（React Bits Warm Tooltip） */}
+        <WarmTooltipGroup>
+          <div className="h-full">
+            <aside
+              aria-label="侧边栏"
+              className="group/rail fixed inset-y-0 left-0 z-30 flex w-[60px] flex-col gap-0.5 overflow-hidden bg-rail p-3 shadow-[inset_-1px_0_0_var(--color-line)] transition-[width,box-shadow] duration-200 ease-soft hover:w-[196px] hover:shadow-[inset_-1px_0_0_var(--color-line),var(--shadow-pop)] hover:delay-100 has-[:focus-visible]:w-[196px]"
+            >
+              <Link href="/" aria-label="一间，回到首页" className="mb-3 flex h-9 items-center gap-2.5 whitespace-nowrap rounded-sm px-1">
+                <span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-sm bg-black text-body font-semibold text-white">
+                  间
+                </span>
+                <span aria-hidden="true" className={`${label} text-block font-semibold tracking-[0.04em] text-ink`}>
+                  一间
+                </span>
+              </Link>
+              <Link href="/" className={`${item} mb-3 bg-white text-ink shadow-[inset_0_0_0_1px_var(--color-line-strong),var(--shadow-sm)] hover:bg-white`}>
+                <Icon name="plus" />
+                <span className={label}>新建作品</span>
+              </Link>
+              <Suspense fallback={<NavLinks pathname={null} />}>
+                <CurrentNav />
+              </Suspense>
+              <button type="button" className={`${item} mt-auto`} onClick={() => setHelp(true)}>
+                <Icon name="help" />
+                <span className={label}>使用说明</span>
+              </button>
+            </aside>
+            <main className="ml-[60px] flex h-full min-w-0 flex-col">
+              {resumeProblem && (
+                <p role="alert" className="bg-bad-bg px-5 py-2 text-aux text-bad">
+                  {resumeProblem}（刷新页面再试）
+                </p>
+              )}
+              {children}
+            </main>
+          </div>
+          <Modal open={help} onClose={() => setHelp(false)} title="使用说明" sub="一间 · 手作影像工作台">
+            <ul className="flex list-disc flex-col gap-1.5 pl-4 text-body leading-relaxed text-ink-2">
+              <li>
+                <strong className="text-ink">和小间说话就能往下走。</strong>上传作品照片，说说它是什么、想要什么感觉；小间会整理商品信息、陪你聊作品故事、配风格、写提示词。右边画布显示同一份内容，可以直接改。
+              </li>
+              <li>
+                <strong className="text-ink">小间写的都是建议。</strong>商品信息、共创总结要你接受或确认才生效；生成之前一定要你滑动「批准并生成两张」，小间不能代你批准。
+              </li>
+              <li>
+                <strong className="text-ink">每张图分别看两件事：</strong>像不像实物、风格对不对，两项都满意才算完成，才能导出。
+              </li>
+              <li>
+                <strong className="text-ink">数据只存在这台电脑的这个浏览器里。</strong>换电脑或换浏览器看不到；清除浏览器数据会丢失作品。照片和对话会发给模型服务（经 AIHubMix）用于生成。
+              </li>
+            </ul>
+            <TrialExport />
+            <div className="mt-5 flex justify-end">
+              <button type="button" className="btn btn-primary" onClick={() => setHelp(false)} data-autofocus>
+                知道了
+              </button>
+            </div>
+          </Modal>
+        </WarmTooltipGroup>
+      </ToastProvider>
     </ConfirmProvider>
   );
 }

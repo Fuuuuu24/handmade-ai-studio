@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/icon';
 import { ApprovalCard } from './approval-card';
 import { RichText } from './rich-text';
 import { ExportCard, PicksCard, SceneProposalCard, ShopProposalCard } from './tool-cards';
+import ThoughtLine from '@/components/bits/ThoughtLine/ThoughtLine';
 
 const TOOL_DOING: Record<string, string> = {
   update_info: '整理商品信息',
@@ -106,17 +107,25 @@ export function MessageView({ message, latest }: { message: AgentUIMessage; late
     .filter(Boolean)
     .join('\n\n');
   const firstReasoning = message.parts.findIndex((p) => p.type === 'reasoning');
+  const thinking = message.parts.some((p) => p.type === 'reasoning' && p.state === 'streaming');
   return (
     <div className="flex flex-col gap-2 text-body [overflow-wrap:anywhere]">
       {message.parts.map((part, i) => {
         if (part.type === 'text') return part.text.trim() ? <RichText key={i} text={part.text} /> : null;
         if (part.type === 'reasoning') {
           // 只展示模型真实的思考输出（AC-11.7）
+          // 用 React Bits Thought Line：思考中呼吸动画并展开，想完自动收起，按段落列出
           return i === firstReasoning && reasoning ? (
-            <details key={i} className="text-aux text-muted">
-              <summary className="cursor-pointer select-none hover:text-ink">思考过程</summary>
-              <p className="mt-1 whitespace-pre-wrap border-l-2 border-line pl-2.5">{reasoning}</p>
-            </details>
+            <ThoughtLine
+              key={i}
+              label="小间在思考…"
+              doneLabel="思考过程"
+              showTimer={false}
+              working={thinking}
+              steps={reasoning.split(/\n{2,}/)}
+              fontSize={12}
+              color="var(--color-muted)"
+            />
           ) : null;
         }
         if (isToolUIPart(part) && getToolName(part) === 'request_approval') {

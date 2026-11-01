@@ -7,6 +7,7 @@ import { saveSceneFromWork, saveShopFromWork } from '@/client/library';
 import { getScene, getShopStyle } from '@/data/repo';
 import { sceneChanges, sceneParamsOf, sceneSaveProblem, shopDiff, shopItemsOf } from '@/domain/library';
 import { useWorkspace } from '@/components/workspace/context';
+import { useToast } from '@/components/ui/toast';
 
 /* 存为布景、更新我的风格：方案页弹窗和小间的提议卡片共用。写入只在用户点按钮时发生（PRD 4.2 第 2 条）。 */
 
@@ -26,6 +27,7 @@ export function SceneSaveForm({
   cancelText?: string;
 }) {
   const { ctx, workId } = useWorkspace();
+  const toast = useToast();
   const [name, setName] = useState(defaultName);
   const [mode, setMode] = useState<'new' | 'update'>(updateSceneId ? 'update' : 'new');
   const [pending, setPending] = useState(false);
@@ -78,8 +80,10 @@ export function SceneSaveForm({
               reason: e instanceof Error ? e.message : String(e),
             }));
             setPending(false);
-            if (r.ok) onSaved();
-            else setProblem(r.reason);
+            if (r.ok) {
+              toast(mode === 'update' ? `布景「${name.trim()}」已更新` : `已存为布景「${name.trim()}」`, '在「摄影布景」里可以看到，别的作品也能套用');
+              onSaved();
+            } else setProblem(r.reason);
           }}
         >
           {mode === 'update' ? '更新布景' : '存为布景'}
@@ -106,6 +110,7 @@ export function ShopStyleForm({
   cancelText?: string;
 }) {
   const { ctx, workId } = useWorkspace();
+  const toast = useToast();
   const shop = useLiveQuery(() => getShopStyle(), []);
   const all = shopItemsOf(ctx.work);
   const [picked, setPicked] = useState<StyleKey[]>(() => (fields ?? STYLE_KEYS).filter((k) => k !== 'expression' && all[k]));
@@ -157,8 +162,10 @@ export function ShopStyleForm({
               reason: e instanceof Error ? e.message : String(e),
             }));
             setPending(false);
-            if (r.ok) onSaved();
-            else setProblem(r.reason);
+            if (r.ok) {
+              toast(`我的风格已更新 ${changed.length} 项`, '以后新作品可以一键套用');
+              onSaved();
+            } else setProblem(r.reason);
           }}
         >
           {changed.length ? `同意，更新 ${changed.length} 项` : '没有要更新的'}

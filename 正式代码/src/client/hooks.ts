@@ -72,6 +72,24 @@ export function useBlobUrl(blobId: Id | null | undefined): string | null {
   return url;
 }
 
+// 一组本地图片的显示地址（历史结果页的瀑布流用）：返回和 ids 同顺序的地址，读不出来的为 null
+export function useBlobUrls(ids: readonly Id[]): { urls: (string | null)[]; failed: boolean[] } {
+  const key = ids.join('|');
+  // 快照用字符串，内容变了才重新渲染
+  const snap = useSyncExternalStore(
+    subscribeBlobUrls,
+    () => ids.map((id) => `${blobUrlSnapshot(id) ?? ''}${blobFailedSnapshot(id) ? '!' : ''}`).join('|'),
+    () => '',
+  );
+  useEffect(() => {
+    const list = key ? key.split('|') : [];
+    list.forEach(acquireBlobUrl);
+    return () => list.forEach(releaseBlobUrl);
+  }, [key]);
+  void snap;
+  return { urls: ids.map((id) => blobUrlSnapshot(id)), failed: ids.map((id) => blobFailedSnapshot(id)) };
+}
+
 // 本地图片是否读不出来（找不到或损坏）：用来在图片位置显示原因
 export const useBlobFailed = (blobId: Id | null | undefined) =>
   useSyncExternalStore(subscribeBlobUrls, () => blobFailedSnapshot(blobId), () => false);

@@ -17,6 +17,8 @@ import { Icon } from '@/components/ui/icon';
 import { MissingImage } from '@/components/ui/missing-image';
 import { useWorkspace } from '@/components/workspace/context';
 import { StepHead } from './canvas';
+import WarmTooltip from '@/components/bits/WarmTooltip/WarmTooltip';
+import GlideSelect from '@/components/bits/GlideSelect/GlideSelect';
 
 function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
   const { workId } = useWorkspace();
@@ -37,38 +39,32 @@ function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
         {low && <span className="chip chip-warn absolute left-2 top-2">尺寸偏小</span>}
       </div>
       <figcaption className="flex items-center gap-1.5 text-aux text-ink-2">
-        <label className="sr-only" htmlFor={`kind-${asset.id}`}>
-          照片类型
-        </label>
-        <select
-          id={`kind-${asset.id}`}
-          className="h-6 rounded-full bg-white px-2 text-aux shadow-[inset_0_0_0_1px_var(--color-line-strong)]"
+        <GlideSelect
+          ariaLabel="照片类型"
+          size="sm"
+          menuWidth={112}
+          options={Object.entries(ASSET_KINDS).map(([value, label]) => ({ value, label }))}
           value={asset.kind}
           disabled={locked}
-          onChange={async (e) => {
-            await setAssetKind(asset, e.target.value as AssetKind);
+          onChange={async (v) => {
+            await setAssetKind(asset, v as AssetKind);
             await mutateWork(workId, (c) => assetsChanged(c.work));
           }}
-        >
-          {Object.entries(ASSET_KINDS).map(([k, label]) => (
-            <option key={k} value={k}>
-              {label}
-            </option>
-          ))}
-        </select>
+        />
         <span className="text-label text-muted tabular-nums">
           {asset.width}×{asset.height}
         </span>
-        <button
-          type="button"
-          className="icon-btn ml-auto"
-          aria-label="替换这张照片"
-          title="换一张更清楚的（原图记录保留）"
-          disabled={locked}
-          onClick={() => replaceRef.current?.click()}
-        >
-          <Icon name="retry" />
-        </button>
+        <WarmTooltip content="换一张更清楚的（原图记录保留）">
+          <button
+            type="button"
+            className="icon-btn ml-auto"
+            aria-label="替换这张照片"
+            disabled={locked}
+            onClick={() => replaceRef.current?.click()}
+          >
+            <Icon name="retry" />
+          </button>
+        </WarmTooltip>
         <input
           ref={replaceRef}
           type="file"
@@ -88,25 +84,26 @@ function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
             setReplaceNote(r.ok ? (r.notes[0] ?? null) : `没有替换：${r.reason}`);
           }}
         />
-        <button
-          type="button"
-          className="icon-btn"
-          aria-label="不再使用这张照片"
-          title="不再使用这张照片（原图记录保留）"
-          disabled={locked}
-          onClick={async () => {
-            const ok = await confirm({
-              title: '不再使用这张照片？',
-              body: '原图记录会保留；资产和之后的方案需要重新确认。',
-              ok: '不再使用',
-            });
-            if (!ok) return;
-            await removeAsset(asset);
-            await mutateWork(workId, (c) => assetsChanged(c.work));
-          }}
-        >
-          <Icon name="trash" />
-        </button>
+        <WarmTooltip content="不再使用这张照片（原图记录保留）">
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="不再使用这张照片"
+            disabled={locked}
+            onClick={async () => {
+              const ok = await confirm({
+                title: '不再使用这张照片？',
+                body: '原图记录会保留；资产和之后的方案需要重新确认。',
+                ok: '不再使用',
+              });
+              if (!ok) return;
+              await removeAsset(asset);
+              await mutateWork(workId, (c) => assetsChanged(c.work));
+            }}
+          >
+            <Icon name="trash" />
+          </button>
+        </WarmTooltip>
       </figcaption>
       {replaceNote && <p className="text-label text-warn">{replaceNote}</p>}
     </figure>
@@ -169,21 +166,22 @@ function WhiteThumb({ parent, white, locked }: { parent: Asset; white: Asset; lo
         >
           {chosen ? '已选用' : '用这张'}
         </button>
-        <button
-          type="button"
-          className="icon-btn !size-6"
-          aria-label="不再使用这张白底图"
-          title="不再使用这张白底图"
-          disabled={locked}
-          onClick={async () => {
-            const ok = await confirm({ title: '不再使用这张白底图？', body: '原图不受影响。', ok: '不再使用' });
-            if (!ok) return;
-            await removeAsset(white);
-            if (chosen) await mutateWork(workId, (c) => chooseWhite(c.work, null));
-          }}
-        >
-          <Icon name="trash" className="size-3.5" />
-        </button>
+        <WarmTooltip content="不再使用这张白底图">
+          <button
+            type="button"
+            className="icon-btn !size-6"
+            aria-label="不再使用这张白底图"
+            disabled={locked}
+            onClick={async () => {
+              const ok = await confirm({ title: '不再使用这张白底图？', body: '原图不受影响。', ok: '不再使用' });
+              if (!ok) return;
+              await removeAsset(white);
+              if (chosen) await mutateWork(workId, (c) => chooseWhite(c.work, null));
+            }}
+          >
+            <Icon name="trash" className="size-3.5" />
+          </button>
+        </WarmTooltip>
       </div>
       <WhiteCompare open={open} onClose={() => setOpen(false)} parent={parent} white={white} />
     </div>

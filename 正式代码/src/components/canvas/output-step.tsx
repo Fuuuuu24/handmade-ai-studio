@@ -23,8 +23,13 @@ import { DraftInput } from '@/components/ui/draft-field';
 import { Icon } from '@/components/ui/icon';
 import { MissingImage } from '@/components/ui/missing-image';
 import { StepHead } from './canvas';
+import RefineFrame from '@/components/bits/RefineFrame/RefineFrame';
+import { useToast } from '@/components/ui/toast';
 
 const ratioClass = { '1:1': 'aspect-square', '3:4': 'aspect-[3/4]', '9:16': 'aspect-[9/16]' } as const;
+const RATIO_CSS = { '1:1': '1 / 1', '3:4': '3 / 4', '9:16': '9 / 16' } as const;
+// 刚生成出来的结果播一次细化动画（从马赛克到清晰）；之前的结果直接显示
+const REVEAL_MS = 20_000;
 
 const PLAN_ROWS = ['tone', 'background', 'light', 'placement', 'props', 'banned', 'composition'] as const;
 
@@ -83,6 +88,8 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
   const missing = useBlobFailed(result.blobId);
   const noteRef = useRef<HTMLInputElement>(null);
   const [comparing, setComparing] = useState(false);
+  // 挂载时算一次：刚生成出来的才播细化动画
+  const [fresh] = useState(() => Date.now() - result.createdAt < REVEAL_MS);
   const ok = passed(result);
   const anyBad = result.verdict.real === 'bad' || result.verdict.style === 'bad';
   const locked = ctx.isGenerating;
@@ -112,20 +119,28 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
     void logEvent('revise', workId, { round: result.round, slot: result.slot });
   };
 
+  const toast = useToast();
   const [exportProblem, setExportProblem] = useState<string | null>(null);
   const download = async () => {
     setExportProblem(null);
     const r = await exportResult(ctx.work.name, result);
     if (!r.ok) setExportProblem(`没有导出：${r.reason}`);
+    else toast('已开始下载', `第 ${result.round} 轮候选 ${result.slot + 1}，原图`);
   };
 
   return (
     <div className="flex min-w-0 flex-col gap-2.5">
       <a href={url ?? undefined} target="_blank" rel="noreferrer" className={`grid ${ratioClass[ratio]} cursor-zoom-in place-items-center overflow-hidden rounded-lg bg-soft`} aria-label={`查看候选 ${result.slot + 1} 大图`}>
-        {url && (
-          // eslint-disable-next-line @next/next/no-img-element -- 本地数据库里的生成结果
-          <img src={url} alt={`候选 ${result.slot + 1}`} className="size-full object-cover" />
-        )}
+        {url &&
+          (fresh ? (
+            <RefineFrame status="complete" aspectRatio={RATIO_CSS[ratio]} width={1000} radius={0} stageDuration={160} labels={{ complete: '生成好了' }} ariaLabel={`候选 ${result.slot + 1}`} className="size-full">
+              {/* eslint-disable-next-line @next/next/no-img-element -- 本地数据库里的生成结果 */}
+              <img src={url} alt="" />
+            </RefineFrame>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element -- 本地数据库里的生成结果
+            <img src={url} alt={`候选 ${result.slot + 1}`} className="size-full object-cover" />
+          ))}
         {missing && <MissingImage />}
       </a>
       {parent && (
@@ -236,27 +251,29 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
   );
 }
 
-function FailedSlot({ round, slot, error }: { round: number; slot: number; error?: string }) {
+function FailedSlot({ round, slot, error, ratio }: { round: number; slot: number; error?: string; ratio: Ratio }) {
   const { workId } = useWorkspace();
   const [pending, setPending] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
   return (
-    <div className="flex flex-col items-start gap-2 rounded-lg bg-bad-bg p-3 text-aux text-bad">
-      <p>候选 {slot + 1} 没有生成出来：{error ?? '原因未知'}</p>
-      <button
-        type="button"
-        className="mini-btn"
-        disabled={pending}
-        onClick={async () => {
+    <div className="flex flex-col gap-2">
+      <RefineFrame
+        status="error"
+        aspectRatio={RATIO_CSS[ratio]}
+        width={1000}
+        radius={8}
+        ariaLabel={`候选 ${slot + 1}：没有生成出来`}
+        retryLabel={pending ? '提交中…' : '补齐这一张'}
+        retryDisabled={pending}
+        onRetry={async () => {
           setPending(true);
           const r = await retrySlot(workId, round, slot);
           setPending(false);
           setReason(r.ok ? null : r.reasons.join('；'));
         }}
-      >
-        {pending ? '提交中…' : '补齐这一张'}
-      </button>
-      {reason && <p className="text-warn">{reason}</p>}
+      />
+      <p className="text-aux text-bad">候选 {slot + 1} 没有生成出来：{error ?? '原因未知'}</p>
+      {reason && <p className="text-aux text-warn">{reason}</p>}
     </div>
   );
 }
@@ -314,14 +331,18 @@ function Round({ round, approval, isCurrent, compare, toggleCompare }: { round: 
           if (result) return <Candidate key={slot} result={result} ratio={ratio} approval={approval} comparing={compare.includes(result.id)} onCompare={() => toggleCompare(result.id)} />;
           const st = slotState(ctx.tasks, workId, round, slot);
           const last = ctx.tasks.filter((t) => t.round === round && t.slot === slot).sort((a, b) => a.attempt - b.attempt).at(-1);
-          if (st === 'failed') return <FailedSlot key={slot} round={round} slot={slot} error={last?.error} />;
+          if (st === 'failed') return <FailedSlot key={slot} round={round} slot={slot} error={last?.error} ratio={ratio} />;
+          // 生成中（React Bits Refine Frame）：还没有图，只显示扫光和状态；结果出来后在 Candidate 里用真实结果做细化动画
           return (
-            <div key={slot} className={`grid ${ratioClass[ratio]} place-items-center rounded-lg bg-soft`}>
-              <div className="flex flex-col items-center gap-1.5 text-aux text-muted">
-                <span className="spinner" aria-hidden="true" />
-                {last?.status === 'queued' ? '正在提交…' : '生成中，通常要一两分钟'}
-              </div>
-            </div>
+            <RefineFrame
+              key={slot}
+              status={last?.status === 'queued' ? 'queued' : 'generating'}
+              aspectRatio={RATIO_CSS[ratio]}
+              width={1000}
+              radius={8}
+              labels={{ queued: '正在提交…', generating: '生成中，通常要一两分钟' }}
+              ariaLabel={`候选 ${slot + 1}：${last?.status === 'queued' ? '正在提交' : '生成中'}`}
+            />
           );
         })}
       </div>

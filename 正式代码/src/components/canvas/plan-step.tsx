@@ -20,6 +20,9 @@ import { DraftInput, DraftTextarea } from '@/components/ui/draft-field';
 import { BlockerList } from '@/components/plan/plan-summary';
 import { useWorkspace } from '@/components/workspace/context';
 import { StepHead } from './canvas';
+import JellyRadio from '@/components/bits/JellyRadio/JellyRadio';
+import type { Ratio } from '@/config/ratios';
+import GlideSelect from '@/components/bits/GlideSelect/GlideSelect';
 
 const SOURCE_TAG: Partial<Record<StyleSource, [string, string]>> = {
   recommend: ['小间推荐', 'text-accent'],
@@ -263,8 +266,23 @@ function SceneSection({ locked }: { locked: boolean }) {
             套用我的风格
           </button>
         )}
-        {saved.map((s) => chip(s.id, s.name, toneSwatch(s.params.tone), `我存的布景 · 第 ${s.version} 版`, s.params))}
         {BUILTIN_SCENES.map((s) => chip(s.id, s.name, s.colors, s.desc, s.params))}
+        {/* 自己存的布景可能越存越多，收进下拉（React Bits Glide Select）；内置模版带色块，保留胶囊 */}
+        {saved.length > 0 && (
+          <GlideSelect
+            ariaLabel="我存的布景"
+            size="sm"
+            placeholder="我存的布景"
+            menuWidth={200}
+            options={saved.map((s) => ({ value: s.id, label: s.name, tag: `第 ${s.version} 版` }))}
+            value={savedCurrent?.id ?? ''}
+            disabled={locked}
+            onChange={(id) => {
+              const s = saved.find((x) => x.id === id);
+              if (s) void mutateWork(workId, (c) => applyScene(c.work, s.id, s.params));
+            }}
+          />
+        )}
       </div>
       <Modal open={dialog === 'scene'} onClose={() => setDialog(null)} title="存为摄影布景" sub="以后别的作品可以直接套用">
         {dialog === 'scene' && (
@@ -314,13 +332,14 @@ export function PlanStep() {
 
       <section className="flex flex-wrap items-center gap-3">
         <h3 className="text-block font-semibold">比例</h3>
-        <div className="segmented" role="group" aria-label="主图比例">
-          {RATIOS.map((r) => (
-            <button key={r} type="button" aria-pressed={work.ratio === r} disabled={locked} title={RATIO_NOTES[r]} onClick={() => void mutateWork(workId, (c) => setRatio(c.work, r))}>
-              {r}
-            </button>
-          ))}
-        </div>
+        <JellyRadio
+          ariaLabel="主图比例"
+          items={[...RATIOS]}
+          value={work.ratio}
+          disabled={locked}
+          className="-mx-3"
+          onChange={(r) => void mutateWork(workId, (c) => setRatio(c.work, r as Ratio))}
+        />
         <span className="text-aux text-muted">{RATIO_NOTES[work.ratio]}</span>
       </section>
 

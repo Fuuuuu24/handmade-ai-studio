@@ -63,13 +63,28 @@ const PATHS = {
     </>
   ),
   stop: <rect x="7" y="7" width="10" height="10" rx="1.5" />,
+  chevronDown: <path d="M7 10l5 5 5-5" />,
+  chevronLeft: <path d="M14.5 6.5 9 12l5.5 5.5" />,
+  chevronRight: <path d="M9.5 6.5 15 12l-5.5 5.5" />,
+  arrowRight: <path d="M5 12h14M13.5 6.5 19 12l-5.5 5.5" />,
+  arrowUpRight: <path d="M7.5 16.5l9-9M9 7.5h7.5V15" />,
+  alert: (
+    <>
+      <path d="M12 4.5 20.5 19h-17z" />
+      <path d="M12 10v4" />
+      <circle cx="12" cy="16.6" r=".9" fill="currentColor" stroke="none" />
+    </>
+  ),
+  sparkle: <path d="M12 4.5c.6 3.6 1.9 4.9 5.5 5.5-3.6.6-4.9 1.9-5.5 5.5-.6-3.6-1.9-4.9-5.5-5.5 3.6-.6 4.9-1.9 5.5-5.5zM18 15.5c.3 1.5.8 2 2.3 2.3-1.5.3-2 .8-2.3 2.3-.3-1.5-.8-2-2.3-2.3 1.5-.3 2-.8 2.3-2.3z" />,
+  spinner: <path d="M12 4.5a7.5 7.5 0 1 1-7.5 7.5" />,
 } as const;
 
 export type IconName = keyof typeof PATHS;
 
-export function Icon({ name, className = '' }: { name: IconName; className?: string }) {
+// size：React Bits 组件里按像素指定大小；不传时由 .icon 和外层样式决定
+export function Icon({ name, className = '', size }: { name: IconName; className?: string; size?: number }) {
   return (
-    <svg className={`icon ${className}`} viewBox="0 0 24 24" aria-hidden="true">
+    <svg className={`icon ${className}`} viewBox="0 0 24 24" aria-hidden="true" style={size ? { width: size, height: size } : undefined}>
       {PATHS[name]}
     </svg>
   );

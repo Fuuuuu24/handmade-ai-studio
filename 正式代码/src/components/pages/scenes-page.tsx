@@ -15,6 +15,8 @@ import { useConfirm } from '@/components/ui/dialog';
 import { fmtTime } from '@/components/ui/format';
 import { Icon } from '@/components/ui/icon';
 import { PageFrame, PageLoading } from './page-frame';
+import WarmTooltip from '@/components/bits/WarmTooltip/WarmTooltip';
+import { useToast } from '@/components/ui/toast';
 
 const PARAM_KEYS = ['tone', 'background', 'light', 'placement', 'props', 'banned', 'composition'] as const satisfies readonly (keyof SceneParams)[];
 const NEUTRAL = ['#eeeeee', '#dddddd', '#cccccc'];
@@ -33,6 +35,7 @@ interface CardProps {
 
 function SceneCard({ name, params, colors, used, saved, starting, onStart }: CardProps) {
   const confirm = useConfirm();
+  const toast = useToast();
   return (
     <article className="flex flex-col overflow-hidden rounded-lg bg-white shadow-[0_0_0_1px_var(--color-line)]">
       <div className="flex h-10" aria-hidden="true">
@@ -45,23 +48,26 @@ function SceneCard({ name, params, colors, used, saved, starting, onStart }: Car
           <h3 className="min-w-0 truncate text-block font-semibold">{name}</h3>
           {saved && <span className="chip">v{saved.version}</span>}
           {saved && (
-            <button
-              type="button"
-              className="icon-btn -my-1 -mr-1.5 ml-auto"
-              aria-label={`删除布景「${name}」`}
-              title="删除布景"
-              onClick={async () => {
-                const ok = await confirm({
-                  title: `删除布景「${name}」？`,
-                  body: '已经用过这套布景的作品不受影响，它们的风格卡会保留当时的内容。',
-                  ok: '删除',
-                  danger: true,
-                });
-                if (ok) await deleteScene(saved.id);
-              }}
-            >
-              <Icon name="trash" />
-            </button>
+            <WarmTooltip content="删除布景">
+              <button
+                type="button"
+                className="icon-btn -my-1 -mr-1.5 ml-auto"
+                aria-label={`删除布景「${name}」`}
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: `删除布景「${name}」？`,
+                    body: '已经用过这套布景的作品不受影响，它们的风格卡会保留当时的内容。',
+                    ok: '删除',
+                    danger: true,
+                  });
+                  if (!ok) return;
+                  await deleteScene(saved.id);
+                  toast(`已删除布景「${name}」`);
+                }}
+              >
+                <Icon name="trash" />
+              </button>
+            </WarmTooltip>
           )}
         </div>
         <dl className="grid grid-cols-[56px_1fr] gap-x-2.5 gap-y-[3px] text-ink-2">

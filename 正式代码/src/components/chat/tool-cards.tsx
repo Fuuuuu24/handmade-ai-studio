@@ -10,6 +10,7 @@ import { decideProposal } from '@/domain/work';
 import { SceneSaveForm, ShopStyleForm } from '@/components/plan/library-forms';
 import { Icon } from '@/components/ui/icon';
 import { useWorkspace } from '@/components/workspace/context';
+import { useToast } from '@/components/ui/toast';
 
 /* 小间放进对话的卡片：方向选卡、下载、存布景和更新我的风格的提议。卡片只是入口，真正的写入和下载都由用户点按钮完成。 */
 
@@ -61,6 +62,7 @@ export function PicksCard({ input, active }: { input: { question?: string; optio
 
 export function ExportCard({ round, candidate }: { round: number; candidate: number }) {
   const { ctx } = useWorkspace();
+  const toast = useToast();
   const [problem, setProblem] = useState<string | null>(null);
   const result = ctx.results.find((r) => r.round === round && r.slot === candidate - 1);
   if (!result) return <Closed>第 {round} 轮候选 {candidate} 已不存在</Closed>;
@@ -81,6 +83,7 @@ export function ExportCard({ round, candidate }: { round: number; candidate: num
             setProblem(null);
             const r = await exportResult(ctx.work.name, result);
             if (!r.ok) setProblem(r.reason);
+            else toast('已开始下载', `第 ${result.round} 轮候选 ${result.slot + 1}，原图`);
           }}
         >
           <Icon name="download" className="size-3.5" />

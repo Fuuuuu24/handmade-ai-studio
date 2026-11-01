@@ -25,6 +25,7 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
   记录: { tool: 'record_story', input: { kind: 'theme', text: '雨后石阶上的蝴蝶结' } },
   总结: { tool: 'draft_summary', input: { express: '雨后蝴蝶结的安静', feel: '安静、想凑近看', avoid: '太花、道具抢戏' } },
   布景: { tool: 'apply_scene', input: { sceneId: 'tpl-moss' } },
+  推荐风格: { tool: 'set_style', input: { items: [{ field: 'light', value: '清冷晨光', basis: 'recommend', reason: '测试：贴合雨后的安静' }] } },
   提示词: {
     tool: 'draft_prompt',
     input: { prompt: '一对手作 925 银蝴蝶结耳坠，严格按参考图还原颜色、数量、轮廓和连接结构，整件完整入框留边距，苔绿手工纸背景，清冷晨光，画面里不要任何文字。' },

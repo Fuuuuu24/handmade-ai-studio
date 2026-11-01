@@ -8,6 +8,7 @@ import { DraftInput, DraftTextarea } from '@/components/ui/draft-field';
 import { Icon } from '@/components/ui/icon';
 import { useWorkspace } from '@/components/workspace/context';
 import { StepHead } from './canvas';
+import WarmTooltip from '@/components/bits/WarmTooltip/WarmTooltip';
 
 const OPTIONAL: readonly InfoKey[] = ['price', 'audience'];
 
@@ -104,9 +105,11 @@ function Followups() {
         {list.map((f) => (
           <li key={f.id} className="flex items-center gap-2">
             <span className="min-w-0 flex-1">{f.text}</span>
-            <button type="button" className="icon-btn !size-6" aria-label={`删掉「${f.text}」`} title="删掉" onClick={() => void mutateWork(workId, (c) => removeFollowup(c.work, f.id))}>
-              <Icon name="close" className="size-3.5" />
-            </button>
+            <WarmTooltip content="删掉">
+              <button type="button" className="icon-btn !size-6" aria-label={`删掉「${f.text}」`} onClick={() => void mutateWork(workId, (c) => removeFollowup(c.work, f.id))}>
+                <Icon name="close" className="size-3.5" />
+              </button>
+            </WarmTooltip>
           </li>
         ))}
       </ul>
