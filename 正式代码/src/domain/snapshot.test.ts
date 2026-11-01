@@ -24,6 +24,8 @@ describe('referencesOf', () => {
     const wb = white(w0.id, overall.id);
     const work = chooseWhite(setRoute(w0, 'A'), wb.id);
     expect(referencesOf(work, [overall, detail, wb], MAX_REFS)).toEqual([wb.id, detail.id]);
+    // 原图停用后，从它做出的白底图也不再用
+    expect(referencesOf(work, [{ ...overall, removed: true }, detail, wb], MAX_REFS)).toEqual([detail.id]);
   });
 });
 

@@ -1,6 +1,7 @@
 import { maxRefsOf } from '@/config/models';
 import { getApproval, getWork, listAssets, listResults, listTasks, saveWork } from '@/data/repo';
 import { generating } from '@/domain/generation';
+import { makingWhite } from '@/domain/white';
 import { basisOf, snapshotOf } from '@/domain/snapshot';
 import type { Approval, Asset, Basis, Id, Result, Snapshot, Task, Work } from '@/domain/types';
 
@@ -16,6 +17,7 @@ export interface WorkContext {
   basis: Basis;
   snapshot: Snapshot;
   isGenerating: boolean;
+  isMakingWhite: boolean; // 白底图任务不锁方案，但做白底时不能删作品
 }
 
 export function deriveContext(work: Work, assets: Asset[], approval: Approval | null, tasks: Task[], results: Result[]): WorkContext {
@@ -30,6 +32,7 @@ export function deriveContext(work: Work, assets: Asset[], approval: Approval | 
     basis: basisOf(work, assets, maxRefs),
     snapshot: snapshotOf(work, assets, maxRefs),
     isGenerating: generating(tasks, work.id),
+    isMakingWhite: makingWhite(tasks, work.id),
   };
 }
 

@@ -202,6 +202,7 @@ export interface Task {
   round?: number;
   slot?: number;
   sourceAssetId?: Id; // 白底任务的来源图
+  whiteAssetId?: Id; // 白底任务成功后存下的白底图
   attempt: number; // 第几次尝试，补齐时加一
   parentResultId?: Id; // 这一轮是从哪张结果改出来的，结果记为它的子版本
   model: string;

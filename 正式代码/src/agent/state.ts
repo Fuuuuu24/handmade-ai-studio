@@ -2,6 +2,7 @@ import { INFO_FIELDS, INFO_KEYS } from '@/config/info';
 import type { ChatModel } from '@/config/models';
 import { STEPS } from '@/config/steps';
 import { NO_PROPS, STYLE_KEYS, STYLE_LABELS } from '@/config/style';
+import { ASSET_KINDS } from '@/config/upload';
 import { VERDICT_TEXT } from '@/config/verdict';
 import { approvalBlockers, approvalStatus, promptStatus } from '@/domain/approval';
 import { roundResults, roundSlots, slotState } from '@/domain/generation';
@@ -51,6 +52,17 @@ export function stateSummary(i: SummaryInput): string {
       ? `照片：${uploads.length} 张（整体 ${count('overall')}、背面 ${count('back')}、细节 ${count('detail')}）；资产${work.assetsConfirmed ? '已确认' : '还没确认'}`
       : '照片：还没有，需要先请用户上传整体照',
   );
+  if (uploads.length) lines.push(`照片编号：${uploads.map((a, n) => `${n + 1}. ${a.id}（${ASSET_KINDS[a.kind]}）`).join('；')}`);
+  if (work.route === 'A') {
+    const whites = i.assets.filter((a) => a.origin === 'white' && !a.removed);
+    const making = i.tasks.some((t) => t.kind === 'white' && (t.status === 'queued' || t.status === 'running'));
+    const chosen = i.basis.references.includes(work.whiteChoice ?? '');
+    lines.push(
+      `资产路线：A（先做白底图再生成）；白底图 ${whites.length} 张${making ? '，正在做' : ''}；${chosen ? '已选用一张' : '还没选用，用户要在画布上对照原图后选用'}`,
+    );
+  } else {
+    lines.push('资产路线：B（原图直接作参考图，不需要白底图）');
+  }
 
   lines.push('商品信息：');
   for (const k of INFO_KEYS) {

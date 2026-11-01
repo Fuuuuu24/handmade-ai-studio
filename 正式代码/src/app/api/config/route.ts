@@ -9,6 +9,7 @@ export async function GET() {
     return Response.json({
       configured: Boolean(process.env.AIHUBMIX_API_KEY?.trim()),
       fake: fakeGateway(), // 假生图网关：界面要标明结果是测试图（AC-08.6）
+      operator: process.env.TRIAL_OPERATOR === '1', // 试用操作员：资产页显示 A/B 路线开关（PRD 4.3，不给商家看）
       chatModels: CHAT_MODELS.map(({ id, label, vision }) => ({ id, label, vision })),
       imageModels: IMAGE_MODELS.map(({ id, label, perImageUSD }) => ({ id, label, perImageUSD })),
       defaults: { chatModel: DEFAULT_CHAT_MODEL, imageModel: DEFAULT_IMAGE_MODEL },

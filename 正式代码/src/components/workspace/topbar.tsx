@@ -22,7 +22,7 @@ function DeleteWork() {
   const confirm = useConfirm();
   const router = useRouter();
   const [problem, setProblem] = useState<string | null>(null);
-  const locked = ctx.isGenerating;
+  const locked = ctx.isGenerating || ctx.isMakingWhite;
   return (
     <>
       {problem && (
@@ -34,7 +34,7 @@ function DeleteWork() {
         type="button"
         className="icon-btn ml-1"
         aria-label="删除作品"
-        title={locked ? '正在生成，等这一轮结束再删' : '删除作品'}
+        title={locked ? '正在生成，等结束后再删' : '删除作品'}
         disabled={locked}
         onClick={async () => {
           const ok = await confirm({

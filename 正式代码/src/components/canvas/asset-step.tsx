@@ -2,14 +2,17 @@
 
 import { useRef, useState } from 'react';
 import { ASSET_KINDS, UPLOAD } from '@/config/upload';
+import { makeWhiteByGeneration } from '@/client/generation';
 import { useBlobUrl } from '@/client/hooks';
 import { addPhotos } from '@/client/uploads';
 import { mutateWork } from '@/client/work-store';
 import { removeAsset, setAssetKind } from '@/data/repo';
+import { isActive } from '@/domain/generation';
 import { activeUploads } from '@/domain/snapshot';
-import type { Asset, AssetKind } from '@/domain/types';
-import { assetsChanged, confirmAssets } from '@/domain/work';
-import { useConfirm } from '@/components/ui/dialog';
+import type { Asset, AssetKind, Route } from '@/domain/types';
+import { whiteCheck, whitesOf, whiteTasks } from '@/domain/white';
+import { assetsChanged, chooseWhite, confirmAssets, setRoute } from '@/domain/work';
+import { Modal, useConfirm } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { useWorkspace } from '@/components/workspace/context';
 import { StepHead } from './canvas';
@@ -75,6 +78,151 @@ function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
   );
 }
 
+// 白底图对照（AC-02.3）：原图和白底图并排放大看
+function WhiteCompare({ open, onClose, parent, white }: { open: boolean; onClose: () => void; parent: Asset; white: Asset }) {
+  const a = useBlobUrl(open ? parent.blobId : null);
+  const b = useBlobUrl(open ? white.blobId : null);
+  const frame = 'grid h-[min(64vh,640px)] place-items-center overflow-hidden rounded-lg bg-soft';
+  return (
+    <Modal open={open} onClose={onClose} wide title="对照白底图" sub="看镂空、细链、透明部分、轮廓和数量有没有走样，有没有被裁掉">
+      <div className="grid grid-cols-2 gap-4">
+        {[
+          [a, '原图'],
+          [b, '白底图（生图模型重画，可能改动细节）'],
+        ].map(([url, label]) => (
+          <figure key={label} className="m-0 flex flex-col gap-1.5">
+            <div className={frame}>
+              {url && (
+                // eslint-disable-next-line @next/next/no-img-element -- 本地数据库里的图片
+                <img src={url} alt={label!} className="size-full object-contain" />
+              )}
+            </div>
+            <figcaption className="text-aux text-muted">{label}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
+function WhiteThumb({ parent, white, locked }: { parent: Asset; white: Asset; locked: boolean }) {
+  const { ctx, workId } = useWorkspace();
+  const confirm = useConfirm();
+  const url = useBlobUrl(white.thumbId);
+  const [open, setOpen] = useState(false);
+  const chosen = ctx.work.whiteChoice === white.id;
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        type="button"
+        className={`grid aspect-square w-[76px] cursor-zoom-in place-items-center overflow-hidden rounded-md bg-white ${chosen ? 'shadow-[0_0_0_1.5px_var(--color-ink)]' : 'shadow-[0_0_0_1px_var(--color-line)]'}`}
+        aria-label="对照原图查看白底图"
+        onClick={() => setOpen(true)}
+      >
+        {url && (
+          // eslint-disable-next-line @next/next/no-img-element -- 本地数据库里的白底图
+          <img src={url} alt="" className="size-full object-contain" />
+        )}
+      </button>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          className="mini-btn"
+          aria-pressed={chosen}
+          disabled={locked || chosen}
+          onClick={() => void mutateWork(workId, (c) => chooseWhite(c.work, white.id))}
+        >
+          {chosen ? '已选用' : '用这张'}
+        </button>
+        <button
+          type="button"
+          className="icon-btn !size-6"
+          aria-label="不再使用这张白底图"
+          title="不再使用这张白底图"
+          disabled={locked}
+          onClick={async () => {
+            const ok = await confirm({ title: '不再使用这张白底图？', body: '原图不受影响。', ok: '不再使用' });
+            if (!ok) return;
+            await removeAsset(white);
+            if (chosen) await mutateWork(workId, (c) => chooseWhite(c.work, null));
+          }}
+        >
+          <Icon name="trash" className="size-3.5" />
+        </button>
+      </div>
+      <WhiteCompare open={open} onClose={() => setOpen(false)} parent={parent} white={white} />
+    </div>
+  );
+}
+
+// A 路线：每张整体或背面照下面做白底、对照、选用（技术写法第 7 节）。抠图做法还没接入，只有生图白底
+function WhitePanel({ parent }: { parent: Asset }) {
+  const { ctx, workId } = useWorkspace();
+  const [reason, setReason] = useState<string | null>(null);
+  const whites = whitesOf(ctx.assets, parent.id);
+  const tasks = whiteTasks(ctx.tasks, parent.id);
+  const last = tasks.at(-1);
+  const active = last && isActive(last);
+  const check = whiteCheck(ctx.work, ctx.assets, ctx.tasks, parent.id, ctx.isGenerating);
+  return (
+    <div className="flex flex-col gap-2 rounded-lg bg-white p-2.5 shadow-[inset_0_0_0_1px_var(--color-line)]">
+      <div className="flex items-center gap-2 text-aux">
+        <span className="text-muted">白底图</span>
+        <button
+          type="button"
+          className="mini-btn ml-auto"
+          disabled={!check.ok}
+          title={check.ok ? '用生图模型按这张照片出一张白底图（要花一张图的钱）' : check.reason}
+          onClick={async () => {
+            setReason(null);
+            const r = await makeWhiteByGeneration(workId, parent.id);
+            if (!r.ok) setReason(r.reason);
+          }}
+        >
+          {active ? '正在做…' : whites.length ? '再做一张' : '生图白底'}
+        </button>
+      </div>
+      {whites.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {whites.map((w) => (
+            <WhiteThumb key={w.id} parent={parent} white={w} locked={ctx.isGenerating} />
+          ))}
+        </div>
+      )}
+      {active && (
+        <p className="flex items-center gap-1.5 text-label text-muted">
+          <span className="spinner !size-3" aria-hidden="true" />
+          生成中，通常要一两分钟
+        </p>
+      )}
+      {last?.status === 'failed' && <p className="text-label text-bad">上一次没做出来：{last.error ?? '原因未知'}</p>}
+      {reason && <p className="text-label text-warn">{reason}</p>}
+    </div>
+  );
+}
+
+// 资产路线（PRD 4.3、AC-02.6）：只给试用操作员看，切换后资产要重新确认
+function RouteSwitch() {
+  const { ctx, workId, config } = useWorkspace();
+  if (!config?.operator) return null;
+  const options: [Route, string][] = [
+    ['A', 'A 白底'],
+    ['B', 'B 原图'],
+  ];
+  return (
+    <div className="mb-4 flex items-center gap-2.5 text-aux text-muted">
+      <span>资产路线（试用操作员）</span>
+      <div className="segmented" role="group" aria-label="资产路线">
+        {options.map(([r, label]) => (
+          <button key={r} type="button" aria-pressed={ctx.work.route === r} disabled={ctx.isGenerating} onClick={() => void mutateWork(workId, (c) => setRoute(c.work, r))}>
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // 资产（PRD FR-02）：多张参考图、类型标注、对照检查后确认才可用；原图始终保留
 export function AssetStep() {
   const { ctx, workId, setViewing } = useWorkspace();
@@ -82,9 +230,12 @@ export function AssetStep() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [notes, setNotes] = useState<string[]>([]);
   const locked = ctx.isGenerating;
+  const routeA = ctx.work.route === 'A';
+  const needWhite = routeA && !ctx.basis.references.includes(ctx.work.whiteChoice ?? '');
 
   return (
     <div>
+      <RouteSwitch />
       <StepHead step="asset">
         {uploads.length > 0 && <span className={ctx.work.assetsConfirmed ? 'chip chip-ok' : 'chip chip-warn'}>{ctx.work.assetsConfirmed ? '已确认' : '待确认'}</span>}
       </StepHead>
@@ -105,7 +256,10 @@ export function AssetStep() {
           </p>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
             {uploads.map((a) => (
-              <PhotoCard key={a.id} asset={a} locked={locked} />
+              <div key={a.id} className="flex flex-col gap-2.5">
+                <PhotoCard asset={a} locked={locked} />
+                {routeA && a.kind !== 'detail' && <WhitePanel parent={a} />}
+              </div>
             ))}
             {uploads.length < UPLOAD.maxCount && (
               <button
@@ -125,7 +279,7 @@ export function AssetStep() {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={ctx.work.assetsConfirmed || locked}
+              disabled={ctx.work.assetsConfirmed || locked || needWhite}
               onClick={async () => {
                 await mutateWork(workId, (c) => confirmAssets(c.work));
                 setViewing(null);
@@ -134,7 +288,11 @@ export function AssetStep() {
               {ctx.work.assetsConfirmed ? '资产已确认' : '确认资产'}
             </button>
             <span className="text-aux text-muted">
-              {ctx.work.route === 'A' ? '白底路线：确认后用白底图生成' : '原图路线：确认后用这些照片作参考图'}
+              {routeA
+                ? needWhite
+                  ? '白底路线：先给整体照做一张白底图，对照原图后选用'
+                  : '白底路线：确认后用选用的白底图和细节照生成'
+                : '原图路线：确认后用这些照片作参考图'}
             </span>
           </div>
         </>

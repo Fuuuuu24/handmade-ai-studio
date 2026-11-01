@@ -1,12 +1,15 @@
 import { GENERATION } from '@/config/budget';
-import { activeTasks, getApproval, getAsset, getBlob, getWork, logEvent, putTask, saveApproval, saveResult } from '@/data/repo';
+import type { Ratio } from '@/config/ratios';
+import { WHITE } from '@/config/white';
+import { activeTasks, addWhite, getApproval, getAsset, getBlob, getWork, logEvent, putTask, saveApproval, saveResult } from '@/data/repo';
 import { approvalStatus } from '@/domain/approval';
 import { retryCheck, roundSlots } from '@/domain/generation';
 import type { Approval, Id, Result, Task } from '@/domain/types';
 import { newId } from '@/domain/util';
+import { whiteCheck } from '@/domain/white';
 import { addCost, approve, startRound } from '@/domain/work';
 import { ApiCallError, downloadImageResult, errorText, getImageTaskStatus, submitImageTask } from './api';
-import { imageSize, referenceDataUrl } from './images';
+import { imageSize, prepareDerived, referenceDataUrl } from './images';
 import { loadContext, mutateWork, serial } from './work-store';
 
 /* 生成两张候选（PRD FR-08）。批准只来自界面上的用户操作；每张候选是独立任务，一张失败不影响另一张。
@@ -63,20 +66,33 @@ async function launch(workId: Id, fresh: Approval | null): Promise<GenOutcome> {
   for (const t of tasks) await putTask(t);
   const snap = s.approval.snapshot;
   void logEvent('generate', workId, { round: s.round, model: snap.imageModel, route: snap.route, ratio: snap.ratio });
-  for (const t of tasks) void submit(t, s.approval);
+  for (const t of tasks) void submit(t, sceneRequest(s.approval));
   return { ok: true, round: s.round };
 }
 
-async function referenceImages(approval: Approval): Promise<string[]> {
+// 提交给网关的内容：场景图按批准快照，白底图按原图和固定的白底提示词
+interface ImageRequest {
+  prompt: string;
+  ratio: Ratio;
+  images: () => Promise<string[]>;
+}
+
+async function referenceImages(ids: readonly Id[], missing: string): Promise<string[]> {
   const out: string[] = [];
-  for (const id of approval.snapshot.references) {
+  for (const id of ids) {
     const asset = await getAsset(id);
     const blob = asset && (await getBlob(asset.blobId));
-    if (!blob) throw new Error('批准时用的参考图找不到了，请重新确认资产后再批准');
+    if (!blob) throw new Error(missing);
     out.push(await referenceDataUrl(blob));
   }
   return out;
 }
+
+const sceneRequest = (approval: Approval): ImageRequest => ({
+  prompt: approval.snapshot.prompt,
+  ratio: approval.snapshot.ratio,
+  images: () => referenceImages(approval.snapshot.references, '批准时用的参考图找不到了，请重新确认资产后再批准'),
+});
 
 // 作品已被删除时不再写回任务和结果，免得留下没有作品的记录
 const workGone = async (workId: Id) => !(await getWork(workId));
@@ -84,14 +100,18 @@ const workGone = async (workId: Id) => !(await getWork(workId));
 async function fail(task: Task, error: string) {
   if (await workGone(task.workId)) return;
   await putTask({ ...task, status: 'failed', error, updatedAt: now() });
-  void logEvent('task_failed', task.workId, { round: task.round ?? null, slot: task.slot ?? null, error: error.slice(0, 80) });
+  void logEvent(task.kind === 'white' ? 'white_failed' : 'task_failed', task.workId, {
+    round: task.round ?? null,
+    slot: task.slot ?? null,
+    error: error.slice(0, 80),
+  });
 }
 
-async function submit(task: Task, approval: Approval) {
+async function submit(task: Task, req: ImageRequest) {
   submitting.add(task.id);
   try {
-    const images = await referenceImages(approval);
-    const res = await submitImageTask({ model: task.model, prompt: approval.snapshot.prompt, ratio: approval.snapshot.ratio, images });
+    const images = await req.images();
+    const res = await submitImageTask({ model: task.model, prompt: req.prompt, ratio: req.ratio, images });
     const running: Task = { ...task, status: 'running', gatewayId: res.gatewayId, ledgerId: res.ledgerId, costUSD: res.estUSD, updatedAt: now() };
     await putTask(running);
     await mutateWork(task.workId, (ctx) => addCost(ctx.work, res.estUSD));
@@ -167,6 +187,7 @@ async function collectWithRetry(task: Task) {
 async function collect(task: Task) {
   if (await workGone(task.workId)) return;
   const blob = await downloadImageResult(task.gatewayId!, 0);
+  if (task.kind === 'white') return collectWhite(task, blob);
   const { width, height } = await imageSize(blob);
   const result: Result = {
     id: newId('res'),
@@ -203,9 +224,49 @@ export function retrySlot(workId: Id, round: number, slot: number): Promise<GenO
     const task = newTask(workId, approval, round, slot, check.attempt);
     await putTask(task);
     void logEvent('retry', workId, { round, slot, attempt: check.attempt });
-    void submit(task, approval);
+    void submit(task, sceneRequest(approval));
     return { ok: true, round };
   });
+}
+
+/* ---------- 白底图做法①：生图模型出白底（技术写法第 7 节） ---------- */
+
+export type WhiteOutcome = { ok: true } | { ok: false; reason: string };
+
+// 给一张原图做白底：派生新图，原图不动；做好后由商家对照原图选用（AC-02.3）
+export function makeWhiteByGeneration(workId: Id, assetId: Id): Promise<WhiteOutcome> {
+  return serial(workId, async () => {
+    const ctx = await loadContext(workId);
+    const check = whiteCheck(ctx.work, ctx.assets, ctx.tasks, assetId, ctx.isGenerating);
+    if (!check.ok) return check;
+    const task: Task = {
+      id: newId('task'),
+      workId,
+      kind: 'white',
+      sourceAssetId: assetId,
+      attempt: ctx.tasks.filter((t) => t.kind === 'white' && t.sourceAssetId === assetId).length + 1,
+      model: ctx.work.imageModel,
+      status: 'queued',
+      createdAt: now(),
+      updatedAt: now(),
+    };
+    await putTask(task);
+    void logEvent('white', workId, { method: 'generate', model: task.model });
+    void submit(task, {
+      prompt: WHITE.prompt(ctx.work.info.keep.value.trim()),
+      ratio: WHITE.ratio,
+      images: () => referenceImages([assetId], '这张原图找不到了'),
+    });
+    return { ok: true };
+  });
+}
+
+async function collectWhite(task: Task, blob: Blob) {
+  const parent = await getAsset(task.sourceAssetId!);
+  if (!parent) throw new Error('白底图的原图找不到了');
+  const white = await addWhite(task.workId, parent, 'generate', await prepareDerived(blob));
+  await putTask({ ...task, status: 'succeeded', whiteAssetId: white.id, updatedAt: now() });
+  void logEvent('white_succeeded', task.workId, { method: 'generate' });
 }
 
 // 打开页面时接着查询还没结束的任务；没来得及提交的标为失败，由用户决定是否补齐，不自动重新提交

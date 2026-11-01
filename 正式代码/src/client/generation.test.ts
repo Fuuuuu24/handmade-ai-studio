@@ -5,15 +5,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('./images', () => ({
   referenceDataUrl: vi.fn(async () => 'data:image/jpeg;base64,AAAA'),
   imageSize: vi.fn(async () => ({ width: 1024, height: 1024 })),
+  prepareDerived: vi.fn(async (blob: Blob) => ({ blob, thumb: blob, width: 1024, height: 1024 })),
 }));
 
 import { GENERATION } from '@/config/budget';
 import { useTestDb } from '@/data/db';
-import { addUpload, listResults, listTasks, saveWork } from '@/data/repo';
+import { addUpload, getWork, listAssets, listResults, listTasks, saveWork } from '@/data/repo';
 import { newId } from '@/domain/util';
-import { writePrompt } from '@/domain/work';
+import { setRoute, writePrompt } from '@/domain/work';
 import { readyWork } from '@/test/fixtures';
-import { approveAndGenerate } from './generation';
+import { approveAndGenerate, makeWhiteByGeneration } from './generation';
 import { loadContext } from './work-store';
 
 const img = () => ({
@@ -111,5 +112,49 @@ describe('生成：取回图片（图片已生成、已扣费）', () => {
     const tasks = await settle(workId);
     expect(tasks.every((t) => t.status === 'failed')).toBe(true);
     expect(calls.content).toBe(2);
+  });
+});
+
+describe('白底图做法①：生图模型出白底', () => {
+  it('派生一张白底图（记原图和做法），原图不动，不算生成轮次，也不自动选用', async () => {
+    const calls: { body?: { prompt: string; ratio: string } } = {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init?: RequestInit) => {
+        if (input === '/api/images' && init?.method === 'POST') {
+          calls.body = JSON.parse(String(init.body));
+          return Response.json({ gatewayId: 'g1', status: 'pending', estUSD: 0.03, ledgerId: 'led1' });
+        }
+        if (/\/content\?/.test(input)) return jpeg();
+        if (input.startsWith('/api/images/')) return Response.json({ status: 'completed', outputs: 1 });
+        throw new Error(`没有模拟这个请求：${input}`);
+      }),
+    );
+    const workId = await seedReady();
+    await saveWork(setRoute((await getWork(workId))!, 'A'));
+    const [photo] = await listAssets(workId);
+    expect(await makeWhiteByGeneration(workId, photo.id)).toEqual({ ok: true });
+    const tasks = await settle(workId);
+    expect(tasks).toMatchObject([{ kind: 'white', status: 'succeeded', sourceAssetId: photo.id }]);
+    expect(calls.body?.ratio).toBe('1:1');
+    expect(calls.body?.prompt).toContain('纯白背景');
+    const assets = await listAssets(workId);
+    const white = assets.find((a) => a.origin === 'white');
+    expect(white).toMatchObject({ parentId: photo.id, method: 'generate', kind: 'overall' });
+    expect(tasks[0].whiteAssetId).toBe(white!.id);
+    expect(assets.find((a) => a.id === photo.id)?.removed).toBe(false);
+    const work = (await getWork(workId))!;
+    expect(work.round).toBe(0);
+    expect(work.whiteChoice).toBeNull();
+    expect(work.costUSD).toBeCloseTo(0.03, 10);
+  });
+
+  it('B 路线拒绝，不提交', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const workId = await seedReady();
+    const [photo] = await listAssets(workId);
+    expect(await makeWhiteByGeneration(workId, photo.id)).toMatchObject({ ok: false });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

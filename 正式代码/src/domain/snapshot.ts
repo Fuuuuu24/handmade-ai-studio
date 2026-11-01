@@ -16,7 +16,8 @@ export function referencesOf(work: Work, assets: readonly Asset[], maxRefs: numb
   const uploads = activeUploads(assets, work.id);
   let refs: Id[];
   if (work.route === 'A') {
-    const white = assets.find((a) => a.id === work.whiteChoice && !a.removed);
+    // 原图停用后，从它做出的白底图也不再用
+    const white = assets.find((a) => a.id === work.whiteChoice && !a.removed && uploads.some((u) => u.id === a.parentId));
     refs = [...(white ? [white.id] : []), ...uploads.filter((a) => a.kind === 'detail').map((a) => a.id)];
   } else {
     refs = uploads.map((a) => a.id);
