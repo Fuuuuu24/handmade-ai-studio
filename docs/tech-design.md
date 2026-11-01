@@ -16,12 +16,12 @@
 | 界面 | React | 19.3 |
 | 语言 | TypeScript | 5 |
 | 样式 | Tailwind CSS | 4.3 |
-| 组件 | shadcn/ui（用来装入 React Bits 组件源码；尚未初始化） | — |
+| 组件 | React Bits（手动拷入 `src/components/bits/`，见其 README；shadcn/ui 没初始化，用不上） | 上游提交 `4dc7b5b` |
 | 大模型对话 | Vercel AI SDK `ai` + `@ai-sdk/react` | 7.0 / 4.0 |
 | 网关接入 | `@ai-sdk/openai-compatible`（AIHubMix 兼容 OpenAI 格式） | 3.0 |
 | 参数校验 | zod | 4.6 |
 | 浏览器存储 | Dexie（IndexedDB 封装）+ `dexie-react-hooks` | 4.4 |
-| 动效 | motion（已安装，还没用，随 React Bits 接入） | 14.9 |
+| 动效 | motion（React Bits 组件在用） | 14.9 |
 | 测试 | Vitest、Playwright、`fake-indexeddb`（单元测试模拟 IndexedDB） | 5.0 / 1.64 |
 | 质量 | ESLint（脚手架自带）、Prettier（已安装，没有配置文件，现有代码也没统一格式化） | — |
 
@@ -189,6 +189,7 @@
 | `start_generation` | 提交生成 | 无有效批准时拒绝并返回原因 | 已接 |
 | `retry_candidate` | 补齐失败的一张 | 受重试上限约束；批准后改过方案时拒绝 | 已接 |
 | `note_feedback` | 记录用户对候选图的意见（问题标签、原话） | 两项验收由用户点；可同时「从这一张修改」，生成中拒绝 | 已接 |
+| `suggest_name` | 给作品起名字建议 | 只写建议（`Work.nameSuggestion`），用户在顶栏接受才改名 | 已接（2026-11-01） |
 | `offer_export` | 放下载卡片 | 两项都满意的才放；下载由用户点 | 已接（PRD AC-11.2 的「导出」） |
 | `propose_scene_save` ★ | 提议保存为布景（可提议更新已存布景） | 用户确认才写入；风格没选齐、更新内置模版时拒绝 | 已接 |
 | `propose_shop_style` ★ | 提议把几项写进我的风格 | 用户在卡片上看修改前后、同意才写入；和现有一样时拒绝 | 已接 |
@@ -294,7 +295,7 @@ A 路线（先白底再生成）需要白底图。两种做法都做，结果都
 - **React Bits 组件**：按已选清单接入（Prompt Bar、Slide Commit、Status Mark、Refine Frame、Jelly Radio、Glide Select、Warm Tooltip、Swipe Toast、Masonry、Thought Line）。Stepper 是按 v2 表单布局选的，v3 改为顶栏细进度后不再使用。接入时按 agents.md「接入须知」处理：中文化、修复卸载时动画编号不清零的问题、保留许可证。Thought Line 只展示模型真实的思考输出。
 - **只做电脑浏览器**（PRD v0.4）。
 - **用户输入一律当文本渲染**，不用 `dangerouslySetInnerHTML`。
-- 现状（2026-11-01）：视觉规范已迁进 `src/app/globals.css` 的 Tailwind 主题；React Bits 组件一个都还没接（shadcn 也没初始化），批准现在是普通按钮「批准并生成两张」，模型切换是普通下拉框，提示用浏览器原生 `title`。弹窗统一用 `components/ui/dialog.tsx`（原生 `<dialog>`），打开时聚焦带 `data-autofocus` 的元素，删除这类危险操作默认聚焦「取消」。
+- 现状（2026-11-01）：视觉规范已迁进 `src/app/globals.css` 的 Tailwind 主题；10 个 React Bits 组件都已接入（位置见 `docs/handoff.md` 第 4 节「2026-11-01 补做」），图标统一用项目自己的线条图标，配色用主题变量。弹窗统一用 `components/ui/dialog.tsx`（原生 `<dialog>`），打开时聚焦带 `data-autofocus` 的元素，删除这类危险操作默认聚焦「取消」。
 - 画布跟随规则：默认显示当前该做的一步；用户在画布里输入文字时停在这一步（填完必填项不会跳走）；点「确认资产」「确认总结」「批准并生成」或在对话里发消息后跟回当前步骤；小间的 `show_step` 可以切到指定一步。
 
 ## 9. 测试
@@ -310,7 +311,7 @@ A 路线（先白底再生成）需要白底图。两种做法都做，结果都
 
 真实网关测试会花钱，只在明确需要时运行，并受预算上限约束。
 
-现状（2026-11-01 检查点 8 后）：Vitest 单元测试 114 个、Playwright 全流程 4 条，全部通过；`npm run e2e` 运行（自动起一个 3100 端口的开发服务器，带 `FAKE_GATEWAY=1 FAKE_CHAT=1 TRIAL_OPERATOR=1`，账本写系统临时目录；先预热各页面，避免首次编译刷新页面打断测试）。CI（`.github/workflows/source-checks.yml` 的 `app` 任务）跑单元测试、类型检查、lint、构建和全流程，**还没在 GitHub 上实际跑过**。键盘完整走查、读屏、Chrome 以外的浏览器都没测。
+现状（2026-11-01 检查点 8 后）：Vitest 单元测试 119 个、Playwright 全流程 4 条，全部通过；`npm run e2e` 运行（自动起一个 3100 端口的开发服务器，带 `FAKE_GATEWAY=1 FAKE_CHAT=1 TRIAL_OPERATOR=1`，账本写系统临时目录；先预热各页面，避免首次编译刷新页面打断测试）。CI（`.github/workflows/source-checks.yml` 的 `app` 任务）跑单元测试、类型检查、lint、构建和全流程，**还没在 GitHub 上实际跑过**。Chrome 键盘走查已做（2026-11-01）；读屏、Chrome 以外的浏览器都没测。
 
 ## 10. 开发顺序与汇报点
 
@@ -327,7 +328,7 @@ v0.2 调整（2026-10-31 发起人选择）：先走通一条最细的真实流�
 7. ✅ 布景、我的风格、两版对比、导出、试用记录；对话花费累加、对话超时、任务恢复挪到外框、结果去重、参考图一律重新编码、结果缩略图、出错页、图片读不出来的提示、替换原图。
 8. ◐ 全流程测试已完成（假对话模型＋Playwright）；**用真实饰品照片在产品里小量试生成还没做**（花钱，要发起人同意并充值）。
 
-另外排在这些检查点之后、还没开始的：React Bits 组件接入（第 8 节）、香港服务器部署（购买前问发起人）、抠图服务（待发起人定）。
+另外排在这些检查点之后、还没开始的：香港服务器部署（购买前问发起人）、抠图服务（待发起人定）。
 
 ## 11. 确认与修订记录
 
