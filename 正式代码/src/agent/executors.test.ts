@@ -1,10 +1,11 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useTestDb } from '@/data/db';
-import { addUpload, getWork, putTask, saveWork } from '@/data/repo';
+import { addUpload, getShopStyle, getWork, listResults, listScenes, putTask, saveResult, saveShopStyle, saveWork } from '@/data/repo';
+import type { Result } from '@/domain/types';
 import { newId } from '@/domain/util';
-import { confirmSummary, editPrompt, draftSummary } from '@/domain/work';
-import { currentBasis, readyWork, task } from '@/test/fixtures';
+import { confirmSummary, editPrompt, draftSummary, setStyle } from '@/domain/work';
+import { currentBasis, readyWork, result, task } from '@/test/fixtures';
 import { executeTool } from './executors';
 
 const img = () => ({
@@ -100,5 +101,78 @@ describe('小间的工具：硬规则', () => {
     const w = await seed();
     await executeTool(w.id, 'show_step', { step: 'plan' }, deps);
     expect(deps.showStep).toHaveBeenCalledWith('plan');
+  });
+});
+
+describe('小间的工具：补全的 7 个', () => {
+  async function withResult(verdict: Result['verdict'] = { real: 'none', style: 'none' }) {
+    const w = await seed();
+    const t = { ...task(w.id, 1, 0, 'succeeded') };
+    const r = { ...result(w.id, 1, 0, verdict), taskId: t.id };
+    await saveResult(t, r, new Blob([new Uint8Array(3)], { type: 'image/jpeg' }));
+    return { w, r };
+  }
+
+  it('note_feedback 只记问题和说明，不改验收（验收只能用户点）', async () => {
+    const { w, r } = await withResult();
+    const out = await executeTool(w.id, 'note_feedback', { round: 1, candidate: 1, issues: ['轮廓'], note: '链子变长了', revise: false }, deps);
+    expect(out.ok).toBe(true);
+    const [saved] = await listResults(w.id);
+    expect(saved).toMatchObject({ id: r.id, issues: ['轮廓'], note: '链子变长了', verdict: { real: 'none', style: 'none' } });
+    expect((await executeTool(w.id, 'note_feedback', { round: 2, candidate: 1, issues: [], revise: false }, deps)).ok).toBe(false);
+  });
+
+  it('offer_export：两项都满意的才放下载卡片', async () => {
+    const { w } = await withResult({ real: 'ok', style: 'none' });
+    expect((await executeTool(w.id, 'offer_export', { round: 1, candidate: 1 }, deps)).ok).toBe(false);
+    const { w: w2 } = await withResult({ real: 'ok', style: 'ok' });
+    expect((await executeTool(w2.id, 'offer_export', { round: 1, candidate: 1 }, deps)).ok).toBe(true);
+  });
+
+  it('retry_candidate：没失败的不能补', async () => {
+    const { w } = await withResult();
+    const out = await executeTool(w.id, 'retry_candidate', { round: 1, candidate: 1 }, deps);
+    expect(out).toEqual({ ok: false, message: '不能补齐：这一张已经成功了' });
+  });
+
+  it('propose_scene_save 只放提议，不写布景；风格没选齐时拒绝；不能「更新」内置模版', async () => {
+    const w = await seed();
+    expect((await executeTool(w.id, 'propose_scene_save', { name: '青苔' }, deps)).ok).toBe(true);
+    expect(await listScenes()).toEqual([]);
+    expect((await executeTool(w.id, 'propose_scene_save', { name: '青苔', updateSceneId: 'tpl-moss' }, deps)).ok).toBe(false);
+    await saveWork(setStyle((await getWork(w.id))!, 'light', '', 'user'));
+    expect((await executeTool(w.id, 'propose_scene_save', { name: '青苔' }, deps)).message).toContain('光线');
+  });
+
+  it('propose_shop_style 只放提议，不写我的风格；和现有一样时拒绝（PRD 4.2 第 2 条）', async () => {
+    const w = await seed();
+    expect((await executeTool(w.id, 'propose_shop_style', { fields: ['light'], reason: '喜欢' }, deps)).ok).toBe(true);
+    expect((await getShopStyle()).prefs).toEqual({});
+    await saveShopStyle({ id: 'me', prefs: { light: '清冷晨光' }, history: [] });
+    expect((await executeTool(w.id, 'propose_shop_style', { fields: ['light'], reason: '喜欢' }, deps)).ok).toBe(false);
+  });
+
+  it('set_image_model：生成中拒绝；换模型后旧批准失效靠快照比对', async () => {
+    const w = await seed();
+    expect((await executeTool(w.id, 'set_image_model', { model: 'gpt-image-2' }, deps)).ok).toBe(true);
+    expect((await getWork(w.id))?.imageModel).toBe('gpt-image-2');
+    await putTask(task(w.id, 1, 0, 'running'));
+    expect((await executeTool(w.id, 'set_image_model', { model: 'qwen-image-3.0' }, deps)).ok).toBe(false);
+  });
+
+  it('make_white_asset：B 路线拒绝，不提交', async () => {
+    const w = await seed();
+    const out = await executeTool(w.id, 'make_white_asset', {}, deps);
+    expect(out.ok).toBe(false);
+    expect(out.message).toContain('原图路线');
+  });
+
+  it('note_followup 记进后续需求，不进共创记录；重复的不重复记', async () => {
+    const w = await seed();
+    await executeTool(w.id, 'note_followup', { text: '真人佩戴图' }, deps);
+    await executeTool(w.id, 'note_followup', { text: '真人佩戴图' }, deps);
+    const saved = (await getWork(w.id))!;
+    expect(saved.followups?.map((f) => f.text)).toEqual(['真人佩戴图']);
+    expect(saved.story.notes).toEqual([]);
   });
 });

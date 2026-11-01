@@ -7,6 +7,7 @@ import { useWorkspace } from '@/components/workspace/context';
 import { Icon } from '@/components/ui/icon';
 import { ApprovalCard } from './approval-card';
 import { RichText } from './rich-text';
+import { ExportCard, PicksCard, SceneProposalCard, ShopProposalCard } from './tool-cards';
 
 const TOOL_DOING: Record<string, string> = {
   update_info: '整理商品信息',
@@ -19,6 +20,15 @@ const TOOL_DOING: Record<string, string> = {
   resolve_prompt_sync: '核对手改的提示词',
   request_approval: '准备批准卡片',
   start_generation: '提交生成',
+  offer_picks: '准备几个方向',
+  make_white_asset: '做白底图',
+  set_image_model: '换生图模型',
+  retry_candidate: '补齐候选',
+  note_feedback: '记下你的意见',
+  offer_export: '准备下载',
+  propose_scene_save: '准备存布景',
+  propose_shop_style: '准备更新我的风格',
+  note_followup: '记下后续需求',
   show_step: '切换画布',
 };
 
@@ -110,6 +120,13 @@ export function MessageView({ message, latest }: { message: AgentUIMessage; late
         }
         if (isToolUIPart(part) && getToolName(part) === 'request_approval') {
           return <ApprovalCard key={i} active={latest} done={part.state === 'output-available'} />;
+        }
+        // 卡片类工具：执行器同意（ok）后才显示卡片；被拒绝时照常显示原因
+        if (isToolUIPart(part) && part.state === 'output-available' && (part.output as ToolOutput).ok) {
+          if (part.type === 'tool-offer_picks') return <PicksCard key={i} input={part.input} active={latest} />;
+          if (part.type === 'tool-offer_export') return <ExportCard key={i} round={part.input.round} candidate={part.input.candidate} />;
+          if (part.type === 'tool-propose_scene_save') return <SceneProposalCard key={i} toolCallId={part.toolCallId} input={part.input} active={latest} />;
+          if (part.type === 'tool-propose_shop_style') return <ShopProposalCard key={i} toolCallId={part.toolCallId} input={part.input} active={latest} />;
         }
         return <ToolRecord key={i} part={part} />;
       })}

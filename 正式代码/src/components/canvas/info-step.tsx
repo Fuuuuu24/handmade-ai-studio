@@ -3,8 +3,9 @@
 import { INFO_CORE, INFO_FIELDS, INFO_KEYS, INFO_REQUIRED, type InfoKey } from '@/config/info';
 import { mutateWork } from '@/client/work-store';
 import { infoReady } from '@/domain/info';
-import { acceptSuggestion, dismissSuggestion, markUnknown, setInfo } from '@/domain/work';
+import { acceptSuggestion, dismissSuggestion, markUnknown, removeFollowup, setInfo } from '@/domain/work';
 import { DraftInput, DraftTextarea } from '@/components/ui/draft-field';
+import { Icon } from '@/components/ui/icon';
 import { useWorkspace } from '@/components/workspace/context';
 import { StepHead } from './canvas';
 
@@ -85,6 +86,30 @@ export function InfoStep() {
         ))}
       </div>
       <p className="mt-3 text-aux text-muted">改动材料、尺寸或不能改的细节后，已经写好的提示词和批准需要重新确认。</p>
+      <Followups />
     </div>
+  );
+}
+
+// 本期不支持、先记下的需求（AC-02.5，比如真人佩戴）：不进提示词，也不影响批准
+function Followups() {
+  const { ctx, workId } = useWorkspace();
+  const list = ctx.work.followups ?? [];
+  if (!list.length) return null;
+  return (
+    <section className="mt-8 flex max-w-[640px] flex-col gap-2">
+      <h3 className="text-block font-semibold">记下的后续需求</h3>
+      <p className="text-aux text-muted">本期先不做，记下来给以后的版本参考；不会写进这次的提示词。</p>
+      <ul className="flex flex-col gap-1 text-body text-ink-2">
+        {list.map((f) => (
+          <li key={f.id} className="flex items-center gap-2">
+            <span className="min-w-0 flex-1">{f.text}</span>
+            <button type="button" className="icon-btn !size-6" aria-label={`删掉「${f.text}」`} title="删掉" onClick={() => void mutateWork(workId, (c) => removeFollowup(c.work, f.id))}>
+              <Icon name="close" className="size-3.5" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

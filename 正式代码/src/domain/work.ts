@@ -145,6 +145,16 @@ export function applyScene(w: Work, sceneId: Id, params: SceneParams): Work {
   return touch(w, { style, sceneId });
 }
 
+// 套用我的风格：长期偏好写进这件作品的风格卡，标来源「我的风格」（AC-06.1）；单件之后的改动不会回写长期风格
+export function applyShopPrefs(w: Work, prefs: Partial<Record<StyleKey, string>>): Work {
+  const style = { ...w.style };
+  for (const k of STYLE_KEYS) {
+    const v = prefs[k]?.trim();
+    if (v) style[k] = { value: v, source: 'shop' };
+  }
+  return touch(w, { style });
+}
+
 export const setRatio = (w: Work, ratio: Ratio) => touch(w, { ratio });
 export const setImageModel = (w: Work, imageModel: string) => touch(w, { imageModel });
 export const setChatModel = (w: Work, chatModel: string) => touch(w, { chatModel });
@@ -254,5 +264,18 @@ export function startRound(w: Work, approval: Approval | null, current: Snapshot
   const round = w.round + 1;
   return { ok: true, work: touch(w, { round, revision: undefined }), approval: { ...approval, usedRound: round }, round };
 }
+
+/* ---------- 后续需求与提议卡片 ---------- */
+
+export function addFollowup(w: Work, text: string): Work {
+  const t = text.trim();
+  if (!t || w.followups?.some((f) => f.text === t)) return w;
+  return touch(w, { followups: [...(w.followups ?? []), { id: newId('need'), text: t, at: Date.now() }] });
+}
+
+export const removeFollowup = (w: Work, id: Id) => touch(w, { followups: (w.followups ?? []).filter((f) => f.id !== id) });
+
+export const decideProposal = (w: Work, toolCallId: Id, decision: 'accepted' | 'declined') =>
+  touch(w, { proposals: { ...w.proposals, [toolCallId]: decision } });
 
 export const addCost = (w: Work, usd: number) => touch(w, { costUSD: Math.round((w.costUSD + usd) * 1e6) / 1e6 });

@@ -1,14 +1,20 @@
 'use client';
 
+import { useLiveQuery } from 'dexie-react-hooks';
+import { useState } from 'react';
 import { RATIOS, RATIO_NOTES } from '@/config/ratios';
 import { BUILTIN_SCENES } from '@/config/scenes';
 import { NO_PROPS, STYLE_KEYS, STYLE_LABELS, STYLE_OPTIONS, TONE_OPTIONS, type StyleKey } from '@/config/style';
 import { mutateWork } from '@/client/work-store';
+import { getShopStyle, listScenes } from '@/data/repo';
 import { approvalStatus, promptStatus } from '@/domain/approval';
 import { styleConflicts } from '@/domain/conflicts';
 import { styleValuesOf } from '@/domain/snapshot';
 import type { StyleSource } from '@/domain/types';
-import { applyScene, cancelRevision, editPrompt, markPromptChecked, revertPrompt, setRatio, setStyle } from '@/domain/work';
+import { applyScene, applyShopPrefs, cancelRevision, editPrompt, markPromptChecked, revertPrompt, setRatio, setStyle } from '@/domain/work';
+import { SceneSaveForm, ShopStyleForm } from '@/components/plan/library-forms';
+import { PlanSummary } from '@/components/plan/plan-summary';
+import { Modal } from '@/components/ui/dialog';
 import { ApproveButton } from '@/components/plan/approve-button';
 import { DraftInput, DraftTextarea } from '@/components/ui/draft-field';
 import { BlockerList } from '@/components/plan/plan-summary';
@@ -186,6 +192,75 @@ function RevisionNote() {
   );
 }
 
+// 摄影布景：内置模版、自己存的布景、我的风格都可以一键套用（FR-06）；满意的方案可以存成布景、写进我的风格
+function SceneSection({ locked }: { locked: boolean }) {
+  const { ctx, workId } = useWorkspace();
+  const saved = useLiveQuery(() => listScenes(), []) ?? [];
+  const shop = useLiveQuery(() => getShopStyle(), []);
+  const [dialog, setDialog] = useState<'scene' | 'shop' | null>(null);
+  const { work } = ctx;
+  const shopKeys = shop ? STYLE_KEYS.filter((k) => shop.prefs[k]?.trim()) : [];
+  const savedCurrent = saved.find((s) => s.id === work.sceneId);
+  const chip = (id: string, name: string, colors: readonly string[] | undefined, title: string, params: Parameters<typeof applyScene>[2]) => (
+    <button
+      key={id}
+      type="button"
+      className="choice gap-2"
+      aria-pressed={work.sceneId === id}
+      disabled={locked}
+      title={title}
+      onClick={() => void mutateWork(workId, (c) => applyScene(c.work, id, params))}
+    >
+      {colors && (
+        <span className="inline-flex overflow-hidden rounded-sm" aria-hidden="true">
+          {colors.map((c) => (
+            <i key={c} className="h-3 w-2" style={{ background: c }} />
+          ))}
+        </span>
+      )}
+      {name}
+    </button>
+  );
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <h3 className="text-block font-semibold">摄影布景</h3>
+        <span className="ml-auto flex gap-1">
+          <button type="button" className="btn btn-quiet btn-sm" onClick={() => setDialog('scene')}>
+            存为布景
+          </button>
+          <button type="button" className="btn btn-quiet btn-sm" onClick={() => setDialog('shop')}>
+            更新为我的风格
+          </button>
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {shopKeys.length > 0 && (
+          <button
+            type="button"
+            className="choice"
+            disabled={locked}
+            title={shopKeys.map((k) => `${STYLE_LABELS[k]}：${shop!.prefs[k]}`).join('；')}
+            onClick={() => void mutateWork(workId, (c) => applyShopPrefs(c.work, shop!.prefs))}
+          >
+            套用我的风格
+          </button>
+        )}
+        {saved.map((s) => chip(s.id, s.name, toneSwatch(s.params.tone), `我存的布景 · 第 ${s.version} 版`, s.params))}
+        {BUILTIN_SCENES.map((s) => chip(s.id, s.name, s.colors, s.desc, s.params))}
+      </div>
+      <Modal open={dialog === 'scene'} onClose={() => setDialog(null)} title="存为摄影布景" sub="以后别的作品可以直接套用">
+        {dialog === 'scene' && (
+          <SceneSaveForm defaultName={savedCurrent?.name ?? ''} updateSceneId={savedCurrent?.id} onSaved={() => setDialog(null)} onCancel={() => setDialog(null)} />
+        )}
+      </Modal>
+      <Modal open={dialog === 'shop'} onClose={() => setDialog(null)} title="更新为我的风格" sub="勾选要写进店铺长期风格的几项">
+        {dialog === 'shop' && <ShopStyleForm reason="" onSaved={() => setDialog(null)} onCancel={() => setDialog(null)} />}
+      </Modal>
+    </section>
+  );
+}
+
 // 方案（PRD FR-05、FR-07、FR-08）：风格卡与对话是同一份数据；批准绑定快照，改动后旧批准失效
 export function PlanStep() {
   const { ctx, workId } = useWorkspace();
@@ -204,29 +279,7 @@ export function PlanStep() {
       {locked && <p className="-mt-3 text-aux text-muted">正在生成这一轮，方案锁定中。</p>}
       <RevisionNote />
 
-      <section className="flex flex-col gap-2">
-        <h3 className="text-block font-semibold">摄影布景</h3>
-        <div className="flex flex-wrap gap-2">
-          {BUILTIN_SCENES.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              className="choice gap-2"
-              aria-pressed={work.sceneId === s.id}
-              disabled={locked}
-              title={s.desc}
-              onClick={() => void mutateWork(workId, (c) => applyScene(c.work, s.id, s.params))}
-            >
-              <span className="inline-flex overflow-hidden rounded-sm" aria-hidden="true">
-                {s.colors.map((c) => (
-                  <i key={c} className="h-3 w-2" style={{ background: c }} />
-                ))}
-              </span>
-              {s.name}
-            </button>
-          ))}
-        </div>
-      </section>
+      <SceneSection locked={locked} />
 
       <section className="rounded-xl bg-white px-5 py-2">
         {STYLE_KEYS.map((k) => (
@@ -251,6 +304,11 @@ export function PlanStep() {
           ))}
         </div>
         <span className="text-aux text-muted">{RATIO_NOTES[work.ratio]}</span>
+      </section>
+
+      <section className="flex flex-col gap-2.5 rounded-xl bg-white px-5 py-[18px]">
+        <h3 className="text-block font-semibold">可读方案</h3>
+        <PlanSummary />
       </section>
 
       <PromptSection locked={locked} />

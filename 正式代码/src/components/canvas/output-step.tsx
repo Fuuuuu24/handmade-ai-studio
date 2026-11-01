@@ -10,7 +10,8 @@ import { useBlobUrl } from '@/client/hooks';
 import { retrySlot } from '@/client/generation';
 import { mutateWork } from '@/client/work-store';
 import { db } from '@/data/db';
-import { getBlob, logEvent, patchResult } from '@/data/repo';
+import { logEvent, patchResult } from '@/data/repo';
+import { exportResult } from '@/client/export';
 import { approvalStatus } from '@/domain/approval';
 import { passed, roundSlots, slotState } from '@/domain/generation';
 import { activeUploads } from '@/domain/snapshot';
@@ -109,19 +110,11 @@ function Candidate({ result, ratio, approval }: { result: Result; ratio: Ratio; 
     void logEvent('revise', workId, { round: result.round, slot: result.slot });
   };
 
+  const [exportProblem, setExportProblem] = useState<string | null>(null);
   const download = async () => {
-    const blob = await getBlob(result.blobId);
-    if (!blob) return;
-    const ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg';
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${ctx.work.name}-第${result.round}轮-候选${result.slot + 1}.${ext}`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-    patch((r) => {
-      r.exports = [...r.exports, Date.now()];
-    });
-    void logEvent('export', result.workId, { round: result.round, slot: result.slot });
+    setExportProblem(null);
+    const r = await exportResult(ctx.work.name, result);
+    if (!r.ok) setExportProblem(`没有导出：${r.reason}`);
   };
 
   return (
@@ -210,6 +203,11 @@ function Candidate({ result, ratio, approval }: { result: Result; ratio: Ratio; 
             从这一版修改
           </button>
         </div>
+        {exportProblem && (
+          <p role="alert" className="text-aux text-bad">
+            {exportProblem}
+          </p>
+        )}
       </div>
       <CompareModal open={comparing} onClose={() => setComparing(false)} result={result} approval={approval} />
     </div>

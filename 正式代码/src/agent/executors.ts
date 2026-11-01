@@ -1,10 +1,27 @@
 import { INFO_FIELDS } from '@/config/info';
+import { imageModel } from '@/config/models';
 import type { StepId } from '@/config/steps';
 import { STYLE_LABELS } from '@/config/style';
 import { approvalBlockers } from '@/domain/approval';
-import { addStoryNote, applyScene, draftSummary, resolvePromptSync, setRatio, setStyle, suggestInfo, writePrompt } from '@/domain/work';
+import { passed } from '@/domain/generation';
+import { sceneParamsOf, sceneSaveProblem, shopDiff, shopItemsOf } from '@/domain/library';
+import { activeUploads } from '@/domain/snapshot';
+import {
+  addFollowup,
+  addStoryNote,
+  applyScene,
+  draftSummary,
+  resolvePromptSync,
+  reviseFrom,
+  setImageModel,
+  setRatio,
+  setStyle,
+  suggestInfo,
+  writePrompt,
+} from '@/domain/work';
 import type { Work } from '@/domain/types';
-import { startGeneration } from '@/client/generation';
+import { getApproval, getScene, getShopStyle, logEvent, patchResult } from '@/data/repo';
+import { makeWhiteByGeneration, retrySlot, startGeneration } from '@/client/generation';
 import { findScene } from '@/client/scenes';
 import { loadContext, mutateWork, type WorkContext } from '@/client/work-store';
 import type { AgentTools, ToolName, ToolOutput } from './tools';
@@ -23,7 +40,19 @@ const refuse = (message: string): ToolOutput => ({ ok: false, message });
 const done = (message: string, changes?: string[]): ToolOutput => ({ ok: true, message, changes });
 
 // 生成中锁定方案：改风格、比例、提示词、共创总结要等这一轮结束（技术写法第 5 节第 7 条）
-const LOCKED_WHILE_GENERATING: ToolName[] = ['draft_summary', 'set_style', 'apply_scene', 'set_ratio', 'draft_prompt', 'resolve_prompt_sync'];
+const LOCKED_WHILE_GENERATING: ToolName[] = [
+  'draft_summary',
+  'set_style',
+  'apply_scene',
+  'set_ratio',
+  'set_image_model',
+  'draft_prompt',
+  'resolve_prompt_sync',
+];
+
+// 工具里的「第几轮候选几」对应到结果
+const findResult = (ctx: WorkContext, round: number, candidate: number) =>
+  ctx.results.find((r) => r.round === round && r.slot === candidate - 1);
 
 // 修改经 mutateWork 排队执行，读到的总是最新的作品
 async function change(workId: string, fn: (ctx: WorkContext) => Work): Promise<void> {
@@ -102,6 +131,76 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
     case 'start_generation': {
       const r = await startGeneration(workId);
       return r.ok ? done(`已开始第 ${r.round} 轮生成，两张候选，通常要等一两分钟`) : refuse(`不能生成：${r.reasons.join('；')}`);
+    }
+    case 'offer_picks': {
+      const { options } = rawInput as Input<'offer_picks'>;
+      return done(`已放出 ${options.length} 个方向卡片，等用户挑选`);
+    }
+    case 'make_white_asset': {
+      const { assetId } = rawInput as Input<'make_white_asset'>;
+      const id = assetId ?? activeUploads(ctx.assets, workId).find((a) => a.kind === 'overall')?.id;
+      if (!id) return refuse('还没有整体照，先请用户上传');
+      const r = await makeWhiteByGeneration(workId, id);
+      return r.ok ? done('已开始做白底图，通常要一两分钟；做好后请用户在画布上对照原图选用', ['白底图（制作中）']) : refuse(`不能做白底图：${r.reason}`);
+    }
+    case 'set_image_model': {
+      const { model } = rawInput as Input<'set_image_model'>;
+      const m = imageModel(model);
+      if (!m) return refuse(`没有配置这个生图模型：${model}`);
+      if (model === ctx.work.imageModel) return done(`生图模型本来就是 ${m.label}`);
+      await change(workId, (c) => setImageModel(c.work, model));
+      return done(`生图模型换成 ${m.label}，需要重新批准`, [`生图模型 ${m.label}`]);
+    }
+    case 'retry_candidate': {
+      const { round, candidate } = rawInput as Input<'retry_candidate'>;
+      const r = await retrySlot(workId, round, candidate - 1);
+      return r.ok ? done(`已重新提交第 ${round} 轮候选 ${candidate}`) : refuse(`不能补齐：${r.reasons.join('；')}`);
+    }
+    case 'note_feedback': {
+      const { round, candidate, issues, note, revise } = rawInput as Input<'note_feedback'>;
+      const res = findResult(ctx, round, candidate);
+      if (!res) return refuse(`没有第 ${round} 轮候选 ${candidate} 的结果`);
+      if (revise && ctx.isGenerating) return refuse('正在生成这一轮，等结束后再从这张修改');
+      const approval = revise ? await getApproval(res.approvalId) : undefined;
+      if (revise && !approval) return refuse('找不到这张结果当时的方案，不能从它修改');
+      await patchResult(res.id, (r) => {
+        r.issues = [...new Set([...r.issues, ...issues])];
+        if (note?.trim()) r.note = r.note ? `${r.note}；${note.trim()}` : note.trim();
+      });
+      if (revise && approval) {
+        const fresh = { ...res, issues: [...new Set([...res.issues, ...issues])] };
+        await change(workId, (c) => reviseFrom(c.work, fresh, approval));
+        void logEvent('revise', workId, { round, slot: candidate - 1, by: 'agent' });
+      }
+      const what = [issues.length ? `问题：${issues.join('、')}` : '', note?.trim() ? `说明：${note.trim()}` : ''].filter(Boolean).join('；');
+      return done(
+        `已记在第 ${round} 轮候选 ${candidate} 上${what ? `（${what}）` : ''}${revise ? '；方案已恢复成那一版，改好后请用户重新批准' : ''}。验收结果仍由用户在画布上点`,
+      );
+    }
+    case 'offer_export': {
+      const { round, candidate } = rawInput as Input<'offer_export'>;
+      const res = findResult(ctx, round, candidate);
+      if (!res) return refuse(`没有第 ${round} 轮候选 ${candidate} 的结果`);
+      if (!passed(res)) return refuse('这张还没有两项都验收满意，不能导出；请用户先在画布上验收');
+      return done('下载卡片已放出，由用户点击下载');
+    }
+    case 'propose_scene_save': {
+      const { name, updateSceneId } = rawInput as Input<'propose_scene_save'>;
+      const problem = sceneSaveProblem(sceneParamsOf(ctx.work), name);
+      if (problem) return refuse(problem);
+      if (updateSceneId && !(await getScene(updateSceneId))) return refuse('只能更新自己存过的布景，内置模版不能改');
+      return done('提议卡片已放出，用户确认后才保存');
+    }
+    case 'propose_shop_style': {
+      const { fields } = rawInput as Input<'propose_shop_style'>;
+      const diff = shopDiff(await getShopStyle(), shopItemsOf(ctx.work, fields));
+      if (!Object.keys(diff).length) return refuse('这几项要么还没定，要么和现在的长期风格一样，不用更新');
+      return done('提议卡片已放出，用户同意后才写入我的风格');
+    }
+    case 'note_followup': {
+      const { text } = rawInput as Input<'note_followup'>;
+      await change(workId, (c) => addFollowup(c.work, text));
+      return done(`已记下这个需求：${text}（本期先不做）`);
     }
     case 'show_step': {
       const { step } = rawInput as Input<'show_step'>;

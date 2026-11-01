@@ -161,6 +161,14 @@ export interface Work {
   round: number; // 已发起的生成轮数
   costUSD: number; // 这件作品累计花费（对话＋生图），试用记录用
   revision?: Revision; // 正在从某张结果修改；开始生成后清掉
+  followups?: Followup[]; // 本期不支持、先记下的需求（如真人佩戴，AC-02.5）
+  proposals?: Record<Id, 'accepted' | 'declined'>; // 小间提议卡片（存布景、更新我的风格）上用户的决定，按工具调用编号记
+}
+
+export interface Followup {
+  id: Id;
+  text: string;
+  at: number;
 }
 
 /* ---------- 素材 ---------- */
