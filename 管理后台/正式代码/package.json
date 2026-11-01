@@ -1,0 +1,14 @@
+{
+  "name": "yijian-admin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check server.mjs && node --check store.mjs && node --check public/app.js"
+  }
+}

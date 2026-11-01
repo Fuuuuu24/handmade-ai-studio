@@ -1,0 +1,338 @@
+/* React Bits「Prompt Bar」样式，按本项目裁剪：浅色、项目颜色变量；去掉强度、语音、火花、附件标签的样式 */
+.prompt-bar {
+  --pb-radius: 12px;
+  --pb-press: 0.94;
+  --pb-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  position: relative;
+  width: 100%;
+  color: var(--color-ink);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.prompt-bar__menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 5;
+  padding: 4px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow:
+    inset 0 0 0 1px var(--color-line),
+    var(--shadow-pop);
+  transform-origin: bottom center;
+  animation: prompt-bar-pop 180ms var(--pb-ease-out) both;
+}
+
+.prompt-bar__menu[data-kind='plus'],
+.prompt-bar__menu[data-kind='picker'] {
+  right: auto;
+  min-width: 220px;
+  transform-origin: bottom left;
+}
+
+@keyframes prompt-bar-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+.prompt-bar__glow {
+  position: absolute;
+  right: 4px;
+  left: 4px;
+  border-radius: 8px;
+  background: var(--color-soft);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    top 220ms var(--pb-ease-out),
+    height 220ms var(--pb-ease-out),
+    opacity 150ms ease;
+}
+
+.prompt-bar__row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.prompt-bar__row[aria-disabled] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.prompt-bar__row-icon {
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  width: 18px;
+  color: var(--color-ink-2);
+}
+
+.prompt-bar__row-name {
+  flex: none;
+  font-size: 13px;
+}
+
+.prompt-bar__row-desc {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.prompt-bar__row-tag {
+  flex: none;
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+.prompt-bar__row-check {
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  width: 16px;
+  margin-left: auto;
+  opacity: 0;
+}
+
+.prompt-bar__row-tag + .prompt-bar__row-check {
+  margin-left: 0;
+}
+
+.prompt-bar__row-check[data-on] {
+  opacity: 1;
+}
+
+.prompt-bar__empty {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 8px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.prompt-bar__field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 10px 8px 14px;
+  border-radius: var(--pb-radius);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--color-line-strong);
+  cursor: text;
+  transition: box-shadow 150ms ease;
+}
+
+.prompt-bar__field:focus-within {
+  box-shadow:
+    inset 0 0 0 1px var(--color-line-hover),
+    var(--shadow-md);
+}
+
+.prompt-bar__input {
+  display: block;
+  width: 100%;
+  min-height: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  line-height: 22px;
+  resize: none;
+  outline: none;
+  overflow-wrap: anywhere;
+}
+
+/* 全局 :focus-visible 描边对输入框去掉，外框的阴影已表示焦点（接入须知） */
+.prompt-bar__input:focus-visible {
+  outline: none;
+}
+
+.prompt-bar__input::placeholder {
+  color: var(--color-placeholder);
+}
+
+.prompt-bar__bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: -4px;
+}
+
+.prompt-bar__spacer {
+  flex: 1 1 auto;
+}
+
+.prompt-bar__tool,
+.prompt-bar__pick,
+.prompt-bar__send {
+  flex: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.prompt-bar__tool:focus-visible,
+.prompt-bar__pick:focus-visible,
+.prompt-bar__send:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.prompt-bar__tool {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink-2);
+  box-shadow: inset 0 0 0 1px var(--color-line-strong);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease,
+    transform 160ms var(--pb-ease-out);
+}
+
+.prompt-bar__tool:not(:disabled):active {
+  transform: scale(0.94);
+}
+
+.prompt-bar__pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 168px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink-2);
+  font-size: 11px;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.prompt-bar__pick-prefix {
+  flex: none;
+  color: var(--color-muted);
+}
+
+.prompt-bar__pick-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.prompt-bar__tool[data-on],
+.prompt-bar__pick[data-on] {
+  background: var(--color-soft);
+  color: var(--color-ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .prompt-bar__tool:not(:disabled):hover {
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-line-hover);
+  }
+
+  .prompt-bar__pick:not(:disabled):hover {
+    background: var(--color-soft);
+    color: var(--color-ink);
+  }
+}
+
+.prompt-bar__send {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--color-soft-2);
+  color: #fff;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    transform 160ms var(--pb-ease-out);
+}
+
+.prompt-bar__send:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.prompt-bar__send[data-armed] {
+  background: var(--color-black);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .prompt-bar__send[data-armed]:hover {
+    background: #333;
+  }
+}
+
+.prompt-bar__send[data-pressed] {
+  transform: scale(var(--pb-press));
+}
+
+.prompt-bar__glyph {
+  display: block;
+  width: 14px;
+  height: 14px;
+  transform-origin: 50% 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prompt-bar__menu {
+    animation: none;
+  }
+
+  .prompt-bar__glow {
+    transition: opacity 150ms ease;
+  }
+
+  .prompt-bar__tool:active,
+  .prompt-bar__send[data-pressed] {
+    transform: none;
+  }
+}

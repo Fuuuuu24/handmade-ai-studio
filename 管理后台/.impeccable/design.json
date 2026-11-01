@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-01T05:04:48.759Z",
+  "title": "Design System: 一间管理后台",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "toast",
+        "value": "0 8px 25px #16203120",
+        "purpose": "操作结果反馈"
+      }
+    ],
+    "motion": [
+      {
+        "name": "toast-feedback",
+        "value": "opacity .18s, transform .18s",
+        "purpose": "反馈出现和消失"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-sidebar",
+        "value": "1120px"
+      },
+      {
+        "name": "stacked-editor",
+        "value": "1000px"
+      },
+      {
+        "name": "top-navigation",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "保存按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "后台保存与同步",
+      "html": "<button class=\"primary\">保存草稿</button>",
+      "css": ".primary{background:var(--accent,#b8ef35);color:#263014;border:1px solid #a5d92e;border-radius:7px;padding:6px 13px;min-height:34px;font:500 12px -apple-system,sans-serif}.primary:hover{background:var(--accent-hover,#a8df28)}.primary:focus-visible{outline:2px solid var(--purple,#7953c8);outline-offset:3px}"
+    },
+    {
+      "name": "当前导航",
+      "kind": "nav",
+      "description": "当前页面定位",
+      "html": "<button class=\"nav\" aria-current=\"page\">系统提示词</button>",
+      "css": ".nav{background:var(--purple-bg,#f0eafa);color:#6843ac;border:0;border-radius:8px;padding:11px 13px;font:600 13px -apple-system,sans-serif}"
+    }
+  ],
+  "narrative": {
+    "northStar": "沿用 CBI Admin 的配置管理界面",
+    "overview": "操作型界面，固定左导航，宽编辑区，真实来源和草稿并置。",
+    "keyCharacteristics": ["克制密度", "来源透明", "独立配置"],
+    "rules": [
+      {
+        "name": "明确作用范围",
+        "body": "默认与启停均明确属于后台，不能暗示主产品已生效。",
+        "section": "typography"
+      }
+    ],
+    "dos": ["展示来源路径与快照时间", "错误持续显示并保留编辑"],
+    "donts": ["虚构运行指标", "暗示后台草稿已经发布"]
+  }
+}
