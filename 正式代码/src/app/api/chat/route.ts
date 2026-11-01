@@ -14,6 +14,8 @@ import { BUDGET } from '@/config/budget';
 import { chatModel as findChatModel } from '@/config/models';
 import { chatCost } from '@/domain/cost';
 import { chatLanguageModel } from '@/server/aihubmix';
+import { fakeChat } from '@/server/env';
+import { FAKE_CHAT_LABEL, fakeChatModel } from '@/server/fake-chat';
 import { describeError, errorResponse, GatewayError } from '@/server/errors';
 import { reserve, settle } from '@/server/ledger';
 
@@ -69,8 +71,10 @@ export async function POST(req: Request) {
     const sentPhotos = model.vision ? photos : [];
     const inputTokens = Math.ceil((JSON.stringify(messages).length + state.length) / 1.5) + sentPhotos.length * PHOTO_TOKENS;
     const estUSD = chatCost(model.pricing, { inputTokens, outputTokens: BUDGET.chat.maxOutputTokens });
-    // 预留的估价在调用失败时保留不退：宁可多记，也不让中途失败的调用漏记花费
-    const entry = await reserve('chat', model.id, estUSD);
+    // 预留的估价在调用失败时保留不退：宁可多记，也不让中途失败的调用漏记花费。假对话模型不花钱、不记账
+    const fake = fakeChat();
+    const entry = fake ? null : await reserve('chat', model.id, estUSD);
+    const label = fake ? FAKE_CHAT_LABEL : model.label;
 
     const photoMessage: ModelMessage[] = sentPhotos.length
       ? [
@@ -89,7 +93,7 @@ export async function POST(req: Request) {
       : [];
 
     const result = streamText({
-      model: chatLanguageModel(model.id),
+      model: fake ? fakeChatModel() : chatLanguageModel(model.id),
       instructions: buildInstructions(state),
       messages: [...photoMessage, ...(await convertToModelMessages(messages, { tools: agentTools }))],
       tools: agentTools,
@@ -98,6 +102,7 @@ export async function POST(req: Request) {
       // 对话超时（PRD 7.3）：模型一直不回时如实报错，界面可重试，不让「正在思考」一直转
       timeout: { totalMs: BUDGET.chat.totalMs, firstChunkMs: BUDGET.chat.firstChunkMs },
       onEnd: async ({ totalUsage }) => {
+        if (!entry) return;
         await settle(entry.id, chatCost(model.pricing, { inputTokens: totalUsage.inputTokens ?? 0, outputTokens: totalUsage.outputTokens ?? 0 }));
       },
     });
@@ -108,8 +113,9 @@ export async function POST(req: Request) {
         originalMessages: messages,
         messageMetadata: ({ part }): MessageMeta | undefined => {
           // 每次请求开始把花费清零、结束时写本次花费，浏览器在 onFinish 里把它加进作品（技术写法第 2 节）
-          if (part.type === 'start') return { model: model.id, modelLabel: model.label, costUSD: 0 };
+          if (part.type === 'start') return { model: fake ? 'fake-chat' : model.id, modelLabel: label, costUSD: 0 };
           if (part.type === 'finish') {
+            if (fake) return { costUSD: 0 };
             return {
               costUSD: chatCost(model.pricing, {
                 inputTokens: part.totalUsage.inputTokens ?? 0,

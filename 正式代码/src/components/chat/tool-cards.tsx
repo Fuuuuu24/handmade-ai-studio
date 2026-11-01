@@ -74,7 +74,7 @@ export function ExportCard({ round, candidate }: { round: number; candidate: num
         </span>
         <button
           type="button"
-          className="mini-btn"
+          className="mini-btn inline-flex items-center gap-1"
           disabled={!ok}
           title={ok ? undefined : '两项都验收满意后才能导出'}
           onClick={async () => {

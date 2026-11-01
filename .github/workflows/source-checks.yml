@@ -28,3 +28,28 @@ jobs:
           else
             echo "::warning::原型/app.js 尚未实现，本次仅检查 server.mjs；通过不代表产品流程可用。"
           fi
+
+  app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 正式代码
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: 正式代码/package-lock.json
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      # 全流程测试：假对话模型＋假生图网关，不调用模型、不花钱；用 runner 自带的 Chrome
+      - name: End-to-end tests
+        run: npm run e2e

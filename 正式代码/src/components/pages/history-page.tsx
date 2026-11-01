@@ -8,12 +8,11 @@ import type { WorkContext } from '@/client/work-store';
 import { approvalStatus } from '@/domain/approval';
 import { passed } from '@/domain/generation';
 import type { Approval, Result } from '@/domain/types';
+import { VERDICT_SHORT } from '@/config/verdict';
 import { fmtTime } from '@/components/ui/format';
 import { MissingImage } from '@/components/ui/missing-image';
 import { EmptyState, PageFrame, PageLoading } from './page-frame';
 
-const REAL = { none: '未验收', ok: '像', bad: '不像' } as const;
-const STYLE = { none: '未验收', ok: '对', bad: '不对' } as const;
 
 function ResultCard({ c, r, approval }: { c: WorkContext; r: Result; approval: Approval | undefined }) {
   const url = useBlobUrl(r.thumbId ?? r.blobId);
@@ -41,7 +40,7 @@ function ResultCard({ c, r, approval }: { c: WorkContext; r: Result; approval: A
         </div>
         <span className="tabular-nums">{meta.filter(Boolean).join(' · ')}</span>
         <span className="text-aux text-ink-2">
-          像实物 {REAL[r.verdict.real]} · 风格 {STYLE[r.verdict.style]}
+          像实物 {VERDICT_SHORT.real[r.verdict.real]} · 风格 {VERDICT_SHORT.style[r.verdict.style]}
           {r.issues.length > 0 && ` · 问题：${r.issues.join('、')}`}
           {r.exports.length > 0 && ' · 已导出'}
         </span>

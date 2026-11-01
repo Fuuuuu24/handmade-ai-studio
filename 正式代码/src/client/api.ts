@@ -33,6 +33,7 @@ async function json<T>(res: Response): Promise<T> {
 export interface AppConfig {
   configured: boolean;
   fake: boolean; // 开发用的假生图网关，结果是测试图
+  fakeChat: boolean; // 开发用的假对话模型，小间的回复是测试剧本
   operator: boolean; // 试用操作员模式：显示资产路线开关
   chatModels: { id: string; label: string; vision: boolean }[];
   imageModels: { id: string; label: string; perImageUSD: number }[];

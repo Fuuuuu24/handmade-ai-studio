@@ -5,7 +5,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { imageModel } from '@/config/models';
 import type { Ratio } from '@/config/ratios';
 import { NO_PROPS, STYLE_LABELS } from '@/config/style';
-import { ISSUES, VERDICT_TEXT } from '@/config/verdict';
+import { ISSUES, VERDICT_SHORT } from '@/config/verdict';
 import { useBlobFailed, useBlobUrl } from '@/client/hooks';
 import { retrySlot } from '@/client/generation';
 import { mutateWork } from '@/client/work-store';
@@ -371,7 +371,7 @@ function CompareColumn({ result, approval }: { result: Result; approval: Approva
     ['模型', s ? (imageModel(s.imageModel)?.label ?? s.imageModel) : '—'],
     ['光线', s?.style.light || '—'],
     ['背景', s?.style.background || '—'],
-    ['验收', `像实物：${VERDICT_TEXT.real[result.verdict.real]} · 风格：${VERDICT_TEXT.style[result.verdict.style]}`],
+    ['验收', `像实物 ${VERDICT_SHORT.real[result.verdict.real]} · 风格 ${VERDICT_SHORT.style[result.verdict.style]}`],
   ];
   if (result.issues.length) rows.push(['问题', result.issues.join('、')]);
   return (

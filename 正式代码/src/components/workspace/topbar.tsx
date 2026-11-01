@@ -64,6 +64,13 @@ function DeleteWork() {
 // 服务状态（AC-08.6）：开发用的假网关、或服务端没配密钥时明确标出，不把测试图当 AI 生成
 function ServiceNote() {
   const { config } = useWorkspace();
+  if (config?.fakeChat) {
+    return (
+      <span className="chip chip-warn ml-2" title="开发用的假对话模型和假生图网关：回复是测试剧本，图片是测试图">
+        测试模式 · 对话{config.fake ? '和图片' : ''}都不是 AI
+      </span>
+    );
+  }
   if (config?.fake) {
     return (
       <span className="chip chip-warn ml-2" title="开发用的假生图网关：生成的是测试图，不调用模型、不花钱">
