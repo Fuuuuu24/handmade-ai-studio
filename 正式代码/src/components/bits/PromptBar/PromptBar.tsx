@@ -250,10 +250,12 @@ const PromptBar: React.FC<PromptBarProps> = ({
     el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
   }, [draft, maxRows]);
 
+  // 先把焦点移到输入框再开菜单：键盘按按钮时焦点从按钮移进输入框，会触发输入框的 onFocus 关菜单（上游缺陷，鼠标点不受影响）
   const toggle = (next: NonNullable<typeof menu>, start = 0) => {
-    setActive(start);
-    setMenu(m => (m === next ? null : next));
+    const wasOpen = menu === next;
     focusInput();
+    setActive(start);
+    setMenu(wasOpen ? null : next);
   };
 
   const pick = (row: Row) => {
