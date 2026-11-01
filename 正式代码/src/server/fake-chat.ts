@@ -21,6 +21,7 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
       ],
     },
   },
+  起名: { tool: 'suggest_name', input: { name: '蝴蝶结耳坠', note: '测试' } },
   记录: { tool: 'record_story', input: { kind: 'theme', text: '雨后石阶上的蝴蝶结' } },
   总结: { tool: 'draft_summary', input: { express: '雨后蝴蝶结的安静', feel: '安静、想凑近看', avoid: '太花、道具抢戏' } },
   布景: { tool: 'apply_scene', input: { sceneId: 'tpl-moss' } },

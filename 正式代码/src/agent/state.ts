@@ -8,6 +8,7 @@ import { approvalBlockers, approvalStatus, promptStatus } from '@/domain/approva
 import { roundResults, roundSlots, slotState } from '@/domain/generation';
 import { activeUploads } from '@/domain/snapshot';
 import { currentStep, stepStates, workStatus } from '@/domain/status';
+import { styleLagsSummary } from '@/domain/work';
 import type { Approval, Asset, Basis, Result, Snapshot, StyleSource, Task, Work } from '@/domain/types';
 
 // 每次对话附给小间的作品状态（技术写法第 6 节）。在浏览器里生成，纯函数，便于测试。
@@ -42,7 +43,7 @@ export function stateSummary(i: SummaryInput): string {
   const statusInput = { work, assets: i.assets, tasks: i.tasks, results: i.results, approval: i.approval, current: i.current };
   const steps = stepStates(statusInput);
   const step = STEPS.find((s) => s.id === currentStep(steps))!;
-  lines.push(`作品：${work.name}`);
+  lines.push(`作品：${work.name}${work.nameSuggestion ? `；你建议的名字「${work.nameSuggestion.value}」待用户在顶栏确认` : ''}`);
   lines.push(`进度：${workStatus(statusInput).text}；现在该做：${step.name}`);
 
   const uploads = activeUploads(i.assets, work.id);
@@ -79,6 +80,7 @@ export function stateSummary(i: SummaryInput): string {
   const sumState = { none: '还没有', draft: '草稿，待用户确认', confirmed: '用户已确认' }[work.story.summaryState];
   lines.push(sum ? `共创总结（${sumState}）：表达「${sum.express}」；感受「${sum.feel || '未写'}」；避免「${sum.avoid || '未写'}」` : `共创总结：${sumState}`);
 
+  if (styleLagsSummary(work)) lines.push('注意：你推荐风格之后，共创总结改过了；按新总结检查风格卡，需要时用 set_style 调整并说明理由');
   lines.push('风格卡：');
   for (const k of STYLE_KEYS) {
     const v = work.style[k];

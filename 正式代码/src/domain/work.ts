@@ -71,8 +71,18 @@ export function newWork(o: NewWorkOptions): Work {
   return o.scene ? applyScene(work, o.scene.id, o.scene.params) : work;
 }
 
-// 名字清空时保留原名
-export const renameWork = (w: Work, name: string) => touch(w, { name: name.trim() || w.name });
+// 名字清空时保留原名；用户自己改名后，小间的名字建议作废
+export const renameWork = (w: Work, name: string) => touch(w, { name: name.trim() || w.name, nameSuggestion: undefined });
+
+// 小间起的名字只是建议，用户接受后才改名（和商品信息一样，PRD 4.2 第 3 条）
+export function suggestName(w: Work, name: string, note?: string): Work {
+  const v = name.trim();
+  if (!v || v === w.name) return w;
+  return touch(w, { nameSuggestion: { value: v, note, at: Date.now() } });
+}
+
+export const acceptNameSuggestion = (w: Work) => (w.nameSuggestion ? renameWork(w, w.nameSuggestion.value) : w);
+export const dismissNameSuggestion = (w: Work) => touch(w, { nameSuggestion: undefined });
 
 /* ---------- 商品信息 ---------- */
 
@@ -135,8 +145,21 @@ const trimSummary = (s: StorySummary): StorySummary => ({
 
 /* ---------- 风格、布景、比例、模型 ---------- */
 
+// 小间推荐时记下依据的共创总结，总结之后改了就能提示风格可能要跟着变（AC-04.6）
 export const setStyle = (w: Work, key: StyleKey, value: string, source: StyleSource, reason?: string) =>
-  touch(w, { style: { ...w.style, [key]: { value: value.trim(), source, reason } } });
+  touch(w, {
+    style: { ...w.style, [key]: { value: value.trim(), source, reason } },
+    ...(source === 'recommend' ? { styleSummary: w.story.summary } : {}),
+  });
+
+const sameSummary = (a: StorySummary, b: StorySummary) => a.express === b.express && a.feel === b.feel && a.avoid === b.avoid;
+
+// 小间按某一版总结推荐过风格，之后总结改了
+export const styleLagsSummary = (w: Work) =>
+  !!w.styleSummary && !!w.story.summary && !sameSummary(w.styleSummary, w.story.summary);
+
+// 用户看过后决定风格不用跟着改
+export const keepStyleForSummary = (w: Work) => touch(w, { styleSummary: w.story.summary });
 
 // 套用布景：只覆盖布景管的几项，「表达」保留
 export function applyScene(w: Work, sceneId: Id, params: SceneParams): Work {

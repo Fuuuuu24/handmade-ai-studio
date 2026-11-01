@@ -11,6 +11,7 @@ import { ExportCard, PicksCard, SceneProposalCard, ShopProposalCard } from './to
 
 const TOOL_DOING: Record<string, string> = {
   update_info: '整理商品信息',
+  suggest_name: '起名字',
   record_story: '记下你说的',
   draft_summary: '起草共创总结',
   set_style: '调整风格',

@@ -143,11 +143,13 @@ export interface Revision {
 export interface Work {
   id: Id;
   name: string;
+  nameSuggestion?: Suggestion; // 小间起的名字，用户接受后才改名
   createdAt: number;
   updatedAt: number;
   info: Info;
   story: Story;
   style: Style;
+  styleSummary?: StorySummary | null; // 小间推荐风格时依据的共创总结；总结之后改了，推荐可能要跟着变（AC-04.6）
   sceneId: Id | null;
   ratio: Ratio;
   imageModel: string;

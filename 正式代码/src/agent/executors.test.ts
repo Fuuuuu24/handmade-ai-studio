@@ -104,6 +104,17 @@ describe('小间的工具：硬规则', () => {
   });
 });
 
+describe('小间的工具：起名', () => {
+  it('suggest_name 只写名字建议，不改名（PRD 4.2 第 3 条）', async () => {
+    const w = await seed();
+    const out = await executeTool(w.id, 'suggest_name', { name: '银杏叶耳坠', note: '按品类起的' }, deps);
+    expect(out.ok).toBe(true);
+    const saved = await getWork(w.id);
+    expect(saved?.name).toBe(w.name);
+    expect(saved?.nameSuggestion?.value).toBe('银杏叶耳坠');
+  });
+});
+
 describe('小间的工具：补全的 7 个', () => {
   async function withResult(verdict: Result['verdict'] = { real: 'none', style: 'none' }) {
     const w = await seed();

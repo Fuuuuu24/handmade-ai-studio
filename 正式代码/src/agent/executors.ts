@@ -17,6 +17,7 @@ import {
   setRatio,
   setStyle,
   suggestInfo,
+  suggestName,
   writePrompt,
 } from '@/domain/work';
 import type { Work } from '@/domain/types';
@@ -70,6 +71,12 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
       await change(workId, (c) => items.reduce((w, it) => suggestInfo(w, it.field, it.value, it.note), c.work));
       const list = items.map((it) => `${INFO_FIELDS[it.field].label}「${it.value}」`);
       return done(`已写成待确认建议：${list.join('、')}（在画布上接受后才生效）`, list);
+    }
+    case 'suggest_name': {
+      const { name: n, note } = rawInput as Input<'suggest_name'>;
+      if (n.trim() === ctx.work.name) return done(`作品本来就叫「${ctx.work.name}」`);
+      await change(workId, (c) => suggestName(c.work, n, note));
+      return done(`已写成名字建议「${n.trim()}」，用户在顶栏接受后才改名`, [`名字建议「${n.trim()}」`]);
     }
     case 'record_story': {
       const { kind, text } = rawInput as Input<'record_story'>;

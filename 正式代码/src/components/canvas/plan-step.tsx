@@ -11,7 +11,7 @@ import { approvalStatus, promptStatus } from '@/domain/approval';
 import { styleConflicts } from '@/domain/conflicts';
 import { styleValuesOf } from '@/domain/snapshot';
 import type { StyleSource } from '@/domain/types';
-import { applyScene, applyShopPrefs, cancelRevision, editPrompt, markPromptChecked, revertPrompt, setRatio, setStyle } from '@/domain/work';
+import { applyScene, applyShopPrefs, cancelRevision, editPrompt, keepStyleForSummary, markPromptChecked, revertPrompt, setRatio, setStyle, styleLagsSummary } from '@/domain/work';
 import { SceneSaveForm, ShopStyleForm } from '@/components/plan/library-forms';
 import { PlanSummary } from '@/components/plan/plan-summary';
 import { Modal } from '@/components/ui/dialog';
@@ -192,6 +192,23 @@ function RevisionNote() {
   );
 }
 
+// 改故事后同步风格（AC-04.6）：小间推荐风格之后共创总结改了，提示风格可能要跟着变
+function StoryChangedNote({ locked }: { locked: boolean }) {
+  const { ctx, workId, askAgent, busy } = useWorkspace();
+  if (!styleLagsSummary(ctx.work)) return null;
+  return (
+    <div className="-mt-2 flex items-center gap-3 rounded-lg bg-white px-3.5 py-2.5 text-aux text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line)]">
+      <span className="min-w-0 flex-1">共创总结改过了，小间之前按旧总结推荐的风格可能要跟着变。</span>
+      <button type="button" className="btn btn-outline btn-sm" disabled={busy || locked} onClick={() => askAgent('共创总结改了，请按新总结检查并调整风格')}>
+        让小间按新总结调整
+      </button>
+      <button type="button" className="btn btn-quiet btn-sm" disabled={locked} onClick={() => void mutateWork(workId, (c) => keepStyleForSummary(c.work))}>
+        不用改
+      </button>
+    </div>
+  );
+}
+
 // 摄影布景：内置模版、自己存的布景、我的风格都可以一键套用（FR-06）；满意的方案可以存成布景、写进我的风格
 function SceneSection({ locked }: { locked: boolean }) {
   const { ctx, workId } = useWorkspace();
@@ -278,6 +295,7 @@ export function PlanStep() {
       {ap.kind === 'stale' && <p className="-mt-3 text-aux text-warn">批准后改了：{ap.changed.join('、')}。需要重新批准才能生成。</p>}
       {locked && <p className="-mt-3 text-aux text-muted">正在生成这一轮，方案锁定中。</p>}
       <RevisionNote />
+      <StoryChangedNote locked={locked} />
 
       <SceneSection locked={locked} />
 

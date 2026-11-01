@@ -4,16 +4,19 @@ import { current, currentBasis, promptedWork, readyWork, result } from '@/test/f
 import { approvalStatus, promptStatus } from './approval';
 import type { Approval, Asset, Work } from './types';
 import {
+  acceptNameSuggestion,
   acceptSuggestion,
   addCost,
   applyScene,
   approve,
   cancelRevision,
   confirmSummary,
+  dismissNameSuggestion,
   dismissSuggestion,
   draftSummary,
   editPrompt,
   editSummary,
+  keepStyleForSummary,
   markPromptChecked,
   markUnknown,
   newWork,
@@ -25,7 +28,9 @@ import {
   setRoute,
   setStyle,
   startRound,
+  styleLagsSummary,
   suggestInfo,
+  suggestName,
 } from './work';
 
 const fresh = () => newWork({ imageModel: 'img-a', chatModel: 'chat-a', route: 'B' });
@@ -210,5 +215,50 @@ describe('杂项', () => {
     const w = renameWork(fresh(), '雨后青苔');
     expect(renameWork(w, '   ').name).toBe('雨后青苔');
     expect(addCost(addCost(w, 0.1), 0.2).costUSD).toBe(0.3);
+  });
+});
+
+describe('作品名称：小间只能起建议名', () => {
+  it('建议不改名；接受后才改名并清掉建议', () => {
+    const w = suggestName(fresh(), ' 银杏叶耳坠 ', '按品类起的');
+    expect(w.name).toBe('未命名作品');
+    expect(w.nameSuggestion).toMatchObject({ value: '银杏叶耳坠', note: '按品类起的' });
+    const a = acceptNameSuggestion(w);
+    expect(a.name).toBe('银杏叶耳坠');
+    expect(a.nameSuggestion).toBeUndefined();
+  });
+
+  it('和现名相同或为空时不建议；不用、自己改名都会作废建议', () => {
+    const w = renameWork(fresh(), '雨后青苔');
+    expect(suggestName(w, '雨后青苔')).toBe(w);
+    expect(suggestName(w, '  ')).toBe(w);
+    const s = suggestName(w, '青苔耳坠');
+    expect(dismissNameSuggestion(s).name).toBe('雨后青苔');
+    expect(dismissNameSuggestion(s).nameSuggestion).toBeUndefined();
+    expect(renameWork(s, '我自己的名字').nameSuggestion).toBeUndefined();
+    expect(acceptNameSuggestion(w)).toBe(w);
+  });
+});
+
+describe('改故事后风格推荐可能要跟着变（AC-04.6）', () => {
+  const sum = { express: '雨后的安静', feel: '想凑近看', avoid: '太花' };
+  it('小间按旧总结推荐过风格，总结改了才提示；用户说不用改后不再提示', () => {
+    let w = confirmSummary(draftSummary(fresh(), sum));
+    expect(styleLagsSummary(w)).toBe(false);
+    w = setStyle(w, 'light', '清冷晨光', 'recommend', '雨后感');
+    expect(w.styleSummary).toEqual(sum);
+    expect(styleLagsSummary(w)).toBe(false);
+    w = editSummary(w, { ...sum, feel: '温暖、像礼物' });
+    expect(styleLagsSummary(w)).toBe(true);
+    expect(styleLagsSummary(keepStyleForSummary(w))).toBe(false);
+    // 小间按新总结再推荐一次，也不再提示
+    expect(styleLagsSummary(setStyle(w, 'tone', '暖调', 'recommend'))).toBe(false);
+  });
+
+  it('风格不是小间推荐的（用户自己选、布景）时不提示', () => {
+    let w = confirmSummary(draftSummary(fresh(), sum));
+    w = setStyle(w, 'light', '清冷晨光', 'user');
+    w = editSummary(w, { ...sum, express: '别的' });
+    expect(styleLagsSummary(w)).toBe(false);
   });
 });

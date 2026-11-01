@@ -7,7 +7,7 @@ import { STEPS, type StepId } from '@/config/steps';
 import { mutateWork } from '@/client/work-store';
 import { deleteWork, logEvent } from '@/data/repo';
 import { workStatus, type StepState } from '@/domain/status';
-import { renameWork } from '@/domain/work';
+import { acceptNameSuggestion, dismissNameSuggestion, renameWork } from '@/domain/work';
 import { useConfirm } from '@/components/ui/dialog';
 import { DraftInput } from '@/components/ui/draft-field';
 import { Icon } from '@/components/ui/icon';
@@ -58,6 +58,25 @@ function DeleteWork() {
         <Icon name="trash" />
       </button>
     </>
+  );
+}
+
+// 小间起的名字只是建议（PRD 4.2 第 3 条），在名字旁边接受或忽略
+function NameSuggestion() {
+  const { ctx, workId } = useWorkspace();
+  const s = ctx.work.nameSuggestion;
+  if (!s) return null;
+  return (
+    <span className="ml-2 inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent-soft py-0.5 pr-1 pl-2 text-aux" title={s.note}>
+      <span className="text-accent">小间建议</span>
+      <span className="max-w-[16ch] truncate text-ink">{s.value}</span>
+      <button type="button" className="mini-btn" onClick={() => void mutateWork(workId, (c) => acceptNameSuggestion(c.work))}>
+        用这个
+      </button>
+      <button type="button" className="mini-btn" onClick={() => void mutateWork(workId, (c) => dismissNameSuggestion(c.work))}>
+        不用
+      </button>
+    </span>
   );
 }
 
@@ -121,6 +140,7 @@ export function Topbar({ states }: { states: Record<StepId, StepState> }) {
           onCommit={(v) => v.trim() && void mutateWork(workId, (c) => renameWork(c.work, v))}
         />
         <StatusChip text={status.text} tone={status.tone} className="ml-1" />
+        <NameSuggestion />
       </nav>
       <SaveStatusText />
       <ServiceNote />
