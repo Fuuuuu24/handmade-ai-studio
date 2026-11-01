@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { ASSET_KINDS, UPLOAD } from '@/config/upload';
 import { makeWhiteByGeneration } from '@/client/generation';
 import { useBlobFailed, useBlobUrl } from '@/client/hooks';
-import { addPhotos } from '@/client/uploads';
+import { addPhotos, replacePhoto } from '@/client/uploads';
 import { mutateWork } from '@/client/work-store';
 import { removeAsset, setAssetKind } from '@/data/repo';
 import { isActive } from '@/domain/generation';
@@ -21,6 +21,8 @@ import { StepHead } from './canvas';
 function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
   const { workId } = useWorkspace();
   const confirm = useConfirm();
+  const replaceRef = useRef<HTMLInputElement>(null);
+  const [replaceNote, setReplaceNote] = useState<string | null>(null);
   const url = useBlobUrl(asset.thumbId);
   const missing = useBlobFailed(asset.thumbId);
   const low = Math.max(asset.width, asset.height) < UPLOAD.lowEdge;
@@ -60,6 +62,35 @@ function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
         <button
           type="button"
           className="icon-btn ml-auto"
+          aria-label="替换这张照片"
+          title="换一张更清楚的（原图记录保留）"
+          disabled={locked}
+          onClick={() => replaceRef.current?.click()}
+        >
+          <Icon name="retry" />
+        </button>
+        <input
+          ref={replaceRef}
+          type="file"
+          accept={UPLOAD.types.join(',')}
+          hidden
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = '';
+            if (!file) return;
+            const ok = await confirm({
+              title: '替换这张照片？',
+              body: '新照片会顶替它用在方案里，原图记录保留；资产和之后的方案需要重新确认。',
+              ok: '替换',
+            });
+            if (!ok) return;
+            const r = await replacePhoto(asset, file);
+            setReplaceNote(r.ok ? (r.notes[0] ?? null) : `没有替换：${r.reason}`);
+          }}
+        />
+        <button
+          type="button"
+          className="icon-btn"
           aria-label="不再使用这张照片"
           title="不再使用这张照片（原图记录保留）"
           disabled={locked}
@@ -77,6 +108,7 @@ function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
           <Icon name="trash" />
         </button>
       </figcaption>
+      {replaceNote && <p className="text-label text-warn">{replaceNote}</p>}
     </figure>
   );
 }

@@ -5,9 +5,12 @@ import { readFileSync } from 'node:fs';
    覆盖：首页 → 上传 → 信息建议 → 共创总结 → 布景与提示词 → 批准卡片 → 生成两张 → 验收 → 意见与从这张修改
    → 导出 → 存布景、我的风格提议 → 方向卡片 → 后续需求 → 两版对比 → 试用记录导出；以及硬规则：没有批准时小间不能生成。 */
 
-// 在浏览器里画一张测试图（不用第三方照片）
+// 在浏览器里画一张测试图（不用第三方照片）。在空白页上画并缓存：开发服务器首次编译时会刷新页面，打断正在执行的脚本
+let photo: Buffer | null = null;
 async function testPhoto(page: Page): Promise<Buffer> {
-  const dataUrl = await page.evaluate(() => {
+  if (photo) return photo;
+  const blank = await page.context().newPage();
+  const dataUrl = await blank.evaluate(() => {
     const c = document.createElement('canvas');
     c.width = 1200;
     c.height = 900;
@@ -22,7 +25,9 @@ async function testPhoto(page: Page): Promise<Buffer> {
     g.stroke();
     return c.toDataURL('image/jpeg', 0.9);
   });
-  return Buffer.from(dataUrl.split(',')[1], 'base64');
+  await blank.close();
+  photo = Buffer.from(dataUrl.split(',')[1], 'base64');
+  return photo;
 }
 
 const chat = (page: Page) => page.getByRole('region', { name: '和小间对话' });
@@ -37,8 +42,9 @@ async function say(page: Page, text: string) {
 }
 
 async function startWork(page: Page, text: string) {
+  const buffer = await testPhoto(page);
   await page.goto('/');
-  await page.locator('input[type="file"]').setInputFiles({ name: 'test.jpg', mimeType: 'image/jpeg', buffer: await testPhoto(page) });
+  await page.locator('input[type="file"]').setInputFiles({ name: 'test.jpg', mimeType: 'image/jpeg', buffer });
   await page.getByRole('textbox', { name: '说说你的作品' }).fill(text);
   await page.getByRole('button', { name: '开始' }).click();
   await page.waitForURL(/\/works\/work_/);
@@ -191,4 +197,27 @@ test('白底路线：操作员切到 A，做白底图、对照后选用，才能
   await canvas(page).getByRole('button', { name: '用这张', exact: true }).click();
   await canvas(page).getByRole('button', { name: '确认资产' }).click();
   await expect(step(page, '资产')).toHaveAccessibleName(/完成/);
+});
+
+test('替换原图：确认后换上新照片，原图记录保留，资产要重新确认', async ({ page }) => {
+  await startWork(page, '你好');
+  await canvas(page).getByRole('button', { name: '确认资产' }).click();
+  await step(page, '资产').click();
+  const chooser = page.waitForEvent('filechooser');
+  await canvas(page).getByRole('button', { name: '替换这张照片' }).click();
+  await (await chooser).setFiles({ name: 'new.jpg', mimeType: 'image/jpeg', buffer: await testPhoto(page) });
+  await page.getByRole('dialog', { name: '替换这张照片？' }).getByRole('button', { name: '替换' }).click();
+  await expect(step(page, '资产')).toHaveAccessibleName(/当前/);
+  const stored = await page.evaluate(async () => {
+    const req = indexedDB.open('yijian');
+    const db = await new Promise<IDBDatabase>((r) => (req.onsuccess = () => r(req.result)));
+    const all = await new Promise<{ removed: boolean; replacedBy?: string; origin: string }[]>((r) => {
+      const q = db.transaction('assets').objectStore('assets').getAll();
+      q.onsuccess = () => r(q.result);
+    });
+    db.close();
+    return all.map((a) => ({ removed: a.removed, replaced: !!a.replacedBy }));
+  });
+  expect(stored).toEqual(expect.arrayContaining([{ removed: true, replaced: true }, { removed: false, replaced: false }]));
+  await expect(canvas(page).getByRole('img', { name: '整体照片' })).toHaveCount(1);
 });

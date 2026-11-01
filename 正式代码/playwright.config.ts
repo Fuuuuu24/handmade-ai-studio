@@ -7,6 +7,7 @@ const PORT = 3100;
 
 export default defineConfig({
   testDir: 'tests/e2e',
+  globalSetup: './tests/e2e/warmup.ts',
   timeout: 120_000,
   expect: { timeout: 20_000 },
   fullyParallel: false,
