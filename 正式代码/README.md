@@ -2,7 +2,7 @@
 
 产品的正式实现（M2）。Next.js 项目，包名 `yijian`。
 
-- **状态（2026-11-01）**：按 [技术写法](../docs/tech-design.md)（v0.5）第 10 节顺序开发，检查点 1—8 的业务代码已完成，React Bits 组件已接入，已随 PR #6 合并进上游 `main`；凭据统一管理（第 12 节）已在本地实现并提交（未推送）；抠图按发起人决定先不接。下一步是在产品里用真实饰品测模型（花钱，待发起人同意）。已做／待做／未做见 [交接文档](../docs/handoff.md) 第 4—6 节。
+- **状态（2026-11-01）**：按 [技术写法](../docs/tech-design.md)（v0.5）第 10 节顺序开发，检查点 1—8 的业务代码已完成，React Bits 组件已接入，已随 PR #6 合并进上游 `main`；凭据统一管理（第 12 节）已实现，随 PR #7 提交待合并；抠图按发起人决定先不接。下一步是在产品里用真实饰品测模型（花钱，待发起人同意）。已做／待做／未做见 [交接文档](../docs/handoff.md) 第 4—6 节。
 - **技术栈**：Next.js 16 + React 19 + TypeScript + Tailwind 4 + motion + Vercel AI SDK 7；Dexie（IndexedDB）；Vitest、Playwright、ESLint、Prettier（装了、未配置）。界面组件来自 React Bits，手动拷在 `src/components/bits/`（第三方许可，见该目录 LICENSE 与 README；shadcn 没初始化）。版本见技术写法第 1 节。
 - **注意**：Next.js 16 与 AI SDK 7 有破坏性变化，写法以 `node_modules/next/dist/docs/`、`node_modules/ai/docs/` 的本地文档为准。`AGENTS.md` 由 Next.js 自动生成，`next dev` 会重新写入，不要删。
 
