@@ -18,6 +18,7 @@ import { fakeChat } from '@/server/env';
 import { FAKE_CHAT_LABEL, fakeChatModel } from '@/server/fake-chat';
 import { describeError, errorResponse, GatewayError } from '@/server/errors';
 import { reserve, settle } from '@/server/ledger';
+import { redact } from '@/server/redact';
 
 const Body = z.object({
   messages: z.array(z.unknown()).min(1).max(400),
@@ -42,9 +43,9 @@ function chatErrorText(e: unknown): string {
       // 响应不是 JSON 时保留原始信息
     }
     const { error } = describeError(new GatewayError(e.statusCode ?? 502, String(code), msg));
-    return `${error.message}（${msg.slice(0, 120)}）`;
+    return `${error.message}（${redact(msg).slice(0, 120)}）`;
   }
-  return describeError(e).error.message + (e instanceof Error ? `（${e.message.slice(0, 120)}）` : '');
+  return describeError(e).error.message + (e instanceof Error ? `（${redact(e.message).slice(0, 120)}）` : '');
 }
 
 export async function POST(req: Request) {

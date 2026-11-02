@@ -2,16 +2,18 @@ import 'server-only';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { GATEWAY, type ImageModel } from '@/config/models';
 import type { Ratio } from '@/config/ratios';
-import { apiKey } from './env';
+import { gatewayKey, gatewayTarget, taskKeys } from './credentials';
 import { GatewayError } from './errors';
 
 /* AIHubMix 网关：对话走 OpenAI 兼容接口，生图走原生图片协议 /ai/v1/images（异步任务）。
-   接口说明见 https://docs.aihubmix.com/cn/api/aihubmix-image-generation */
+   接口说明见 https://docs.aihubmix.com/cn/api/aihubmix-image-generation
+   key 和地址按凭据来源取（server/credentials.ts）；relay 模式下请求发往服务器的转发接口。 */
 
 let provider: ReturnType<typeof createOpenAICompatible> | null = null;
 
 export function chatLanguageModel(id: string) {
-  provider ??= createOpenAICompatible({ name: 'aihubmix', baseURL: GATEWAY.chatBaseURL, apiKey: () => apiKey(), includeUsage: true });
+  // key 每次请求现取（AI SDK 会在每次请求时调用这个函数），后台换 key 后下一个请求就用新的
+  provider ??= createOpenAICompatible({ name: 'aihubmix', baseURL: gatewayTarget().chatBaseURL, apiKey: () => gatewayKey(), includeUsage: true });
   return provider(id);
 }
 
@@ -28,10 +30,10 @@ export interface GatewayImageTask {
 const TASK_ID = /^[A-Za-z0-9_-]{1,120}$/;
 export const validTaskId = (id: string) => TASK_ID.test(id);
 
-async function call(pathname: string, init: RequestInit = {}): Promise<unknown> {
-  const res = await fetch(`${GATEWAY.imageBaseURL}${pathname}`, {
+async function call(pathname: string, init: RequestInit = {}, key?: string): Promise<unknown> {
+  const res = await fetch(`${gatewayTarget().imageBaseURL}${pathname}`, {
     ...init,
-    headers: { Authorization: `Bearer ${apiKey()}`, 'Content-Type': 'application/json', ...init.headers },
+    headers: { Authorization: `Bearer ${key ?? (await gatewayKey())}`, 'Content-Type': 'application/json', ...init.headers },
     signal: AbortSignal.timeout(60_000),
     cache: 'no-store',
   });
@@ -83,9 +85,23 @@ export async function submitImage(model: ImageModel, input: ImageInput) {
   return parseTask(await call('/ai/v1/images/generations', { method: 'POST', body: JSON.stringify(imageRequestBody(model, input)) }));
 }
 
+// 查到任务时用的是哪把 key：取图要用同一把
+const taskKey = new WeakMap<GatewayImageTask, string>();
+
 export async function getImageTask(id: string) {
   if (!validTaskId(id)) throw new GatewayError(400, 'invalid_task_id', '任务编号格式不对');
-  return parseTask(await call(`/ai/v1/images/${encodeURIComponent(id)}`, { method: 'GET' }));
+  const keys = await taskKeys();
+  for (let i = 0; ; i++) {
+    try {
+      const task = parseTask(await call(`/ai/v1/images/${encodeURIComponent(id)}`, { method: 'GET' }, keys[i]));
+      taskKey.set(task, keys[i]);
+      return task;
+    } catch (e) {
+      // AIHubMix 的任务按创建它的 key 隔离：后台替换 key 后，旧任务改用替换不满 24 小时的上一把再查一次
+      if (i + 1 < keys.length && e instanceof GatewayError && e.status === 404) continue;
+      throw e;
+    }
+  }
 }
 
 function sniffMime(bytes: Uint8Array): string {
@@ -106,7 +122,11 @@ export async function fetchImageContent(task: GatewayImageTask, index: number): 
   if (!out.content_url) throw new GatewayError(502, 'bad_response', '结果没有图片地址');
   const url = new URL(out.content_url);
   if (url.origin !== GATEWAY.imageBaseURL) throw new GatewayError(502, 'bad_response', '结果地址不是网关域名，已拒绝下载');
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${apiKey()}` }, signal: AbortSignal.timeout(120_000), cache: 'no-store' });
+  // relay 模式下结果地址换成服务器的转发地址
+  const target = gatewayTarget();
+  const href = target.relay ? `${target.imageBaseURL}${url.pathname}${url.search}` : url.href;
+  const key = taskKey.get(task) ?? (await taskKeys())[0];
+  const res = await fetch(href, { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(120_000), cache: 'no-store' });
   if (!res.ok) {
     const text = await res.text();
     let err: { code?: string; message?: string; tid?: string } = {};

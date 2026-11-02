@@ -14,10 +14,10 @@
 
 - 仓库：[Fuuuuu24/handmade-ai-studio](https://github.com/Fuuuuu24/handmade-ai-studio)，公开，默认分支 `main`，Issue 已开启。
 - CODEOWNERS：`.github/CODEOWNERS` 指定 `@Fuuuuu24` 为所有文件的评审人；需配合分支保护中的「要求代码所有者评审」才生效。
-- Pull Request：#1—#5 已由所有者合并（2026-10-29 至 2026-10-30）。贡献者账号 `wh3474812446-design` 通过自己的 fork 提交。
-- 正式代码（M2）在贡献者本机的分支 `feat/m2-workbench` 上开发（2026-10-31 从 `origin/main` 拉出），检查点 1—8 都只在本地提交，**还没推送、没建 PR**；推送和建 PR 每次需发起人明确授权。
+- Pull Request：#1—#6 已由所有者合并（2026-10-29 至 2026-11-01）；#7（凭据统一管理、文档整理、删除原型 v2，分支 `feat/credentials-and-docs-cleanup`）2026-11-02 提交，待评审。贡献者账号 `wh3474812446-design` 通过自己的 fork 提交。
+- 正式代码（M2）和独立管理后台在分支 `feat/m2-workbench` 上开发（2026-10-31 从 `origin/main` 拉出），2026-11-01 推到 fork 并提交 PR #6，同日由所有者合并。之后的改动从最新 `origin/main` 拉新分支；推送和建 PR 每次需发起人明确授权。
 - 分支保护：尚未配置。
-- Issue 模板、PR 模板和 `Source checks` 工作流（`.github/workflows/source-checks.yml`）已纳入项目：检查旧 `原型/` 的服务脚本，2026-11-01 在本地分支里加了 `正式代码/` 的单元测试、类型检查、lint、构建和全流程测试（推送后才会在 GitHub 上跑）；不覆盖 `原型-v2/`、`原型-v3/`。
+- Issue 模板、PR 模板和 `Source checks` 工作流（`.github/workflows/source-checks.yml`）已纳入项目：检查旧 `原型/` 的服务脚本，2026-11-01 加了 `正式代码/` 的 `app` 任务（单元测试、类型检查、lint、构建和全流程测试），随 PR #6 第一次在 GitHub 上运行，PR 和合并后的 `main` 上都通过；不覆盖 `原型-v3/`、`管理后台/`。
 - 自定义许可证尚未选择；仓库公开不能表述为已经采用某项开源许可。
 
 ## 维护提示

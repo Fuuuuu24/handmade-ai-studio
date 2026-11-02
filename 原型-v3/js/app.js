@@ -453,7 +453,7 @@ function viewWorks() {
 
 function viewStylePage() {
   return `<section class="hero"><h1>我的风格</h1><p>店铺长期的视觉偏好，新作品可一键套用；单件作品里的调整不会改到这里。</p></section>
-    <div class="empty"><h2>还没有长期风格</h2><p>v3 原型还没有「更新为我的长期风格」的入口，这一页只做了样子。完整流程见 原型-v2。</p></div>`;
+    <div class="empty"><h2>还没有长期风格</h2><p>v3 原型还没有「更新为我的长期风格」的入口，这一页只做了样子。完整流程见正式代码。</p></div>`;
 }
 
 function viewScenesPage() {

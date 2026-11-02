@@ -48,7 +48,7 @@ export interface ImageModel {
 }
 
 export const IMAGE_MODELS: readonly ImageModel[] = [
-  // 默认：四个候选里最便宜，初测中国内模型最有希望（交接文档第 8 节），可在对话框里切换
+  // 默认：四个候选里最便宜，初测中国内模型最有希望（交接文档第 12 节），可在对话框里切换
   { id: 'doubao-seedream-5.0-lite', label: 'Seedream 5.0 Lite', perImageUSD: 0.034, perRefUSD: 0, maxRefs: 4, sizing: { kind: 'aspect_ratio' }, outputFormat: 'jpeg' },
   // 输出图片 60 美元／百万 token，1K 约 1290 token
   { id: 'gemini-3.1-flash-image', label: 'Gemini 3.1 Flash 图像', perImageUSD: 0.08, perRefUSD: 0.001, maxRefs: 4, sizing: { kind: 'aspect_ratio', resolution: '1K' } },

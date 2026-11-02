@@ -19,6 +19,7 @@ export interface LedgerEntry {
   actualUSD?: number;
   status: 'reserved' | 'settled' | 'refunded';
   ref?: string; // 网关任务编号
+  via?: 'relay'; // 协作者经服务器转发的调用（技术写法第 12.5 节）
 }
 
 interface LedgerFile {
@@ -54,12 +55,12 @@ async function save(ledger: LedgerFile) {
 const costOf = (e: LedgerEntry) => (e.status === 'refunded' ? 0 : e.status === 'settled' ? (e.actualUSD ?? e.estUSD) : e.estUSD);
 const spentOf = (l: LedgerFile) => l.entries.reduce((sum, e) => sum + costOf(e), 0);
 
-export function reserve(kind: LedgerEntry['kind'], model: string, estUSD: number): Promise<LedgerEntry> {
+export function reserve(kind: LedgerEntry['kind'], model: string, estUSD: number, via?: LedgerEntry['via']): Promise<LedgerEntry> {
   return locked(async () => {
     const ledger = await load();
     const check = budgetCheck(spentOf(ledger), estUSD, BUDGET.totalUSD);
     if (!check.ok) throw new BudgetError(check.reason);
-    const entry: LedgerEntry = { id: newId('led'), at: Date.now(), kind, model, estUSD, status: 'reserved' };
+    const entry: LedgerEntry = { id: newId('led'), at: Date.now(), kind, model, estUSD, status: 'reserved', ...(via ? { via } : {}) };
     ledger.entries.push(entry);
     await save(ledger);
     return entry;

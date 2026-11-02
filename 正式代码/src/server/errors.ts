@@ -1,4 +1,5 @@
 import 'server-only';
+import { redact } from './redact';
 
 // 网关返回的错误：保留原始错误码和信息，便于排查；给用户看的话由 describeGatewayError 转成中文
 export class GatewayError extends Error {
@@ -57,6 +58,14 @@ const USER_TEXT: Record<string, string> = {
   sync_timeout: '生成超时',
   result_delivery_failed: '结果交付失败',
   internal_error: '网关内部错误',
+  // 经服务器转发时（relay 模式，技术写法第 12.5 节）服务器给出的错误
+  relay_denied: '团队口令不对，检查 .env.local 里的 MODEL_RELAY_TOKEN',
+  relay_disabled: '团队口令已停用，找发起人要新口令',
+  relay_off: '服务器没有开放转发',
+  relay_path: '服务器不转发这个请求',
+  relay_unknown_model: '服务器没有配置这个模型，先在服务器的模型配置里加上',
+  budget_exceeded: '服务器上的总预算用完了',
+  not_configured: '服务器上的 key 暂时不可用',
 };
 
 export interface ApiError {
@@ -70,13 +79,13 @@ export function describeError(e: unknown): { status: number; error: ApiError } {
     const text = USER_TEXT[e.code];
     return {
       status: e.status >= 400 && e.status < 600 ? e.status : 502,
-      error: { code: e.code, message: text ?? `模型服务出错（${e.code}）`, detail: [e.message, e.tid].filter(Boolean).join(' · ') },
+      error: { code: e.code, message: text ?? `模型服务出错（${e.code}）`, detail: redact([e.message, e.tid].filter(Boolean).join(' · ')) },
     };
   }
   if (e instanceof BudgetError) return { status: 402, error: { code: 'budget_exceeded', message: e.message } };
   if (e instanceof NotConfiguredError) return { status: 503, error: { code: 'not_configured', message: e.message } };
   const msg = e instanceof Error ? e.message : String(e);
-  return { status: 500, error: { code: 'server_error', message: '服务端出错', detail: msg } };
+  return { status: 500, error: { code: 'server_error', message: '服务端出错', detail: redact(msg) } };
 }
 
 export const errorResponse = (e: unknown) => {
