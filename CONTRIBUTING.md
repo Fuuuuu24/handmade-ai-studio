@@ -30,6 +30,7 @@
 
 - 文件使用 UTF-8，尽量保持改动简洁，不引入不必要依赖。
 - 正式代码遵循 [技术写法](docs/tech-design.md)：业务规则放 `src/domain/` 并写单元测试，可调数字放 `src/config/`，密钥只放 `正式代码/.env.local`。
+- 改界面和流程不需要 key：`FAKE_GATEWAY=1 FAKE_CHAT=1 npm run dev`，不调用模型、不花钱。要测真模型，向项目所有者私下要服务器地址和团队口令，写进 `正式代码/.env.local`（`CREDENTIAL_SOURCE=relay`、`MODEL_RELAY_URL`、`MODEL_RELAY_TOKEN`，见 [正式代码说明](正式代码/README.md)）；请求经服务器用项目的 key 调模型，花的是项目预算。服务器上线前这条路还不能用。口令不要提交、转发或贴进 Issue。
 - 不提交 `.env`、令牌、私钥、用户上传图片、本地缓存或构建归档。
 - 生成必须绑定已批准的素材与方案版本；变更后不能沿用失效批准。
 - 不将占位图、规则回复或构图预览标为真实 AI 输出。
