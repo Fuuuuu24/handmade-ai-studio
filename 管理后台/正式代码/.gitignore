@@ -1,3 +1,4 @@
 data/
 .qa-data/
 .test-data-*/
+.ssh-host

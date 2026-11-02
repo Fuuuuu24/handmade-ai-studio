@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { createStore, AppError } from "./store.mjs";
 import { readSource } from "./source.mjs";
+import { createCredentialStore } from "./credentials.mjs";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const assets = {
@@ -12,9 +13,11 @@ const assets = {
   "/app.js": ["app.js", "text/javascript; charset=utf-8"],
 };
 const MAX_BODY = 512 * 1024;
+const MAX_CREDENTIAL_BODY = 8 * 1024;
 export function createApp({
   dataDir = path.join(here, "data"),
   sourceReader = readSource,
+  credentials = createCredentialStore(),
 } = {}) {
   const store = createStore({ dataDir, readSource: sourceReader });
   const json = (res, status, data) => {
@@ -48,7 +51,12 @@ export function createApp({
         );
         return json(res, 200, await store.get());
       }
-      if (req.method === "POST" && url.pathname === "/api/action") {
+      if (req.method === "GET" && url.pathname === "/api/credentials")
+        return json(res, 200, await credentials.status());
+      if (
+        req.method === "POST" &&
+        (url.pathname === "/api/action" || url.pathname === "/api/credentials")
+      ) {
         if (
           req.headers.origin &&
           req.headers.origin !== `http://${allowedHost}`
@@ -56,21 +64,33 @@ export function createApp({
           throw new AppError("不接受跨来源修改请求", 403);
         if (!req.headers["content-type"]?.startsWith("application/json"))
           throw new AppError("修改请求必须使用 JSON", 415);
+        const forCredentials = url.pathname === "/api/credentials";
+        const limit = forCredentials ? MAX_CREDENTIAL_BODY : MAX_BODY;
         let body = "",
           bytes = 0;
         for await (const chunk of req) {
           bytes += chunk.length;
-          if (bytes > MAX_BODY)
-            throw new AppError("请求过大，最多 512 KB", 413);
+          if (bytes > limit)
+            throw new AppError(
+              `请求过大，最多 ${forCredentials ? "8 KB" : "512 KB"}`,
+              413,
+            );
           body += chunk;
         }
         let action;
         try {
           action = JSON.parse(body);
         } catch {
+          // 原始解析错误里可能带请求片段（凭据请求里有 key），只报固定文字
           throw new AppError("请求不是有效 JSON");
         }
-        return json(res, 200, await store.action(action));
+        return json(
+          res,
+          200,
+          forCredentials
+            ? await credentials.action(action)
+            : await store.action(action),
+        );
       }
       if (req.method === "GET" && assets[url.pathname]) {
         const [file, type] = assets[url.pathname];
@@ -101,7 +121,7 @@ if (
   });
   server.listen(port, "127.0.0.1", () =>
     console.log(
-      `一间独立管理后台 http://127.0.0.1:${port}\n只读同步主产品；后台修改独立保存于 data/state.json`,
+      `一间独立管理后台 http://127.0.0.1:${port}\n只读同步主产品；后台修改独立保存于 data/state.json\n凭据写入 ${process.env.CREDENTIALS_PATH || "（没有设置 CREDENTIALS_PATH，凭据页不可用）"}`,
     ),
   );
 }

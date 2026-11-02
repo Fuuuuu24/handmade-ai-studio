@@ -42,8 +42,9 @@ export async function POST(req: Request) {
     await attachRef(entry.id, task.id);
     return Response.json({ gatewayId: task.id, status: task.status, estUSD, ledgerId: entry.id });
   } catch (e) {
-    // 请求被网关直接拒绝（4xx）时没有生成，退回预留；5xx 不能确认是否已扣费，保留
-    if (ledgerId && e instanceof GatewayError && e.status < 500) await refund(ledgerId);
+    // 请求被网关直接拒绝（4xx）时没有生成，退回预留；5xx 不能确认是否已扣费，保留。
+    // 例外：relay 模式下服务器回 not_configured（服务器的 key 没配好或已停用），请求没有发到 AIHubMix，退回
+    if (ledgerId && e instanceof GatewayError && (e.status < 500 || e.code === 'not_configured')) await refund(ledgerId);
     return errorResponse(e);
   }
 }

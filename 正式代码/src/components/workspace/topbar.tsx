@@ -105,7 +105,11 @@ function ServiceNote() {
     );
   }
   if (config && !config.configured) {
-    return <span className="chip chip-bad ml-2">模型服务未配置</span>;
+    return (
+      <span className="chip chip-bad ml-2" title={config.credential?.reason}>
+        模型服务未配置
+      </span>
+    );
   }
   // 试用操作员看得到预算余量（打开页面时读的数，不实时刷新）
   if (config?.operator) {

@@ -1,13 +1,7 @@
 import 'server-only';
 import path from 'node:path';
-import { NotConfiguredError } from './errors';
 
-// 密钥只在服务端读取，不发给浏览器
-export function apiKey(): string {
-  const key = process.env.AIHUBMIX_API_KEY?.trim();
-  if (!key) throw new NotConfiguredError('服务端没有配置 AIHubMix 密钥，生图和小间暂时不可用');
-  return key;
-}
+// 模型密钥按凭据来源读取，见 server/credentials.ts（技术写法第 12 节）；只在服务端读，不发给浏览器
 
 export const ledgerPath = () => process.env.LEDGER_PATH || path.join(process.cwd(), 'data', 'ledger.json');
 

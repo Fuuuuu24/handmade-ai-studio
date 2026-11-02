@@ -32,6 +32,8 @@ async function json<T>(res: Response): Promise<T> {
 
 export interface AppConfig {
   configured: boolean;
+  // 凭据来源与是否可用（技术写法第 12.4 节），不含尾号和密钥
+  credential: { source: 'env' | 'file' | 'relay' | 'unknown'; ready: boolean; revision?: number; reason?: string };
   fake: boolean; // 开发用的假生图网关，结果是测试图
   fakeChat: boolean; // 开发用的假对话模型，小间的回复是测试剧本
   operator: boolean; // 试用操作员模式：显示资产路线开关

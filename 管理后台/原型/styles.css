@@ -1114,3 +1114,119 @@ tbody tr:hover {
     margin-bottom: 4px;
   }
 }
+
+/* 供应商与凭据（PRD v1.1） */
+.btn.sm {
+  min-height: 28px;
+  padding: 3px 10px;
+}
+.row-actions.btn-row {
+  gap: 8px;
+}
+.dot.ok {
+  background: #2f9e55;
+}
+.dot.warn {
+  background: #d49a1c;
+}
+.dot.bad {
+  background: var(--danger);
+}
+.dot.off {
+  background: #a2a9b4;
+}
+.cred-sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.cred-sub.bad {
+  color: var(--danger);
+}
+.provider-mark svg {
+  width: 16px;
+  height: 16px;
+}
+.modal {
+  width: min(460px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 60px #1620312e;
+}
+.modal::backdrop {
+  background: rgb(22 27 36 / 0.36);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 6px;
+}
+.modal-head h2 {
+  font-size: 15px;
+}
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--muted);
+}
+.icon-btn:hover {
+  background: #f2f3f6;
+}
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 20px 4px;
+}
+.modal-body p {
+  color: #4b5361;
+}
+.modal-body .form-error {
+  margin-bottom: 0;
+}
+.modal-notes {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 18px 20px;
+}
+.token-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f6f7f9;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.token-box code {
+  flex: 1;
+  font-size: 12px;
+  word-break: break-all;
+}
+.supplier {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
