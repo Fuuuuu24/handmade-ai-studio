@@ -28,4 +28,4 @@ npm run e2e                    # 全流程测试（Playwright，用本机 Chrome
 - `file`：服务器上用。读管理后台写的加密凭据文件，要设 `CREDENTIALS_PATH` 和 `CREDENTIALS_MASTER_KEY`；不再放 `AIHUBMIX_API_KEY`。
 - `relay`：协作者本地用，正式上线后本地开发也统一用它。请求经服务器转发，用发起人在后台管理的那套 key；在 `.env.local` 写 `CREDENTIAL_SOURCE=relay`、`MODEL_RELAY_URL=`（服务器地址，比如 `https://example.com`，不带路径）、`MODEL_RELAY_TOKEN=`（团队口令），后两项找发起人私下要，不进仓库。只能用服务器配置里有的模型，花费记在服务器账本。
 
-原型（`../原型-v3/` 布局与交互、`../原型-v2/` 业务规则）用于对照，不应未经评审直接复制为正式代码。
+原型（`../原型-v3/` 布局与交互）用于对照，不应未经评审直接复制为正式代码。
