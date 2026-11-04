@@ -9,6 +9,7 @@ import { BUDGET } from '@/config/budget';
 import type { StepId } from '@/config/steps';
 import { errorText } from '@/client/api';
 import { chatErrorMessage, chatRequestBody } from '@/client/chat-body';
+import { turnProblem, withoutLastStep, type TurnProblem } from '@/client/chat-turn';
 import { takeFirstMessage } from '@/client/first-message';
 import { addPhotos } from '@/client/uploads';
 import { loadMessages, saveMessages } from '@/data/repo';
@@ -17,6 +18,14 @@ import { addCost } from '@/domain/work';
 import { useWorkspace } from '@/components/workspace/context';
 import { Composer } from './composer';
 import { MessageView } from './message-view';
+
+// 回复停在半路时给用户看的原因（BC-001）：思考过程不能代替答复
+const PROBLEM_TEXT: Record<TurnProblem, string> = {
+  timeout: '小间这次太久没答完，已经停下。',
+  aborted: '小间这次的回复被中断了。',
+  length: '小间这次的回复超出了单次长度上限，没说完。',
+  empty: '小间这次只想了、没有给出答复。',
+};
 
 interface Props {
   registerSend: (fn: (text: string) => void) => void;
@@ -58,6 +67,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   const autoSteps = useRef(0);
   const [capHit, setCapHit] = useState(false);
   const [retries, setRetries] = useState(0);
+  const [userStopped, setUserStopped] = useState(false);
   const [notes, setNotes] = useState<string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -66,7 +76,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
     [workId],
   );
 
-  const { messages, sendMessage, status, error, addToolOutput, regenerate, stop, clearError } = useChat<AgentUIMessage>({
+  const { messages, setMessages, sendMessage, status, error, addToolOutput, regenerate, stop, clearError } = useChat<AgentUIMessage>({
     id: workId,
     messages: initialMessages,
     transport,
@@ -103,6 +113,8 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   const lastPart = messages.at(-1)?.parts.at(-1);
   const writing = status === 'streaming' && lastPart?.type === 'text' && lastPart.text.length > 0;
   const thinking = busy && !writing;
+  // 回复停在半路（超时、撞上长度上限、只想没说）时如实说明并可重试（BC-001）；用户自己点停止的不算
+  const problem = status === 'ready' && !userStopped ? turnProblem(messages.at(-1)) : null;
   useEffect(() => {
     onBusyChange(busy);
   }, [busy, onBusyChange]);
@@ -141,11 +153,26 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
     (text: string, assetIds: string[] = []) => {
       setCapHit(false);
       setRetries(0);
+      setUserStopped(false);
       onUserSend();
       post(text, assetIds);
     },
     [post, onUserSend],
   );
+
+  // 重试只重做没完成的最后一步：前面几步调用过的工具已经改了作品，整条重来会再做一遍（比如重复记共创记录）
+  const retry = () => {
+    setRetries((r) => r + 1);
+    setCapHit(false);
+    setUserStopped(false);
+    clearError();
+    autoSteps.current = 0;
+    const last = messages.at(-1);
+    const kept = last?.role === 'assistant' ? withoutLastStep(last) : null;
+    if (!kept) return void regenerate();
+    setMessages([...messages.slice(0, -1), kept]);
+    void sendMessage();
+  };
 
   // 用花括号包住：注册函数的返回值不能被 React 当成清理函数
   useEffect(() => {
@@ -190,20 +217,12 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
         {capHit && (
           <p className="text-aux text-muted">小间这一轮已经连续操作 {BUDGET.chat.maxSteps} 次，先停下来等你说下一步。</p>
         )}
-        {error && (
+        {(error || problem) && (
           <div role="alert" className="rounded-lg bg-bad-bg px-3 py-2 text-aux text-bad">
-            <p>小间这次没有回复：{chatErrorMessage(error)}</p>
+            <p>{error ? `小间这次没有回复：${chatErrorMessage(error)}` : PROBLEM_TEXT[problem!]}</p>
             <div className="mt-1.5 flex items-center gap-2">
               {retries < BUDGET.chat.retries ? (
-                <button
-                  type="button"
-                  className="mini-btn"
-                  onClick={() => {
-                    setRetries((r) => r + 1);
-                    clearError();
-                    void regenerate();
-                  }}
-                >
+                <button type="button" className="mini-btn" onClick={retry}>
                   重试
                 </button>
               ) : (
@@ -222,7 +241,15 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
             ))}
           </ul>
         )}
-        <Composer busy={busy} onSend={(text) => send(text)} onFiles={onFiles} onStop={stop} />
+        <Composer
+          busy={busy}
+          onSend={(text) => send(text)}
+          onFiles={onFiles}
+          onStop={() => {
+            setUserStopped(true);
+            void stop();
+          }}
+        />
       </div>
     </section>
   );

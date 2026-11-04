@@ -14,6 +14,10 @@ describe('假对话模型（只给开发和测试用）', () => {
     expect(fakeTurn([user('【测试：信息】'), { role: 'tool', content: [] }])).toEqual({ text: expect.stringContaining('测试对话模型'), calls: [] });
   });
 
+  it('「只想不说」只出思考，不调用工具、不写正文（测回复停在半路的提示，BC-001）', () => {
+    expect(fakeTurn([user('继续【测试：只想不说】')])).toEqual({ text: '', calls: [], thinkOnly: true });
+  });
+
   it('剧本里每个工具调用都符合工具的参数格式', async () => {
     for (const [mark, { tool, input }] of Object.entries(FAKE_SCRIPT)) {
       const def = agentTools[tool as keyof typeof agentTools];

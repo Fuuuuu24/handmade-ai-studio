@@ -1,0 +1,123 @@
+{
+  "baseHead": "b0fa9070745ccbbb17a97847ce247fc9b5e46f52",
+  "modifiedFilesFingerprint": "2b533ea054d815f31dc9351a25a928901c47cd450d58049fbfa7d435ebaf4e8e",
+  "files": [
+    {
+      "path": "正式代码/src/agent/executors.test.ts",
+      "sha256": "6a61c2f1e647dfbda42165d02d292f7c6668955a2f2290a0eac1bfb10a366e64"
+    },
+    {
+      "path": "正式代码/src/agent/executors.ts",
+      "sha256": "ea8ddf7d2dd1c250040a6d28d94282555aad016c03296528cc23e1182d515a67"
+    },
+    {
+      "path": "正式代码/src/agent/instructions.ts",
+      "sha256": "9272278d1a6ff617aadd749bd2da19382b04d3584ded43b17da05e7b25557682"
+    },
+    {
+      "path": "正式代码/src/agent/state.test.ts",
+      "sha256": "7e97a8a7eb8f99761c2a649d112cec60cf11ab518e3c8d15b4cbf19ee56198ce"
+    },
+    {
+      "path": "正式代码/src/agent/state.ts",
+      "sha256": "bfc5c2b13d4a70287b6b69452808e90493c2af25c0da6f10e1331ebc87863f37"
+    },
+    {
+      "path": "正式代码/src/agent/tools.ts",
+      "sha256": "0d64b3d74eb6dc7eb87e664ff8d8973626c3891366d6d222590e38c1e0c2f9f2"
+    },
+    {
+      "path": "正式代码/src/app/api/chat/route.ts",
+      "sha256": "b9d6d8f67631ae51a974f0cc8764a20da70a6b3c79ee3dc8a70554011724ce29"
+    },
+    {
+      "path": "正式代码/src/client/chat-turn.test.ts",
+      "sha256": "bb937831091f20a2d7a97edd4511d9396b1c436da4cb6e0c42b2fb20142fb8e6"
+    },
+    {
+      "path": "正式代码/src/client/chat-turn.ts",
+      "sha256": "9c605a3378b4a49c5fd7b23fc3f54968bfdd1f2171c7a1ac9bdb4325d82301e8"
+    },
+    {
+      "path": "正式代码/src/components/canvas/asset-step.tsx",
+      "sha256": "478ca7239d4bb258455773eafd4f7db178ad1bda792d5972b30a191ce7443359"
+    },
+    {
+      "path": "正式代码/src/components/canvas/info-step.tsx",
+      "sha256": "998f148794bf3b975c11fdd2a015a9997f4f189f9cdcc02fd07918c7b6798760"
+    },
+    {
+      "path": "正式代码/src/components/canvas/output-step.tsx",
+      "sha256": "239fe783a98f7b7e1d1c8105fdbd9aae2c8c396452f82ec3d88bd2230b9631c3"
+    },
+    {
+      "path": "正式代码/src/components/chat/chat-panel.tsx",
+      "sha256": "da40d84ab65353d0c9a77e5cd44302e5e109f77d159ea06941355eaca7ab3bf9"
+    },
+    {
+      "path": "正式代码/src/components/home/home-page.tsx",
+      "sha256": "76cb7fa0864be1754e92052afe543d864fa6c12cc4e5ffa17299f081a31f3883"
+    },
+    {
+      "path": "正式代码/src/components/plan/approve-button.tsx",
+      "sha256": "4cae86510059351c13e8f00f3b12dcfe1c314313e9c28bf73422aaa074456c88"
+    },
+    {
+      "path": "正式代码/src/components/ui/dialog.tsx",
+      "sha256": "140ee6b1c9bfe0808a2f1f685487bb4cc74518f9c6c4f70e26df4f1afdbca3bc"
+    },
+    {
+      "path": "正式代码/src/config/budget.ts",
+      "sha256": "530c2717c022d8fcc0c6ea6b4e3f0e356d51b9965981936db408b81762902f1a"
+    },
+    {
+      "path": "正式代码/src/domain/approval.ts",
+      "sha256": "702d1bde124bb10506a3d4ca64ec40129026b48ae15c779a16baf64d3a8da5c9"
+    },
+    {
+      "path": "正式代码/src/domain/info.ts",
+      "sha256": "396890b9f09a5ee9090fb30ad2c2dd3c5097077fecc04258d62a375cfbe602b0"
+    },
+    {
+      "path": "正式代码/src/domain/status.test.ts",
+      "sha256": "305ca9cb5a8e0201bc08478f126b0e42f58192973c5a52caf6dfd665c7e5e746"
+    },
+    {
+      "path": "正式代码/src/domain/status.ts",
+      "sha256": "15e33708562c4ef883ee37dfb2b6e05aa57437a318d8d8e4790bd3eef36871ad"
+    },
+    {
+      "path": "正式代码/src/domain/types.ts",
+      "sha256": "ed6c0c81476f895ff7b32760547c74eb3c131a3556ca9b55850282f98df8ed82"
+    },
+    {
+      "path": "正式代码/src/domain/work.test.ts",
+      "sha256": "e7c559feff331c1c1af0e035771f17e68823574d3eabbe3425473c9b08030b25"
+    },
+    {
+      "path": "正式代码/src/domain/work.ts",
+      "sha256": "8d6b9688bb6a29ba086eb6844421bd9781aacde544c8629fd07059d6ebb45e1c"
+    },
+    {
+      "path": "正式代码/src/server/errors.test.ts",
+      "sha256": "9178f8dbda6b09129de7e5b03b6d7b3951fa477df99489259896d8f0319736ae"
+    },
+    {
+      "path": "正式代码/src/server/errors.ts",
+      "sha256": "41d18df83b1fa64da20479509c10cffb22d32d227a1eab8f4c00cc203f7defeb"
+    },
+    {
+      "path": "正式代码/src/server/fake-chat.test.ts",
+      "sha256": "77c5f5241f7ae3fd6cee61039b8ae77e47c9e651a72a4b6067cd65e3077dc79a"
+    },
+    {
+      "path": "正式代码/src/server/fake-chat.ts",
+      "sha256": "ee4d09ca67b2fedfc85e2ac03f31933e56510bef4a89b67374ce2ad6596a8b29"
+    },
+    {
+      "path": "正式代码/tests/e2e/main-flow.spec.ts",
+      "sha256": "02a6870692e871375a4d16faf3cb9d678430d1b7e18da71d3e27392f0a139e94"
+    }
+  ],
+  "driftSinceModifiedCheckpoint": []
+}

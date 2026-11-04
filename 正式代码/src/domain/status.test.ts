@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { current, promptedWork, result, task, upload } from '@/test/fixtures';
+import { current, promptedWork, readyWork, result, task, upload } from '@/test/fixtures';
 import { currentStep, stepStates, workStatusKey, type StatusInput } from './status';
 import type { Approval } from './types';
-import { approve, confirmAssets, confirmSummary, draftSummary, newWork, setRatio, startRound } from './work';
+import {
+  acceptSuggestion,
+  approve,
+  confirmAssets,
+  confirmSummary,
+  dismissSuggestion,
+  draftSummary,
+  newWork,
+  setRatio,
+  startRound,
+  suggestInfo,
+} from './work';
 
 const input = (p: Partial<StatusInput> & Pick<StatusInput, 'work'>): StatusInput => {
   const assets = p.assets ?? [];
@@ -74,5 +85,19 @@ describe('stepStates', () => {
     expect(after.plan).toBe('stale');
     expect(after.output).toBe('stale');
     expect(currentStep(after)).toBe('plan');
+  });
+
+  it('核心信息还有小间的建议没处理时，信息这一步不算完成；选填项的建议不挡（BC-002）', () => {
+    const { work, assets } = readyWork();
+    expect(stepStates(input({ work, assets })).info).toBe('done');
+
+    const keepPending = suggestInfo(work, 'keep', '保留扣头和延长链');
+    const states = stepStates(input({ work: keepPending, assets }));
+    expect(states.info).toBe('todo');
+    expect(currentStep(states)).toBe('info');
+
+    expect(stepStates(input({ work: acceptSuggestion(keepPending, 'keep'), assets })).info).toBe('done');
+    expect(stepStates(input({ work: dismissSuggestion(keepPending, 'keep'), assets })).info).toBe('done');
+    expect(stepStates(input({ work: suggestInfo(work, 'price', '198 元'), assets })).info).toBe('done');
   });
 });

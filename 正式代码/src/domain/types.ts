@@ -42,6 +42,7 @@ export interface Story {
   noStory: boolean; // 「暂无明确故事」（AC-04.5）
   summary: StorySummary | null;
   summaryState: 'none' | 'draft' | 'confirmed'; // 小间只能写草稿，确认由用户点
+  drafted?: StorySummary; // 小间最后一次起草的原文，和 summary 对比就知道用户改了哪几项（BC-003）
 }
 
 /* ---------- 风格与布景 ---------- */

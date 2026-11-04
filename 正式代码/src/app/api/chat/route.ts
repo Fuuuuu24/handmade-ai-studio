@@ -1,5 +1,4 @@
 import {
-  APICallError,
   convertToModelMessages,
   createUIMessageStreamResponse,
   safeValidateUIMessages,
@@ -16,9 +15,8 @@ import { chatCost } from '@/domain/cost';
 import { chatLanguageModel } from '@/server/aihubmix';
 import { fakeChat } from '@/server/env';
 import { FAKE_CHAT_LABEL, fakeChatModel } from '@/server/fake-chat';
-import { describeError, errorResponse, GatewayError } from '@/server/errors';
+import { chatErrorText, errorResponse } from '@/server/errors';
 import { reserve, settle } from '@/server/ledger';
-import { redact } from '@/server/redact';
 
 const Body = z.object({
   messages: z.array(z.unknown()).min(1).max(400),
@@ -29,24 +27,6 @@ const Body = z.object({
 
 // 每张缩略图大约折合的输入 token，用于发请求前估价
 const PHOTO_TOKENS = 1200;
-
-// 模型调用失败时给用户看的真实原因（AC-11.6：不用固定话术冒充回复）
-function chatErrorText(e: unknown): string {
-  if (APICallError.isInstance(e)) {
-    let code = `http_${e.statusCode ?? '?'}`;
-    let msg = e.message;
-    try {
-      const body = JSON.parse(e.responseBody ?? '{}');
-      code = body?.error?.code || code;
-      msg = body?.error?.message || msg;
-    } catch {
-      // 响应不是 JSON 时保留原始信息
-    }
-    const { error } = describeError(new GatewayError(e.statusCode ?? 502, String(code), msg));
-    return `${error.message}（${redact(msg).slice(0, 120)}）`;
-  }
-  return describeError(e).error.message + (e instanceof Error ? `（${redact(e.message).slice(0, 120)}）` : '');
-}
 
 export async function POST(req: Request) {
   try {
@@ -114,16 +94,20 @@ export async function POST(req: Request) {
         originalMessages: messages,
         messageMetadata: ({ part }): MessageMeta | undefined => {
           // 每次请求开始把花费清零、结束时写本次花费，浏览器在 onFinish 里把它加进作品（技术写法第 2 节）
-          if (part.type === 'start') return { model: fake ? 'fake-chat' : model.id, modelLabel: label, costUSD: 0 };
+          if (part.type === 'start') return { model: fake ? 'fake-chat' : model.id, modelLabel: label, costUSD: 0, endReason: null };
           if (part.type === 'finish') {
-            if (fake) return { costUSD: 0 };
+            const endReason = part.finishReason;
+            if (fake) return { costUSD: 0, endReason };
             return {
               costUSD: chatCost(model.pricing, {
                 inputTokens: part.totalUsage.inputTokens ?? 0,
                 outputTokens: part.totalUsage.outputTokens ?? 0,
               }),
+              endReason,
             };
           }
+          // 超时由服务端中止：流里只有 abort、没有 error，浏览器原本看不出来，界面会安静地停下（BC-001）
+          if (part.type === 'abort') return { endReason: /timeout/i.test(String(part.reason ?? '')) ? 'timeout' : 'aborted' };
           return undefined;
         },
         onError: chatErrorText,

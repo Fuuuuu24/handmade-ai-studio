@@ -4,11 +4,11 @@ import { STEPS } from '@/config/steps';
 import { NO_PROPS, STYLE_KEYS, STYLE_LABELS } from '@/config/style';
 import { ASSET_KINDS } from '@/config/upload';
 import { VERDICT_TEXT } from '@/config/verdict';
-import { approvalBlockers, approvalStatus, promptStatus } from '@/domain/approval';
+import { approvalBlockers, approvalStatus, approvedPhase, promptStatus } from '@/domain/approval';
 import { roundResults, roundSlots, slotState } from '@/domain/generation';
 import { activeUploads } from '@/domain/snapshot';
 import { currentStep, stepStates, workStatus } from '@/domain/status';
-import { styleLagsSummary } from '@/domain/work';
+import { styleLagsSummary, summaryEdits } from '@/domain/work';
 import type { Approval, Asset, Basis, Result, Snapshot, StyleSource, Task, Work } from '@/domain/types';
 
 // 每次对话附给小间的作品状态（技术写法第 6 节）。在浏览器里生成，纯函数，便于测试。
@@ -36,6 +36,7 @@ const SOURCE_TEXT: Record<StyleSource, string> = {
 };
 
 const KIND_TEXT = { inspiration: '灵感', theme: '主题', emotion: '情绪', other: '其他' } as const;
+const SUMMARY_TEXT = { express: '表达', feel: '感受', avoid: '避免' } as const;
 
 export function stateSummary(i: SummaryInput): string {
   const { work } = i;
@@ -79,6 +80,11 @@ export function stateSummary(i: SummaryInput): string {
   const sum = work.story.summary;
   const sumState = { none: '还没有', draft: '草稿，待用户确认', confirmed: '用户已确认' }[work.story.summaryState];
   lines.push(sum ? `共创总结（${sumState}）：表达「${sum.express}」；感受「${sum.feel || '未写'}」；避免「${sum.avoid || '未写'}」` : `共创总结：${sumState}`);
+  const edits = summaryEdits(work.story);
+  if (edits.length) {
+    const what = edits.map((e) => `${SUMMARY_TEXT[e.part]}：你写的「${e.drafted || '（空）'}」，用户改成「${e.now || '（空）'}」`).join('；');
+    lines.push(`用户改过你起草的总结，以用户的为准，你草稿里被改掉或删掉的说法不要再写进风格和提示词：${what}`);
+  }
 
   if (styleLagsSummary(work)) lines.push('注意：你推荐风格之后，共创总结改过了；按新总结检查风格卡，需要时用 set_style 调整并说明理由');
   lines.push('风格卡：');
@@ -104,9 +110,15 @@ export function stateSummary(i: SummaryInput): string {
   if (work.prompt?.text) lines.push(`提示词原文：${work.prompt.text}`);
 
   const ap = approvalStatus(i.approval, i.current);
+  const phase = approvedPhase(i.approval, i.current, i.isGenerating);
   if (ap.kind === 'none' || !i.approval) lines.push('批准：还没有');
   else if (ap.kind === 'stale') lines.push(`批准：第 ${i.approval.version} 版已失效，批准后改了：${ap.changed.join('、')}`);
-  else lines.push(`批准：第 ${i.approval.version} 版有效${i.approval.usedRound != null ? `，已用于第 ${i.approval.usedRound} 轮生成` : '，还没生成'}`);
+  else if (phase === 'generating') {
+    // 用户可能在小间回复的同时批准并开始了生成：说清楚是这版方案在生成，不要再请用户批准（BC-009）
+    lines.push(`批准：用户已经批准了当前方案（第 ${i.approval.version} 版），第 ${i.approval.usedRound} 轮正在生成；不需要再请用户批准，等结果出来请用户验收`);
+  } else if (phase === 'used') {
+    lines.push(`批准：第 ${i.approval.version} 版有效，已用于第 ${i.approval.usedRound} 轮生成；要按同一方案再生成一轮，需要用户再批准一次`);
+  } else lines.push(`批准：第 ${i.approval.version} 版有效，还没生成`);
 
   if (work.revision) {
     const from = i.results.find((r) => r.id === work.revision!.fromResultId);
@@ -114,8 +126,11 @@ export function stateSummary(i: SummaryInput): string {
     lines.push(`正在从${from ? `第 ${from.round} 轮候选 ${from.slot + 1}` : '一张旧结果'}修改${reasons}：方案已恢复成那一版，改好后请用户重新批准`);
   }
 
-  const blockers = approvalBlockers(work, i.assets, i.basis, i.isGenerating);
-  lines.push(`批准前还缺：${blockers.length ? blockers.map((b) => b.text).join('；') : '无，可以请用户批准'}`);
+  // 当前方案已批准、还没生成或正在生成时，没有「批准前还缺」可说（「已有任务在生成中」不是要再批准的理由）
+  if (phase !== 'generating' && phase !== 'unused') {
+    const blockers = approvalBlockers(work, i.assets, i.basis, i.isGenerating);
+    lines.push(`批准前还缺：${blockers.length ? blockers.map((b) => b.text).join('；') : '无，可以请用户批准'}`);
+  }
 
   if (work.round > 0) {
     const r = work.round;

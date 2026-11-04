@@ -1,0 +1,122 @@
+[
+  {
+    "case_id": "T01",
+    "title": "建立称心环境",
+    "product_id": "P01",
+    "environment_id": "S01",
+    "depends_on": null,
+    "directory": "T01-建立称心环境",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  },
+  {
+    "case_id": "T02",
+    "title": "换商品保持原布景",
+    "product_id": "P02",
+    "environment_id": "S01",
+    "depends_on": "T01",
+    "directory": "T02-换商品保持原布景",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  },
+  {
+    "case_id": "T03",
+    "title": "窗影工作室",
+    "product_id": "P03",
+    "environment_id": "S02",
+    "depends_on": null,
+    "directory": "T03-窗影工作室",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  },
+  {
+    "case_id": "T04",
+    "title": "非对称作品适配",
+    "product_id": "P04",
+    "environment_id": "S02",
+    "depends_on": "T03",
+    "directory": "T04-非对称作品适配",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  },
+  {
+    "case_id": "T05",
+    "title": "天然差异与手作台",
+    "product_id": "P05",
+    "environment_id": "S03",
+    "depends_on": null,
+    "directory": "T05-天然差异与手作台",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  },
+  {
+    "case_id": "T06",
+    "title": "同工作台竖版展示",
+    "product_id": "P06",
+    "environment_id": "S03",
+    "depends_on": "T05",
+    "directory": "T06-同工作台竖版展示",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  },
+  {
+    "case_id": "T07",
+    "title": "建立标本小屋",
+    "product_id": "P07",
+    "environment_id": "S04",
+    "depends_on": null,
+    "directory": "T07-建立标本小屋",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  },
+  {
+    "case_id": "T08",
+    "title": "同环境局部覆盖",
+    "product_id": "P08",
+    "environment_id": "S04",
+    "depends_on": "T07",
+    "directory": "T08-同环境局部覆盖",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  },
+  {
+    "case_id": "T09",
+    "title": "同布景换机位",
+    "product_id": "P01",
+    "environment_id": "S01",
+    "depends_on": "T01",
+    "directory": "T09-同布景换机位",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  },
+  {
+    "case_id": "T10",
+    "title": "同房间换取景位置",
+    "product_id": "P05",
+    "environment_id": "S03",
+    "depends_on": "T05",
+    "directory": "T10-同房间换取景位置",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  },
+  {
+    "case_id": "T11",
+    "title": "手改环境要求",
+    "product_id": "P03",
+    "environment_id": "S02",
+    "depends_on": "T03",
+    "directory": "T11-手改环境要求",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  },
+  {
+    "case_id": "T12",
+    "title": "离开后再次使用",
+    "product_id": "P02",
+    "environment_id": "S01",
+    "depends_on": "T01、T02",
+    "directory": "T12-离开后再次使用",
+    "images_status": "4张已生成并目视质检",
+    "execution_status": "未执行"
+  }
+]

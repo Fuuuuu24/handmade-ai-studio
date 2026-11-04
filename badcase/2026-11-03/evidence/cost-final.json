@@ -1,0 +1,13 @@
+{
+  "limitUSD": 2,
+  "baselineEntryCount": 37,
+  "entriesThisRun": 61,
+  "chatRequests": 49,
+  "imageRequests": 12,
+  "settledUSD": 0.08475601674999997,
+  "reservedEstimateUSD": 0.40954048060000015,
+  "refundedCount": 0,
+  "reservedCount": 14,
+  "conservativeUSD": 0.49429649735000003,
+  "note": "服务端账本计算；reserved估价也计入。生图settled字段不等于供应商账单已核实，本轮未查实际扣款；没有自动充值。"
+}

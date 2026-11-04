@@ -1,0 +1,321 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "潮线项链" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": 潮线项链
+    - generic: 方案待确认
+  - generic: 已保存
+  - navigation "流程进度":
+    - button "资产 （完成）":
+      - text: 资产
+      - generic: （完成）
+    - button "信息 （完成）":
+      - text: 信息
+      - generic: （完成）
+    - button "共创 （完成）":
+      - text: 共创
+      - generic: （完成）
+    - button "方案 （当前）":
+      - text: 方案
+      - generic: （当前）
+    - button "出图":
+      - text: 出图
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我在做潮汐间的第一张商品主图，想有一个自己的靠窗小工作台，后面能看见墙和壁龛，像真的在工作室拍。海边的感觉安静一点，不要贝壳。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 刚才网络超时没有收到你的回复，请继续看我上传的照片和上一条需求。
+    - button [expanded]:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 小间在思考…
+    - generic: Let me look at the photo and the user's message.
+    - generic: The user is making the first product main image for "潮汐间" (brand/work name?). They want a look like their own small windowside worktable, with a wall and niche visible behind, like actually shot in a studio. Seaside feeling, quiet, no shells.
+    - generic: "Wait — \"潮汐间\" might be the work name? The work is currently \"未命名作品\". The user says \"我在做潮汐间的第一张商品主图\" — 潮汐间 sounds like the shop/brand name (\"一间·手作影像工作台\" is the tool; user is a maker). Actually \"潮汐间\" could be the shop name. Hmm, \"我在做潮汐间的第一张商品主图\" — I'm making 潮汐间's first product main image. So 潮汐间 is probably the brand/shop name. The product itself: a silver chain necklace with a pale blue-green (sea-glass colored) triangular/irregular pendant, appears to be a bezel-set sea glass or resin/glass pendant. Photo shows it on kraft paper on a wooden worktable with tools."
+    - generic: "Current state: 资产待确认; 现在该做：资产. Asset route B (原图直接作参考图, no white background needed). So asset step: user needs to confirm the asset on canvas. Only 1 photo (整体 1, 背面 0, 细节 0)."
+    - generic: "The user's request includes style direction:靠窗小工作台, 后面能看见墙和壁龛, 像真的在工作室拍, 海边感觉安静, 不要贝壳. That's style info — I can record via set_style with basis=said for some fields? But the flow: first confirm asset, then product info, then co-creation story, then style."
+    - generic: The user says previous reply wasn't received due to network timeout, asks me to continue looking at the photo and their previous request.
+    - generic: What should I do now?
+    - generic: "1. The work is named \"未命名作品\" and category is clear (项链). I could suggest a name like \"海玻璃吊坠项链\" — but the user said \"潮汐间的第一张商品主图\" — 潮汐间 might be the work name? \"我在做潮汐间的第一张商品主图\" reads like \"I'm making the first product main image for 潮汐间\" — 潮汐间 is likely the shop/brand. Hmm, but could be the series name. Ambiguous. suggest_name is for when the work is still called 未命名作品 and category is clear. I can suggest a name based on category and form: \"海玻璃三角吊坠项链\" too long (max 20 chars). \"海玻璃三角吊坠\" or \"潮汐吊坠项链\"? The pendant is a pale blue-green irregular triangle — looks like sea glass in a silver bezel. But I shouldn't fabric"
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 上一轮只有思考内容，没有答复。请按我上传的照片和开场需求继续，告诉我下一步需要提供或确认什么。
+    - button [expanded]:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: Let me analyze the photo and the state.
+    - generic: "Photo: a thin silver chain necklace with a small pale blue-green irregular triangular pendant, laid on kraft paper on a wooden workbench, with pliers, tissue paper, chain, tape roll, a small plastic box in the background. Single overall photo, no back, no detail."
+    - generic: "State: asset 待确认, route B (original photo as reference, no white asset needed). So the next thing: user should confirm asset on the canvas (step 资产). I can't confirm for them."
+    - generic: "The user's request: wants a style — own windowside small worktable, wall and niche visible behind, like really shot in studio, seaside feeling quiet, no shells."
+    - generic: "Flow: 资产 → 信息 → 共创 → 方案 → 出图. Per instructions: 流程以「当前作品状态」为准推进，每完成一步用一两句话说明结果并提出下一步. Now the step is 资产. But the user's message contains story/style info. I should record their style preferences? The instruction says 共创 comes after 信息. But the user already gave a strong direction (seaside, quiet, windowside worktable, wall + niche, no shells)."
+    - generic: "Best approach: first move to asset step — switch canvas to 资产, tell them the photo is enough as reference (route B, no need for white background), ask them to confirm the asset on the canvas (对照原图选用、再确认资产). Also note that one photo only shows overall; back/detail missing — but maybe not required. Actually rule 5: 照片看不清、商品不完整或缺少需要的角度时直接说明并请用户补拍. Is the photo enough? It shows overall necklace; the pendant face is visible; the clasp and extension chain visible. The back of pendant not shown — probably fine, but I might mention if needed. For the main image, only the front matters. I won't demand more photos; but I could mention a close-up of the pendant would help later. Keep it light — maybe mention one thing: 如果想让吊坠纹路更清楚，可以补一张近距离照."
+    - generic: "Also, can I capture the style wishes? The user's message has clear style direction: 靠窗小工作台, 墙面和壁龛在背景, 工作室真实感, 海边安静, 不要贝壳. I could set_style with basis=said for background, tone, banned, props... but style step comes later (方案). However, recording now avoids repetition. The rules say 已经说过或填过的内容不要重复问. Recording style early is fine — set_style with basis=said. But the style card is part of 方案 step; setting it now is allowed and won't be a problem. However there's a risk: doing too much at once. The instruction \"一次只问一到两个问题\"."
+    - generic: "I think good: 1. show_step asset 2. suggest_name? The work is 未命名作品 and category is clear (项链). Category isn't filled in state (\"品类：未填\") but from photo it's clearly a necklace. suggest_name is allowed when 品类已经清楚. I could suggest \"海玻璃吊坠项链\" — but I shouldn't guess material (海玻璃). Measured: pale blue-green translucent triangular pendant. Safer name: \"浅绿三角吊坠项链\" or \"薄荷绿三角吊坠项链\". Hmm, \"潮汐吊坠项链\" — but user said 潮汐间 might be brand; using it could conflict. Let me suggest \"薄荷绿三角吊坠项链\" — 9 chars. That's descriptive without guessing material. Good."
+    - generic: "3. update_info: category 项链 (from photo), material 未知? Rule: 看得出、用户没说的不要猜. 看不出、用户没说的就问，或者留空. I can write category=项链 (note 照片里看到). Material: the pendant looks like glass/resin — can't be sure; the chain looks silver-toned metal. I could write \"材料以参考图为准\" — no, update_info wants a value. Better to ask the user: 链子是银色金属吗？吊坠是什么材料（海玻璃／树脂／琉璃）？That's the 信息 step though. Since step is 资产, I should focus on asset confirm first, then info."
+    - generic: "Keep it to one or two questions: main ask — 在画布上确认资产（对照原图选用）. Second: 顺手说一下吊坠的材料（海玻璃/树脂/琉璃？）."
+    - generic: "Let me do: show_step(asset) + suggest_name + update_info(category 项链 from photo) in parallel — these are independent. Then reply with a short message: photo is enough as reference (route B → I shouldn't mention routes). \"照片当作参考图就够，不用另做白底图\" — that's fine to say without naming routes? The rule: 「资产路线」是试用操作员的设置，不要跟用户提路线. I can say 这张原图当参考就够，不用做白底图."
+    - generic: "Wait — but does the user need to do something on 资产 step? Yes, confirm asset. Since route B, the original photo is used directly; user still needs to confirm the asset (state: 资产还没确认). So ask them to go to 资产 and confirm using the original photo."
+    - generic: "Also record their style wishes? Maybe I'll hold; but the user may feel I ignored their request. Their message: \"想有一个自己的靠窗小工作台，后面能看见墙和壁龛，像真的在工作室拍。海边的感觉安静一点，不要贝壳。\" I should acknowledge and record it so it's not lost. Use set_style basis=said for: background (靠窗小工作台，背景有墙面和壁龛), tone (?), banned (贝壳), placement? props? Let me record minimal: background = \"靠窗的小工作台，背景是墙面和壁龛，像真实工作室\"; banned = \"不要贝壳\"; tone = \"海边安静的感觉，清冷一点\"? The user said 海边感觉安静一点 — that's more 氛围/表达. I could put expression = \"安静、像海边工作室的日常\". Hmm, expression is style card field; also 共创总结 has feel. Setting expression early may conflict with co-creation summary later."
+    - generic: "Risk of over-recording: later I'll ask story questions and then draft summary. Style card fields set as said are fine and persist."
+    - generic: "I'll record three: background (said), banned (said: 贝壳不要), tone (said? \"海边的感觉安静一点\" → tone 安静清冷). Maybe better: light? No. I'll do background, banned, and placement (靠窗小工作台摆放) — hmm placement is about how product is placed, e.g., 平铺 on the table by the window. The photo is 平铺 on worktable. I can say placement \"平铺在靠窗的木工作台上\" basis=said? User said 工作台, implied. That's a reasonable inference but let me keep basis=said only for what's clearly stated, and placement default from"
+    - generic: 由 DeepSeek V4 Flash（看图实验版） 回复
+    - paragraph: 请不要输出分析过程，直接用两句中文告诉我现在要确认什么。潮汐间是店铺名，商品叫潮线项链。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: "User says: 潮汐间 is shop name; product is called 潮线项链. So the work name should be 潮线项链. The work is currently \"未命名作品\". I should use suggest_name with \"潮线项链\" — user gave the name, so suggest it so they can accept in the top bar? suggest_name is a suggestion tool; user already named it. Using suggest_name with their own name is fine — they then accept. Hmm, but rule says suggest_name when work is 未命名作品 and 品类已经清楚. Yes, use it with the name they gave."
+    - generic: "Also record info: category 项链 (from user: 商品叫潮线项链), and record story? User's statement about 靠窗小工作台, 海边安静, 不要贝壳 — that's style. But the instruction now: reply with two sentences telling what to confirm now, no analysis."
+    - generic: "Tool calls: suggest_name(\"潮线项链\"), show_step(asset), update_info category 项链? Category from 潮线项链 name isn't stated... \"项链\" is in the name, so category 项链 is fine (note 你说的)."
+    - generic: "Then two sentences: 资产确认 + 材料问题."
+    - generic: Keep reply to two sentences.
+    - paragraph:
+      - generic: 已写成名字建议「潮线项链」，用户在顶栏接受后才改名
+    - paragraph:
+      - generic: 已写成待确认建议：品类「项链（银色链子 + 浅蓝绿色三角吊坠）」（在画布上接受后才生效）
+    - paragraph: 这张原图当参考就够，不用另做白底图；请在「资产」里对照原图点确认。另外告诉我吊坠是什么材料（海玻璃、树脂还是琉璃），链子是不是银色金属。
+    - generic: 由 DeepSeek V4 Flash（看图实验版） 回复
+    - paragraph: 已确认资产。潮线项链是925银细链，链长42厘米加5厘米延长链，单个海玻璃吊坠约12×9毫米，售价268元。请保留银色细链连续连接、延长链和扣头，不增加吊坠、不改变轮廓。灵感来自退潮后岸边留下的水线，面向喜欢克制海岸风的日常通勤顾客。希望顾客感到清透、安静，避免贝壳和旅游纪念品风。请直接简短回复、整理卡片。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: "User gave lots of info: material 925银细链, size 42cm + 5cm extension, pendant sea glass 12×9mm, price 268, keep details: 保留银色细链连续连接、延长链和扣头，不增加吊坠、不改变轮廓; audience 喜欢克制海岸风的日常通勤顾客; inspiration 退潮后岸边留下的水线; feel 清透安静; avoid 贝壳和旅游纪念品风."
+    - generic: "Steps: update_info (material, size, keep, price, audience), record_story (inspiration, theme/emotion), draft_summary, set_style? The user said \"请直接简短回复、整理卡片\" — so do the cards."
+    - generic: "Current step is 信息 (after asset confirmed). Next: 共创. But user gave story info, so I can record story and draft summary. But summary is confirmed by user; drafting now is fine."
+    - generic: "Order in flow: 信息 → 共创 → 方案. Should I draft summary now or ask co-creation questions? User gave inspiration, feel, avoid clearly. Instruction: 新作品要先深入共创: 灵感从哪来、想表达的主题、希望顾客第一眼的感受、不想要的画面. User answered all four explicitly (灵感: 退潮水线; 主题: 克制海岸风; 感受: 清透安静; 不要: 贝壳、旅游纪念品风). So information is enough → draft_summary."
+    - generic: Maybe one follow-up question about 退潮水线 -> "潮线" naming — but the user asked for short reply. I'll draft summary and ask them to confirm on the card, plus note next step is 方案 (style). Keep it brief.
+    - generic: "Tool calls: update_info (5 items), record_story (inspiration, emotion? theme), draft_summary."
+    - generic: Parallel is fine — independent. But draft_summary based on story; can do in same block since I have content.
+    - generic: Also maybe set_style for background/banned per earlier? Not yet — that's 方案 step; I'll do after summary confirmed. Actually user already said 靠窗小工作台、墙面和壁龛、不要贝壳. Could fold later.
+    - generic: Also 售价 268 — fine.
+    - generic: "Let me write:"
+    - generic: "update_info items: - material: 925银细链 + 海玻璃吊坠（note 你说的） - size: 链长42厘米，另加5厘米延长链；吊坠约12×9毫米 - keep: 银色细链保持连续连接，保留延长链和扣头；不增加吊坠，不改变吊坠轮廓 - price: 268元 - audience: 喜欢克制海岸风的日常通勤顾客"
+    - generic: "record_story: - inspiration: 退潮后岸边留下的水线 - theme: 克制、日常的海岸风 - emotion: 希望顾客感到清透、安静 Avoid recorded in summary rather than story (avoid is part of summary). Could record as other? Keep simple."
+    - generic: "draft_summary: express \"退潮后岸边留下的那道水线，是一条细银链配一颗小海玻璃吊坠，克制、日常\", feel \"清透、安静\", avoid \"贝壳、旅游纪念品风\"."
+    - generic: "Then reply: 卡片已整理好，确认总结，然后进「方案」定风格。"
+    - generic: Should I show_step? Maybe switch to 共创 step. Yes, show_step story so user sees summary card.
+    - paragraph:
+      - generic: 已写成待确认建议：材料「925 银细链 + 海玻璃吊坠」、尺寸「链长 42 厘米，另加 5 厘米延长链；单个海玻璃吊坠约 12×9 毫米」、不能改的细节「银色细链保持连续连接；保留延长链和扣头；不增加吊坠，不改变吊坠轮廓」、售价「268 元」、目标顾客「喜欢克制海岸风的日常通勤顾客」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 已记下：灵感来自退潮后岸边留下的水线
+    - paragraph:
+      - generic: 已记下：希望顾客感到清透、安静；面向喜欢克制海岸风的日常通勤顾客
+    - paragraph:
+      - generic: 已起草共创总结，在画布上确认或修改后生效
+    - paragraph: 信息卡和共创总结都整理好了：五项商品信息已在「信息」里等你确认，总结草稿在「共创」里。确认这两张后，我按你想要的靠窗小工作台、后面有墙和壁龛来定风格。
+    - generic: 由 DeepSeek V4 Flash（看图实验版） 回复
+    - paragraph: 商品信息和共创总结都已确认。摄影环境想要浅灰蓝墙、浅色木工作台，左侧一扇窄窗，后右方壁龛内只有一个哑光白色小陶罐。自然左侧光，完整项链平铺。从桌前略高处斜拍，让近处商品和桌沿、中部桌面、远处墙和壁龛有层次，背景结构可辨认但不抢饰品。不要贝壳、旅游纪念品风和画面文字。先做1:1，请整理风格卡并写可审核方案和提示词，直接简短回复。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: "User confirmed info and summary. Now set style card fields with basis=said:"
+    - generic: "- tone: 浅灰蓝（墙）与浅色木的色调？ tone = \"浅灰蓝 + 浅色木的干净冷暖平衡\" — user said 浅灰蓝墙、浅色木工作台. Tone field: \"浅灰蓝、干净清透\" - background: \"浅灰蓝墙面 + 浅色木工作台；左侧一扇窄窗，后右方壁龛内只有一只哑光白色小陶罐\" - light: \"自然左侧光\" - placement: \"完整项链平铺在木工作台上\" - props: \"只放一只哑光白色小陶罐，在壁龛里\" - banned: \"贝壳、旅游纪念品风、画面文字\" - composition: \"从桌前略高处斜拍，近处商品、中段桌面、远处墙和壁龛分层；背景可辨认但不抢饰品\" - expression: \"清透、安静、克制\""
+    - generic: Ratio 1:1 already; user says 先做1:1 — already set, no need to call set_ratio (would invalidate approval — nothing approved yet, harmless but unnecessary). I'll skip; state says 1:1.
+    - generic: Then draft_prompt with the structure, then request_approval.
+    - generic: Let me write the prompt carefully.
+    - generic: "提示词:"
+    - generic: 1. 主体：一件手作925银细链项链，链长约42厘米，另加5厘米延长链；吊坠为一颗约12×9毫米的浅蓝绿色海玻璃，呈不规则小三角，表面平滑半透、哑光光泽，边缘包银镶嵌，吊坠顶端一个小银环与链身相连。
+    - generic: "Actually — from photo: pendant appears bezel-set with a small loop. Keep careful: \"吊坠为一颗约12×9毫米的浅蓝绿色海玻璃，不规则三角状，带细银边、顶端小银环连接链身（以参考图为准）\"."
+    - generic: "2. 保真: 颜色、数量、轮廓、连接结构、纹样逐条。链条连续，扣头与延长链完整；不增加吊坠，不改变吊坠轮廓，不延长链条，不添加扣头样式变化，闭合环保持闭合。"
+    - generic: "3. 构图: 整件项链完整入框，四周留边距，不被裁切；平铺，主体占画面中部，呈自然弧线；视角从桌前略高处斜拍，近处商品、中段桌面、远处墙与壁龛有层次，背景结构清晰可辨但不抢饰品。"
+    - generic: "4. 场景: 浅灰蓝墙面，浅色木工作台；左侧一扇窄窗，光源为自然左侧光，柔和、方向明确、有柔和阴影；后右方壁龛内只有一只哑光白色小陶罐；台面干净，除项链外不放其他道具（可有一两枚必要的小物件？No —— 用户说只有一只陶罐在壁龛）。禁止：贝壳、贝壳类装饰、旅游纪念品风摆件、文字、水印、边框、多余首饰、手模/人手。"
+    - generic: "5. 氛围: 清透安静，克制海岸感，像退潮后安静的工作室早晨；避开旅游纪念品和装饰过度的感觉。"
+    - generic: "6. 输出: 电商商品主图，画面里不要任何文字、水印或边框，比例1:1。"
+    - generic: Length ok. Then request_approval.
+    - generic: "Both draft_prompt and request_approval: request_approval after prompt written — dependency, must be sequential? The rules say approval needs prompt written; I can call draft_prompt and request_approval in same block? They're dependent (approval card lists missing items). Safer: call set_style + draft_prompt together, then request_approval after seeing results. Actually the instructions allow parallel only for independent calls. draft_prompt and set_style are independent. request_approval depends on prompt existing. So two blocks."
+    - generic: "Reply should be brief. Also maybe note props/道具 conflict? No conflict: 不要道具 vs 陶罐 — user specified 陶罐, fine."
+    - generic: Let me do set_style + draft_prompt in one block.
+    - generic: The draft_prompt call errored — my arguments were malformed (I passed extra "arguments" wrapper). Retry properly.
+    - generic: Let me write the full prompt properly.
+    - paragraph:
+      - generic: 风格卡已更新：色调「浅灰蓝墙面、浅色木台面，干净清透」、背景「浅灰蓝墙 + 浅色木工作台，左侧一扇窄窗，后右方壁龛」、光线「自然左侧光，柔和、方向明确」、摆放「完整项链平铺在木工作台上」、道具「壁隹里只放一只哑光白色小陶罐，台面不放其他道具」、禁止出现「贝壳、旅游纪念品风、画面文字、水印、边框」、构图「从桌前略高处斜拍，近处商品、中部桌面、远处墙和壁隹有层次，背景可辨认但不抢饰品」、表达「清透、安静、克制的海岸感」
+    - paragraph: 小间写提示词时出错：服务端出错
+    - paragraph:
+      - generic: 已写好提示词，可以批准了
+    - strong: 确认这版方案
+    - button "完整方案和提示词"
+    - generic: 比例 1:1
+    - generic: ·
+    - generic: Seedream 5.0 Lite
+    - generic: ·
+    - generic: 两张候选
+    - term: 色调
+    - definition: 浅灰蓝墙面、浅色木台面，干净清透
+    - term: 背景
+    - definition: 浅灰蓝墙 + 浅色木工作台，左侧一扇窄窗，后右方壁龛
+    - term: 光线
+    - definition: 自然左侧光，柔和、方向明确
+    - term: 摆放
+    - definition: 完整项链平铺在木工作台上
+    - term: 道具
+    - definition: 壁隹里只放一只哑光白色小陶罐，台面不放其他道具
+    - term: 禁止
+    - definition: 贝壳、旅游纪念品风、画面文字、水印、边框
+    - term: 构图
+    - definition: 从桌前略高处斜拍，近处商品、中部桌面、远处墙和壁隹有层次，背景可辨认但不抢饰品
+    - term: 保真
+    - definition: 按参考图还原颜色、数量、轮廓和连接结构；特别注意：银色细链保持连续连接；保留延长链和扣头；不增加吊坠，不改变吊坠轮廓
+    - generic: 滑动批准并生成两张
+    - generic: 没有生成
+    - slider "滑动批准并生成两张（键盘按 End 键）":
+      - text: 已批准
+    - paragraph: 批准后按这版方案和提示词生成两张；之后再改任何内容，需要重新批准。
+    - paragraph: 风格卡和提示词都整理好了；提示词可以在画布上展开查看、直接修改。批准卡片已放出，你点确认后我就开始生成两张候选。
+    - generic: 由 DeepSeek V4 Flash（看图实验版） 回复
+    - textbox "和小间说" [active]:
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加":
+    - button "对话模型：DeepSeek V4 Flash（看图实验版）":
+      - generic: 对话
+      - generic: DeepSeek V4 Flash（看图实验版）
+    - button "生图模型：Seedream 5.0 Lite":
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "发送" [disabled]:
+  - region "画布":
+    - heading "方案" [level=2]
+    - heading "摄影布景" [level=3]
+    - button "存为布景"
+    - button "更新为我的风格"
+    - button "雨后清晨": 雨后清晨
+    - button "午后书桌": 午后书桌
+    - button "干净陈列": 干净陈列
+    - button "温柔礼物": 温柔礼物
+    - generic: 色调
+    - generic: 你说的
+    - button "雨后苔绿": 雨后苔绿
+    - button "奶油米白": 奶油米白
+    - button "石灰浅灰": 石灰浅灰
+    - button "干燥玫瑰": 干燥玫瑰
+    - button "深墨对比": 深墨对比
+    - textbox "色调":
+      - /placeholder: 自己描述
+      - text: 浅灰蓝墙面、浅色木台面，干净清透
+    - generic: 背景
+    - generic: 你说的
+    - button "手工纸"
+    - button "亚麻布"
+    - button "原木"
+    - button "石材"
+    - button "纯色背景"
+    - textbox "背景":
+      - /placeholder: 自己描述
+      - text: 浅灰蓝墙 + 浅色木工作台，左侧一扇窄窗，后右方壁龛
+    - generic: 光线
+    - generic: 你说的
+    - button "柔和自然光"
+    - button "窗边侧光"
+    - button "暖调午后光"
+    - button "清冷晨光"
+    - button "明暗对比光"
+    - textbox "光线":
+      - /placeholder: 自己描述
+      - text: 自然左侧光，柔和、方向明确
+    - generic: 摆放
+    - generic: 你说的
+    - button "平铺"
+    - button "悬挂"
+    - button "支架"
+    - textbox "摆放":
+      - /placeholder: 自己描述
+      - text: 完整项链平铺在木工作台上
+    - generic: 道具
+    - generic: 你说的
+    - textbox "道具":
+      - /placeholder: 不放道具
+      - text: 壁隹里只放一只哑光白色小陶罐，台面不放其他道具
+    - generic: 禁止出现
+    - generic: 你说的
+    - textbox "禁止出现":
+      - /placeholder: 比如：花、玻璃器皿
+      - text: 贝壳、旅游纪念品风、画面文字、水印、边框
+    - generic: 构图
+    - generic: 你说的
+    - button "主体居中，留白多"
+    - button "主体偏一侧，留出呼吸感"
+    - button "主体放大，突出细节"
+    - textbox "构图":
+      - /placeholder: 自己描述
+      - text: 从桌前略高处斜拍，近处商品、中部桌面、远处墙和壁隹有层次，背景可辨认但不抢饰品
+    - generic: 表达
+    - generic: 你说的
+    - textbox "表达":
+      - /placeholder: 用自己的话描述
+      - text: 清透、安静、克制的海岸感
+    - heading "比例" [level=3]
+    - radiogroup "主图比例":
+      - radio "1:1" [checked]:
+        - generic: 1:1
+      - radio "3:4":
+        - generic: 3:4
+      - radio "9:16":
+        - generic: 9:16
+    - generic: 淘宝／天猫、微信小店主图必传比例
+    - heading "可读方案" [level=3]
+    - generic: 比例 1:1
+    - generic: ·
+    - generic: Seedream 5.0 Lite
+    - generic: ·
+    - generic: 两张候选
+    - term: 色调
+    - definition: 浅灰蓝墙面、浅色木台面，干净清透
+    - term: 背景
+    - definition: 浅灰蓝墙 + 浅色木工作台，左侧一扇窄窗，后右方壁龛
+    - term: 光线
+    - definition: 自然左侧光，柔和、方向明确
+    - term: 摆放
+    - definition: 完整项链平铺在木工作台上
+    - term: 道具
+    - definition: 壁隹里只放一只哑光白色小陶罐，台面不放其他道具
+    - term: 禁止
+    - definition: 贝壳、旅游纪念品风、画面文字、水印、边框
+    - term: 构图
+    - definition: 从桌前略高处斜拍，近处商品、中部桌面、远处墙和壁隹有层次，背景可辨认但不抢饰品
+    - term: 保真
+    - definition: 按参考图还原颜色、数量、轮廓和连接结构；特别注意：银色细链保持连续连接；保留延长链和扣头；不增加吊坠，不改变吊坠轮廓
+    - heading "提示词" [level=3]
+    - generic: 有效
+    - generic: 由小间撰写，你可以直接改
+    - generic: 完整提示词
+    - textbox "完整提示词":
+      - /placeholder: 风格定好后，小间会在这里写出完整提示词
+      - text: 主体：一件手作项链，925 银细链，链长约 42 厘米、另有 5 厘米延长链；吊坠是一颗约 12×9 毫米的浅蓝绿色海玻璃，不规则小三角状，表面平滑半透、有柔和光泽，边缘带细银包边，顶端小银环与链身相连；链节粗细与吊坠表面细节以参考图为准。 保真：严格按参考图还原颜色、数量、轮廓、连接结构和表面。不能改的细节：银色细链保持连续连接，链节形态不变；保留完整的延长链和扣头；只有一颗吊坠，不增加吊坠；吊坠的不规则轮廓和银边形状不变；不延长链条，不加多余扣件；闭合的环保持闭合。 构图：整件项链平铺、完整入框，四周留出边距，不被裁切。从桌前略高处斜拍，近处是项链和桌沿、中段是桌面、远处是墙面和壁龛，三层有清楚的前后层次；背景结构可辨认但不抢饰品，主体居中偏下。 场景：浅灰蓝墙面、浅色木工作台面；左侧一扇窄窗，自然左侧光进来，柔和但方向明确，投下淡淡柔和阴影；后右方墙上的壁龛里只放一只哑光白色小陶罐，台面除项链外不放任何其他道具。禁止出现：贝壳及贝壳类装饰、旅游纪念品风摆件、人手或佩戴者、多余首饰、文字、水印、边框。 氛围：清透、安静、克制的海岸感，像退潮后安静的工作室早晨，不喧哗、不刻意装饰。 输出：电商商品主图，画面里不要任何文字、水印或边框，比例 1:1。
+    - generic: 滑动批准并生成两张
+    - generic: 没有生成
+    - slider "滑动批准并生成两张（键盘按 End 键）":
+      - text: 已批准
+- button "Open Next.js Dev Tools":
+- alert

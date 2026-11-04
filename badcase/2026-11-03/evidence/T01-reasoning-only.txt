@@ -1,0 +1,95 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "未命名作品" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": 未命名作品
+    - generic: 资产待确认
+  - generic: 已保存
+  - navigation "流程进度":
+    - button "资产 （当前）":
+      - text: 资产
+      - generic: （当前）
+    - button "信息":
+      - text: 信息
+    - button "共创":
+      - text: 共创
+    - button "方案":
+      - text: 方案
+    - button "出图":
+      - text: 出图
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我在做潮汐间的第一张商品主图，想有一个自己的靠窗小工作台，后面能看见墙和壁龛，像真的在工作室拍。海边的感觉安静一点，不要贝壳。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 刚才网络超时没有收到你的回复，请继续看我上传的照片和上一条需求。
+    - button [expanded]:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 小间在思考…
+    - generic: Let me look at the photo and the user's message.
+    - generic: The user is making the first product main image for "潮汐间" (brand/work name?). They want a look like their own small windowside worktable, with a wall and niche visible behind, like actually shot in a studio. Seaside feeling, quiet, no shells.
+    - generic: "Wait — \"潮汐间\" might be the work name? The work is currently \"未命名作品\". The user says \"我在做潮汐间的第一张商品主图\" — 潮汐间 sounds like the shop/brand name (\"一间·手作影像工作台\" is the tool; user is a maker). Actually \"潮汐间\" could be the shop name. Hmm, \"我在做潮汐间的第一张商品主图\" — I'm making 潮汐间's first product main image. So 潮汐间 is probably the brand/shop name. The product itself: a silver chain necklace with a pale blue-green (sea-glass colored) triangular/irregular pendant, appears to be a bezel-set sea glass or resin/glass pendant. Photo shows it on kraft paper on a wooden worktable with tools."
+    - generic: "Current state: 资产待确认; 现在该做：资产. Asset route B (原图直接作参考图, no white background needed). So asset step: user needs to confirm the asset on canvas. Only 1 photo (整体 1, 背面 0, 细节 0)."
+    - generic: "The user's request includes style direction:靠窗小工作台, 后面能看见墙和壁龛, 像真的在工作室拍, 海边感觉安静, 不要贝壳. That's style info — I can record via set_style with basis=said for some fields? But the flow: first confirm asset, then product info, then co-creation story, then style."
+    - generic: The user says previous reply wasn't received due to network timeout, asks me to continue looking at the photo and their previous request.
+    - generic: What should I do now?
+    - generic: "1. The work is named \"未命名作品\" and category is clear (项链). I could suggest a name like \"海玻璃吊坠项链\" — but the user said \"潮汐间的第一张商品主图\" — 潮汐间 might be the work name? \"我在做潮汐间的第一张商品主图\" reads like \"I'm making the first product main image for 潮汐间\" — 潮汐间 is likely the shop/brand. Hmm, but could be the series name. Ambiguous. suggest_name is for when the work is still called 未命名作品 and category is clear. I can suggest a name based on category and form: \"海玻璃三角吊坠项链\" too long (max 20 chars). \"海玻璃三角吊坠\" or \"潮汐吊坠项链\"? The pendant is a pale blue-green irregular triangle — looks like sea glass in a silver bezel. But I shouldn't fabric"
+    - generic: 由 Qwen 3.8 Flash 回复
+    - textbox "和小间说":
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加":
+    - button "对话模型：Qwen 3.8 Flash":
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite":
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "发送" [disabled]:
+  - region "画布":
+    - heading "资产" [level=2]
+    - generic: 待确认
+    - paragraph: 对照检查：颜色、形状、细链、镂空、透明部分和数量都拍清楚了吗？看不清的部分小间不会去猜，建议补拍。
+    - figure "1254×1254 替换这张照片 不再使用这张照片":
+      - img "整体照片"
+      - combobox "照片类型":
+        - generic: 整体
+      - generic: 1254×1254
+      - button "替换这张照片":
+      - button "不再使用这张照片":
+    - button "再加一张":
+      - text: 再加一张
+    - button "确认资产"
+    - generic: 原图路线：确认后用这些照片作参考图
+- button "Open Next.js Dev Tools":
+- alert

@@ -1,4 +1,5 @@
 import 'server-only';
+import { APICallError } from 'ai';
 import { redact } from './redact';
 
 // 网关返回的错误：保留原始错误码和信息，便于排查；给用户看的话由 describeGatewayError 转成中文
@@ -92,3 +93,45 @@ export const errorResponse = (e: unknown) => {
   const { status, error } = describeError(e);
   return Response.json({ error }, { status });
 };
+
+// 模型给工具的参数不合格式（比如多包了一层 arguments）：AI SDK 先给错误对象，再给同一个错误的文字，
+// 两种都要认出来，说清楚是参数问题、哪一项不对，模型据此改正重试，排查也看得到原因（BC-004）
+function toolCallProblem(text: string): string | null {
+  const noTool = /unavailable tool '([^']+)'/.exec(text);
+  if (noTool) return `调用了不存在的工具（${noTool[1]}）`;
+  const bad = /Invalid input for tool ([\w-]+)/.exec(text);
+  if (!bad) return null;
+  let detail = '';
+  const at = text.lastIndexOf('Error message: ');
+  if (at >= 0) {
+    try {
+      const issues = JSON.parse(text.slice(at + 'Error message: '.length)) as { path?: (string | number)[]; message?: string }[];
+      detail = issues.map((x) => `${x.path?.length ? x.path.join('.') : '参数'}：${x.message ?? ''}`).join('；');
+    } catch {
+      // 不是校验问题列表，只报工具名
+    }
+  }
+  return `工具参数格式不对（${bad[1]}${detail ? ` · ${redact(detail).slice(0, 160)}` : ''}）`;
+}
+
+// 对话流里的错误转成给用户看的真实原因（AC-11.6：不用固定话术冒充回复）；也是工具出错时模型看到的结果
+export function chatErrorText(e: unknown): string {
+  if (APICallError.isInstance(e)) {
+    let code = `http_${e.statusCode ?? '?'}`;
+    let msg = e.message;
+    try {
+      const body = JSON.parse(e.responseBody ?? '{}');
+      code = body?.error?.code || code;
+      msg = body?.error?.message || msg;
+    } catch {
+      // 响应不是 JSON 时保留原始信息
+    }
+    const { error } = describeError(new GatewayError(e.statusCode ?? 502, String(code), msg));
+    return `${error.message}（${redact(msg).slice(0, 120)}）`;
+  }
+  // 工具出错时 AI SDK 传来的可能只是文字，不是 Error：原因同样要带上
+  const text = e instanceof Error ? e.message : typeof e === 'string' ? e : '';
+  const tool = toolCallProblem(text);
+  if (tool) return tool;
+  return describeError(e).error.message + (text ? `（${redact(text).slice(0, 120)}）` : '');
+}

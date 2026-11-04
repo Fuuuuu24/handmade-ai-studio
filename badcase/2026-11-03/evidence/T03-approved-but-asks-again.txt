@@ -1,0 +1,325 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "窗影耳饰" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": 窗影耳饰
+    - generic: 待验收
+  - generic: 已保存
+  - navigation "流程进度":
+    - button "资产 （完成）":
+      - text: 资产
+      - generic: （完成）
+    - button "信息 （完成）":
+      - text: 信息
+      - generic: （完成）
+    - button "共创 （完成）":
+      - text: 共创
+      - generic: （完成）
+    - button "方案 （完成）":
+      - text: 方案
+      - generic: （完成）
+    - button "出图 （当前）":
+      - text: 出图
+      - generic: （当前）
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我想给窗影耳饰找一间有高窗、混凝土台面的小工作室，能看见台面和后墙的转折，别拍成只有桌面。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: "The user uploaded a photo of earrings — brass/gold rectangular drop earrings with three vertical slot cutouts (like window shutters/louvers), on French hook ear wires with small beads. The user calls them \"窗影耳饰\" (window shadow earrings) and wants a photo concept: a small studio with tall windows, a concrete countertop, showing the junction between the counter surface and the back wall — not just a flat tabletop shot."
+    - generic: "So the user has given a clear style direction. Let me proceed with the flow: 1. Asset confirmation (Route B — original photo as reference, no white background needed). The asset is \"待确认\" — I should guide the user to confirm the asset on the canvas. 2. Product info: category can be inferred from the photo — earrings (耳坠/耳环). Material looks like brass (黄铜) with a brushed/matte finish. But I shouldn't fabricate. The user said \"窗影耳饰\" so the name is basically given — the work is \"未命名作品\" and the category is clear, so I can suggest a name like \"窗影耳坠\". Actually the user already calls them 窗影耳饰 — I can suggest that name. 3. Info: category = 耳坠 (from photo, user calls them 窗影耳饰). Material: looks brass-colored, brushed finish — but I should ask or mark as \"看不出\". The photo shows a matte brass/gold tone. I could propose 黄铜（拉丝/哑光质感）as a to-be-confirmed suggestion with note \"照片里看出\". Size: unknown — ask. Keep/price/audience: not mentioned."
+    - generic: "The user's message gives a style request: tall-window studio, concrete counter, showing the corner where the counter meets the back wall, not just a top-down flat lay. This is a composition/background direction. I should record this via set_style (basis=said) for background, placement, composition, maybe light (window light). But wait — should I do style now before the flow steps? The flow is: asset → info → story → plan. The user jumped ahead with a style wish. I can note it and proceed with earlier steps."
+    - generic: "Let me be careful: I shouldn't dump everything at once. First step: asset confirmation. Route B means the original photo is the reference; the user needs to confirm the asset on the canvas. I should show step \"asset\" and ask them to confirm."
+    - generic: Also, the user gave the name "窗影耳饰" — since the work is unnamed and the category is clear, I can use suggest_name with "窗影耳坠" or "窗影耳饰". The user said 窗影耳饰 — suggest that.
+    - generic: "Product info: I can propose category 耳坠 based on photo + user's words. Material: from the photo, brass-colored with matte/brushed finish — I can propose \"黄铜（哑光拉丝质感）\" as a to-be-confirmed suggestion with note \"照片里看出，待你确认\". Size: unknown, ask."
+    - generic: "The user's message also mentions the three vertical slots — that's a \"不能改的细节\": 长方形片上三条竖向镂空（像百叶窗/高窗光影）. I could propose that as a \"不能改的细节\" field. Actually update_info has a \"keep\" field — \"不能改的细节\". Yes: value \"长方形主体上三条竖向镂空，耳钩为弯钩带小圆珠\" note \"照片里看到\"."
+    - generic: "Now, should I set style now? The user clearly stated a shooting wish. I can record it with set_style basis=said: background = \"有小高窗的工作室，混凝土台面与后墙转折入画\", composition = \"台面与后墙交界，非纯俯拍平铺\", light = \"窗边自然光\". But the flow says style comes after story co-creation. However the user explicitly said it — recording it now as basis=said is fine and won't be lost. But maybe I should keep it light: record the said style elements now, and refine later. The tool allows set_style at any time. I think it's good to capture the user's explicit wish now so it doesn't get lost."
+    - generic: "Actually, let me not overload. Priority per the flow: asset confirmation is the current step. I will: - suggest_name \"窗影耳坠\" (user said 窗影耳饰; maybe use exactly \"窗影耳饰\"). The user's own words: 窗影耳饰. Suggest that. - update_info: category 耳坠（长方形片状带三条竖向镂空）? Keep it simple: category \"耳坠\". material \"黄铜，哑光/拉丝表面\" note \"照片里看出，请确认\". keep \"长方形坠片上三条竖向镂空；耳钩是弯钩带一颗小圆珠，钩与坠片之间一小段连接环\" — must be within 200 chars. - show_step asset. - Maybe record the style wish via set_style basis=said? I think yes, capture background/composition/placement. But placement: 悬挂 or 立放? The user wants earrings on a concrete counter with the wall junction visible — earrings could be leaning against the wall or laid on the counter. Not specified; leave placement for later discussion. Set background and composition now with basis=said."
+    - generic: Hmm, but the instructions say style recommendation comes after the summary is confirmed. Capturing user-stated facts early is fine ("用户明确说过的写 basis=said").
+    - generic: "Then ask: confirm the asset on the canvas (Route B: just confirm the photo as reference), and ask about size/material confirmation. One or two questions at a time."
+    - generic: "Also, the story co-creation: the user's wish implies a story — \"窗影\" — light through tall windows. I could ask about inspiration later. Keep this turn focused: name suggestion, info proposals, style capture, show asset step, ask to confirm asset + material/size."
+    - generic: Let me draft the tool calls. Independent calls can be batched.
+    - generic: "suggest_name: name \"窗影耳饰\", note \"你自己叫的名字\"."
+    - generic: "update_info items: - field category, value \"耳坠（长方形坠片，弯钩耳钩）\", note \"照片里看到\" - field material, value \"黄铜，哑光/拉丝表面\", note \"照片里看出，请你确认\" - field keep, value \"坠片上三条竖向镂空；耳钩为弯钩带一颗小圆珠；钩与坠片之间有一小段连接环\", note \"照片里看到\""
+    - generic: "set_style items (basis said): - background: \"有小高窗的工作室一角，混凝土台面连着后墙，台面与后墙的转折要入画\", reason \"你说的\" - composition: \"斜侧视角拍台面与后墙交界，不只拍桌面平铺\", reason \"你说的\" - light: \"高窗进来的自然光\", reason \"从你说的窗影推的\" — hmm, the user said 高窗 and 窗影; light from window is reasonable but maybe mark as recommend. Let me use basis=recommend with reason \"配合窗影的光，待你确认\"."
+    - generic: Max 8 items, fine.
+    - generic: show_step asset.
+    - generic: "Then reply: brief, mention the photo shows a pair of brass rectangular earrings with three vertical slots; next step: confirm the asset (Route B just confirm the original photo as reference on canvas), and ask material/size confirmation. Also mention I noted the studio wish. Ask one or two questions: material is 黄铜? Size roughly?"
+    - generic: Keep reply short, conversational, Simplified Chinese.
+    - generic: "System: The content of this message has been sanitized in order to satisfy the protocol."
+    - paragraph:
+      - generic: 已写成名字建议「窗影耳饰」，用户在顶栏接受后才改名
+    - paragraph:
+      - generic: 已写成待确认建议：品类「耳坠（一对，长方形坠片＋弯钩耳钩）」、材料「黄铜，哑光/拉丝表面」、不能改的细节「坠片上三条竖向镂空；耳钩是弯钩带一颗小圆珠；钩与坠片之间有一小段连接环」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 风格卡已更新：背景「有小高窗的工作室一角，混凝土台面连着后墙，台面与后墙的转折要入画」、构图「斜侧视角拍台面与后墙交界，不拍成只有桌面的平铺」、光线「高窗进来的自然光，带一点窗影」（推荐，待确认）
+    - paragraph: 照片我看清楚了：一对黄铜长方形耳坠，坠片上三条竖向镂空，确实很像高窗透进来的光条，「窗影」这个名字很贴。
+    - paragraph: 你要的「高窗＋混凝土台面、台面和后墙的转折入画」我已经记进风格卡了，光线我顺手推荐了「带一点窗影的自然光」，你看要不要。
+    - paragraph: 现在先把最前面的两步定下来：
+    - list:
+      - listitem: 右侧画布切到了「资产」，你在这张原图上确认一下资产就行；
+      - listitem: 「信息」里有几条我按照片写的建议（品类、材料、镂空这些不能改的细节），你核对接受。材料我猜的是黄铜哑光，尺寸照片上看不出来——坠片大概多长多宽，你告诉我一个数就行。
+    - paragraph: 这两步弄完，咱们再聊「窗影」背后的想法，然后出方案。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 原图已确认，建议已核对。确实是一对黄铜长方镂空耳饰，每片恰好3个竖向开孔，总长38毫米、宽14毫米，售价198元；保留外框、连接环和耳钩，不加宝石、不堵住孔。灵感是午后窗框投影，希望喜欢建筑线条和利落穿搭的顾客感到有秩序、利落，影子清晰但不过硬。请简短整理信息和共创卡。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: "The user has provided complete information: material is brass, size is 38mm × 14mm, price is 198 yuan, details to maintain (outer frame, connecting rings, ear hooks, no gems, don't fill in the 3 vertical holes), inspiration is the shadow cast by the window frame in the afternoon, target audience is customers who like architectural lines and crisp, clean outfits, feeling sought: orderly, clean-cut, shadows clear but not overly harsh."
+    - generic: "Tasks: 1. update_info: size, price, audience, add to maintain details (3 holes exactly, outer frame, connecting rings, ear hooks, no gems, don't fill holes). Note: update_info fields: category, material, size, keep, price, audience. Max 6 items."
+    - generic: "Already confirmed: category, material, keep. The keep value should be updated to include the new details: \"3 vertical open holes on the pendant piece exactly, maintain outer frame, connecting rings and ear hooks, no gems added, don't fill holes\" — write a new keep value combining with the previous one."
+    - generic: "Items: - size: \"total length 38mm, width 14mm\" note \"what you said\" - price: \"198 yuan\" note \"what you said\" - audience: \"customers who like architectural lines and crisp, clean outfits\" note \"what you said\" - keep: update to include the new details: \"3 vertical open holes on the pendant piece exactly, don't fill; maintain outer frame, connecting rings and ear hooks; no gems added\" note \"what you said\""
+    - generic: "2. record_story: inspiration \"the shadow cast by the window frame in the afternoon\" (kind inspiration), emotion/theme \"orderly, clean-cut; shadows clear but not overly harsh\" — record_story takes one text per call. Can call twice: once for inspiration, once for emotion. kind: inspiration and emotion."
+    - generic: "3. draft_summary: express / feel / avoid: - express: \"a pair of brass rectangular pierced earrings, translating the shadow cast by the window frame in the afternoon into 3 vertical lines of open holes\" - feel: \"an orderly, clean-cut feeling, like architectural lines and crisp, clean outfits\" - avoid: \"don't add gems, don't fill the open holes; shadows clear but not overly harsh\" — avoid should be things not wanted in the image: \"don't make the shadow overly harsh, don't add gems or fill the holes\"."
+    - generic: "4. Also, the light recommendation \"with window shadows\" — the user said \"shadows clear but not overly harsh\", which backs up the window shadow light. Should I update the style's light to said basis? The user said \"shadows clear but not overly harsh\" — this is about the shadow effect. Can set light with basis=said: \"natural light from the high window, casting clear but not overly harsh window shadows\". Also expression (the \"expression\" field on the style card) — the \"expression\" field on the style card. Set expression to \"orderly, clean-cut\" basis said? The style card has an \"expression\" field. Yes, set it."
+    - generic: "Placement and tone are still undetermined. The user requested \"please briefly organize the info and co-creation card\" — focus on info + story/summary. Leave style for the next step. However, updating light to said based on the user's shadow preference is reasonable. Keep it minimal: the user asked for info and co-creation card. Execute update_info, record_story ×2, draft_summary, and show_step story. Also set_style light basis=said with the user's own words as reason."
+    - generic: Also, the user said the original image is confirmed and the suggestions are checked — meaning category/material/keep are already confirmed. Good.
+    - generic: Also, the light recommendation is pending confirmation; the user's "shadows clear but not overly harsh" supports it. Update light value to "natural light from the high window, shadows clear but not overly harsh" basis=said.
+    - generic: Max 6 items for update_info; 4 items are fine.
+    - generic: "Then reply concisely: info is organized, co-creation card draft is ready and awaiting confirmation, next step is style (tone, placement) — ask about placement? Actually after summary confirmation, propose a scene. Next step: user confirms the summary card on the canvas, then I recommend a style. Since the user asked for \"briefly\", keep the reply short."
+    - generic: "Tool order: update_info, record_story (2), draft_summary, set_style, show_step — mostly independent. draft_summary depends on the story content but I already have it. All calls can be batched."
+    - generic: Next, display the story step and present a concise summary. Ask the user to confirm the info proposal and the co-creation summary card on the canvas. After that, as the next step, move on to style/plan (tone and placement are still undecided).
+    - generic: "I've organized everything on the canvas:"
+    - generic: "- **Information**: Size 38×14mm, selling price 198 yuan, target customer, and the \"absolutely non-changeable details\" (the three vertical openwork sections must not be filled in, no gemstones added, maintain the outer frame / connecting rings / ear hooks) are all listed as proposals awaiting your confirmation; - **Co-creation**: Inspiration, theme, and feelings have been recorded. The three summary drafts are as follows—— - What to express: A pair of rectangular brass earrings that translate the shadows of an afternoon window frame into three vertical openwork sections; - What to convey: A sense of order and crispness, tailored for customers who prefer architectural lines; - What to avoid: Filling in the openwork sections, adding gemstones, and overly dark, heavy shadows."
+    - generic: "The lighting on the style card has also been changed to match your words: \"Natural light from a high window, with crisp window shadows that aren't too harsh.\""
+    - generic: Please accept these cards on the canvas. Once the summaries are finalized, we'll move on to the "Plan" step. At that point, all that's left is to decide on the tone and how to arrange the earrings (whether to lay them flat on the concrete surface and lean them against the wall, or hang them from the edge of the window frame). I'll propose a few directions that match the window shadow theme, so just pick whichever one you like.
+    - generic: These are already done. The canvas is now on the story step. I'll summarize concisely and ask them to check the card.
+    - paragraph:
+      - generic: 已写成待确认建议：尺寸「总长38毫米，宽14毫米」、售价「198元」、目标顾客「喜欢建筑线条和利落穿搭的顾客」、不能改的细节「每片恰好3个竖向开孔，不堵住；保留外框、连接环和耳钩；不加宝石」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 已记下：灵感是午后窗框投影，把窗影做成坠片上的竖向镂空。
+    - paragraph:
+      - generic: 已记下：希望顾客感到有秩序、利落；影子要清晰但不过硬。
+    - paragraph:
+      - generic: 已记下：主题是建筑线条：长方形外框配三条竖向开孔，对应窗框与光条。
+    - paragraph:
+      - generic: 已起草共创总结，在画布上确认或修改后生效
+    - paragraph:
+      - generic: 风格卡已更新：光线「高窗自然光，窗影清晰但不过硬」、表达「有秩序、利落」
+    - paragraph:
+      - generic: 已写成待确认建议：尺寸「总长38毫米，宽14毫米」、售价「198元」、目标顾客「喜欢建筑线条和利落穿搭的顾客」、不能改的细节「每片恰好3个竖向开孔，不堵住；保留外框、连接环和耳钩；不加宝石」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 已记下：灵感是午后窗框投影，把窗影做成坠片上的竖向镂空。
+    - paragraph:
+      - generic: 已记下：希望顾客感到有秩序、利落；影子要清晰但不过硬。
+    - paragraph:
+      - generic: 已记下：主题是建筑线条：长方形外框配三条竖向开孔，对应窗框与光条。
+    - paragraph:
+      - generic: 已起草共创总结，在画布上确认或修改后生效
+    - paragraph:
+      - generic: 风格卡已更新：光线「高窗自然光，窗影清晰但不过硬」、表达「有秩序、利落」
+    - paragraph: 都整理好了，画布在「共创」这一步：
+    - list:
+      - strong: 信息
+      - text: ：尺寸 38×14 毫米、售价 198 元、目标顾客、不能改的细节（三条镂空不堵孔、不加宝石、保留外框/连接环/耳钩）都写成了待确认建议；
+      - strong: 共创
+      - text: ：灵感、主题、感受已记录，三项总结草稿是——
+      - listitem: 表达：一对黄铜长方耳坠，把午后窗框的投影做成三条竖向镂空；
+      - listitem: 感受：有秩序、利落，给喜欢建筑线条的顾客；
+      - listitem: 避免：堵孔、加宝石、浓重死黑的影子。
+    - paragraph: 光线也按你的话改成了「高窗自然光，窗影清晰但不过硬」。
+    - paragraph: 你在画布上把这些卡片接受掉。总结确认后我们进「方案」，到时候只剩色调和摆放没定，我给你两三个贴窗影主题的方向挑。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 信息和总结已确认。环境用暖灰墙、混凝土台面、左侧高窗，后墙右侧有一道竖向凹槽，不放别的道具。耳饰一对平铺，斜前方拍，三个孔、外框、耳钩和连接环都要清楚，也要看见台面到后墙的转折与窗影方向；先按清晰但不过硬的窗影。做1:1无字商品主图，不加宝石、不堵孔。请简短整理方案并写提示词让我审核。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: "The user has confirmed the information and summary, and has presented a concrete plan: - Environment: warm gray wall, concrete countertop, tall window on the left, one vertical groove/recess on the right side of the back wall, no other props - Placement: lay the pair of earrings flat, shoot from a diagonal front angle, make the three holes, outer frame, ear hooks, and connecting rings clearly visible, show the transition from countertop to back wall and the direction of the window light shadow - Window light shadow: clear but not too harsh - 1:1, no text, main product image; no gems, don't fill in the holes"
+    - generic: "Tasks: 1. set_style with basis=said: background (warm gray wall + concrete countertop + tall window on left + vertical groove on right side of back wall), props (don't place other props → \"don't place props\"), placement (lay the pair of earrings flat), composition (diagonal front angle, show the countertop-to-back-wall transition and the direction of the window light shadow), tone (warm gray), banned (don't add gems, don't fill holes? banned is \"things that must not appear\" — text, watermarks, props). Let me map them out: - tone: warm gray tones (basis said — the user said warm gray wall; the tone is derived from that. The user said \"the environment is warm gray wall\" — this is background. Tone is warm gray, basis recommend? Actually, the user's overall description suggests warm gray tones. Write \"warm gray, clean\" with basis said, reason being \"the warm gray wall you specified.\" Hmm, tone wasn't explicitly stated but the background was. To be safe, basis=recommend with reason \"extracted from the warm gray wall you specified.\" Or just include tone as said. I'll go with recommend with reason. - background: warm gray wall + concrete countertop + tall window on left + one vertical groove on right side of back wall (said) - placement: lay the pair of earrings flat (said) - props: don't place props (said) - composition: diagonal front angle, make the three holes, outer frame, ear hooks, connecting rings clearly visible, show the countertop-to-back-wall transition and direction of window light shadow (said) - banned: text, watermarks, borders; gems; other props? The user said no other props, no text. banned: \"no text, watermarks, or borders; no gems or other props\" (said) - light is already set: natural light from a tall window, window light shadow clear but not too harsh (said) — keep."
+    - generic: 2. set_ratio 1:1 — already 1:1, no change needed. Skip.
+    - generic: "3. draft_prompt in Chinese, following the order: subject, faithfulness, composition, scene, atmosphere, output."
+    - generic: "Prompt draft:"
+    - generic: "\"E-commerce product main image, one pair of handmade brass earrings: rectangular pendant plates with matte brushed surface, each plate has exactly 3 vertical slot openings, connected to curved hook ear wires via small connecting rings, with one small round bead on the ear wire. Overall length 38mm, width 14mm. Faithfully reproduce the color, quantity, outline, connecting structure, and pattern of the reference image: the 3 vertical holes on each pendant plate must not be filled or increased/decreased, keep the outer frame, connecting rings, and ear wire hooks as in the reference image, do not add gems or any decorations, do not extend the chain or add clasp parts not in the reference image. Composition: lay the pair of earrings flat, both fully in frame with margins on all four sides, not cropped; shot from a diagonal front angle, clearly showing the 3 holes, outer frame, ear hooks, and connecting rings on each piece, while also capturing the transition from concrete countertop to warm gray back wall, with the direction of the window light shadow pointing from the tall window on the left toward the right. Scene: a corner of a studio with a tall window, warm gray back wall, concrete countertop, one vertical groove on the right side of the back wall; natural light from the tall window, window light shadow clear but not too harsh, soft and bright; no other props. Atmosphere: orderly and clean, the architectural line feel of afternoon window frame projections, avoid heavy jet-black shadows. E-commerce product main image, no text, watermarks, or borders in the frame, square 1:1 aspect ratio.\""
+    - generic: This is good. Max 2000 characters, no problem.
+    - generic: "4. Then request_approval? The user said \"write the prompt and let me review it\" — they want to review. Flow: after draft_prompt, tell them they can view/edit on the canvas, then request_approval. The status said \"before approval, missing: style still lacking: tone, placement; prompt not yet written\" — after setting these and the prompt, the approval card can be issued. The user asked to \"briefly organize the plan and write the prompt for me to review\" — review means the approval card. Execute set_style and draft_prompt, then request_approval."
+    - generic: "Order: set_style and draft_prompt are mostly independent, but the prompt should reflect the style; both are known so can be called together. Then request_approval after confirmation. Actually, request_approval depends on style+prompt being set — need to wait for results. So first batch: set_style + draft_prompt. Then request_approval."
+    - generic: Also show_step plan.
+    - generic: "Brief reply: summary of the plan + prompt highlights, approval card issued."
+    - generic: "Note on tone: the user said warm gray wall — I'll set tone as \"warm gray tones, clean bright\" with basis said, reason \"from the warm gray wall you specified.\" Hmm, \"basis=said means the user explicitly stated it.\" The user explicitly stated the environment color; tone is derived. Use recommend with reason \"extracted from the warm gray wall you specified.\" That's honest."
+    - generic: "props field: \"don't place props\" following instructions."
+    - generic: "banned: \"no text, watermarks, or borders; no gems; no props other than the background wall groove\" — keep it simple: \"no text, watermarks, or borders; no gems; no props other than the background wall groove\" — within 120 characters, fine."
+    - generic: "Composition is within 120 characters: \"diagonal front angle, lay the pair of earrings flat, both fully in frame with margins on all four sides, not cropped; make the 3 holes, outer frame, ear hooks, and connecting rings clearly visible, show the countertop-to-back-wall transition and direction of window light shadow\" — count is about 70 characters, OK."
+    - generic: "Background: \"corner of a studio with a tall window: warm gray back wall, concrete countertop, tall window on the left, one vertical groove on the right side of the back wall\" OK."
+    - generic: "Placement: \"lay the pair of earrings flat\" said."
+    - generic: That's 6 items (tone, background, placement, props, banned, composition) — max 8, OK.
+    - generic: "Prompt: write it fully. Then request_approval with a note."
+    - generic: Style and prompt are already configured. Ratio is already 1:1. Next, I'll request approval.
+    - generic: The user then needs to approve. I've already sent the approval card. Next I'll write a short reply. Wait—actually, the previous turn's assistant reply was missing. The user's last message was the approval request, and I've already called the tool. Now I should reply with a summary.
+    - paragraph:
+      - generic: 风格卡已更新：色调「暖灰调，干净素雅」（推荐，待确认）、背景「有小高窗的工作室一角：暖灰后墙、混凝土台面，左侧高窗，后墙右侧一道竖向凹槽」、摆放「耳饰一对平铺」、道具「不放道具」、构图「斜前方拍，一对完整入框四周留边；三个孔、外框、耳钩、连接环清楚，看见台面到后墙转折与窗影方向」、禁止出现「画面无文字水印边框；不加宝石；除墙面凹槽外不放道具」
+    - paragraph:
+      - generic: 已写好提示词，可以批准了
+    - generic: 已批准第 2 版方案，已用于第 2 轮生成
+    - button "看结果"
+    - paragraph: 方案整理好了，画布在「方案」这一步：
+    - list:
+      - strong: 环境
+      - text: ：暖灰后墙＋混凝土台面，左侧高窗，后墙右侧一道竖向凹槽，不放别的道具；
+      - strong: 摆法
+      - text: ：一对平铺，斜前方拍，三个孔、外框、耳钩、连接环都要求清楚，同时看见台面到后墙的转折和窗影方向；
+      - strong: 光线
+      - text: ：高窗自然光，窗影清晰但不过硬；1:1，画面无字。
+    - paragraph: 提示词已写好，把「每片恰好 3 个开孔不堵不增减、不加宝石、不补看不到的结构」都写死在里面了。你可以在画布上展开逐句看、直接改。
+    - paragraph: 批准卡片已经放出来，你确认一次我就生成两张候选图。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 从第1轮候选2修改，窗还在原处，暖灰墙、右侧凹槽、混凝土台面、机位和耳饰平铺都保持不变，只把影子调柔，三个孔仍要清楚。不要像候选1那样改成立放。右下角AI生成文字不符合无字要求，也请处理；不要改其他内容，先给我审核。请直接简短回复。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: The user is revising from Round 1 Candidate 2. They want to keep everything the same, but soften the shadows a bit, keep the three holes clearly visible, avoid standing it up like in Candidate 1, and deal with the "AI-generated" text in the lower-right corner (this is a violation of the no-text rule). They want to review it first (先给我审核 / "give me the review first"), so don't start generation yet.
+    - generic: "Actions: 1. note_feedback for Round 1 Candidate 2? The user gave feedback on Candidate 2 (soften shadows, holes are fine) and Candidate 1 (the problem of standing it up). Should I record the feedback? The tool note_feedback records issues on a candidate. Candidate 1: background/composition issue (standing it up instead of laying it flat, plus AI text). Candidate 2: light/shadow too hard; and AI text? The user said the \"AI-generated\" text in the lower-right is a no-text violation — probably Candidate 2 (they said \"also please handle\" as part of the Candidate 2 revision). Record both? The tool takes one candidate per call. Since we're revising from Candidate 2, record feedback with revise=true on Candidate 2 (issues: light, background? AI text is more like watermark/text — the closest issue tag is… available tags: color, quantity, outline, connection structure, pattern, material, background, light, props, composition). AI text isn't in the tags; closest is background. Candidate 2: light (shadows too hard), background (AI text in lower-right). revise=true."
+    - generic: "Also Candidate 1: note_feedback with composition (standing it up) — but revise is only needed on one. Can I record Candidate 1's feedback without revise? The tool requires a revise parameter; Candidate 1: revise=false, issues: composition, background (AI text), note."
+    - generic: "Hmm, but the user said \"revise from Round 1 Candidate 2\" — the status already says \"Revising from Round 1 Candidate 2: plan has been restored to that version, original result preserved, after revision ask the user to re-approve.\" So the plan has already been restored. I just need to make the edits:"
+    - generic: "2. set_style: light → \"high window natural light, window shadow soft and faint, not too hard\" basis=said; expression stays. placement: explicitly \"a pair of earrings laid flat, not leaning against wall or standing up\" basis=said (user said don't stand it up like Candidate 1). banned: add \"no text of any kind in the image, including 'AI-generated' text\" basis=said."
+    - generic: "3. draft_prompt: rewrite based on the current prompt, with changes: soften shadows, keep three holes clear, emphasize laying flat not standing, emphasize absolutely no text including watermarks or \"AI-generated\" text. Everything else stays the same."
+    - generic: "Current prompt (from status): \"E-commerce product main image: a pair of handmade brass earrings, rectangular pendants, brass matte/brushed surface, exactly 3 vertical long cutouts per piece, pendants attached via a small connecting ring to curved ear hooks, ear hooks with one small round bead; total length approx 38mm, width approx 14mm. Fidelity requirements: strictly reproduce color, quantity, outline, connection structure and cutouts per reference image, exactly 3 vertical openings per piece, not blocked, not added or removed; keep outer frame, connecting ring and ear hooks as-is; no gems or decorations added, no clasps added, no chain extensions, no filling in parts not visible in reference image. Composition: a pair of earrings laid flat, both pieces fully within frame, margins on all four sides, not cropped; shot from oblique front angle, clearly showing the three cutouts, outer frame, connecting ring and ear hooks of each earring, while the image includes the turn from concrete tabletop to warm gray back wall, window shadow direction coming in from the tall window on the left. Scene: warm gray refined tone; background is a corner of a studio with a tall window, concrete tabletop connecting to warm gray back wall, a vertical recessed groove on the right side of the back wall; tall window natural light, window shadow clear but not too hard; no props placed. Atmosphere: orderly, clean, like the architectural line feel of afternoon window frame shadows falling on the tabletop; avoid heavy pitch-black shadows. Output: e-commerce product main image, no text, watermark or border anywhere in the image, 1:1 square ratio.\""
+    - generic: "Changes: - Composition: add \"the pair of earrings laid flat on the tabletop, not leaning against the wall or standing up.\" - Scene/light: \"tall window natural light, window shadow soft and faint, edges not hard\" — the user said \"only adjust shadows to soft,\" previously \"clear but not too hard\"; now softer: \"window shadow soft, still visible but edges not hard.\" Write it as \"tall window natural light, window shadow soft and faint, not heavy not hard.\" - Output: \"no text of any kind in the image, including watermarks, borders and 'AI-generated' text.\" - Keep the three holes clear."
+    - generic: "4. Then request_approval? The user said \"先给我审核\" — they want to review the revised prompt before approving. The approval card is the means for them to approve. \"先给我审核\" means show me the prompt first, don't generate. So draft the prompt and show it; then… they want to review — I can present it and ask them to review, and once they're happy they can approve. Should I send request_approval now? They said \"don't change anything else, review first\" — meaning: make the changes, show me, don't generate. Sending the approval card is how they approve; but they may want to read the prompt first. I think the right move is: record feedback, set style, rewrite prompt, then briefly tell them the changes are done and the prompt is ready for review on the canvas, and once they nod I'll send the approval card / or send the approval card now so they can approve after reviewing. The approval card itself is the review gate — they can't approve on their behalf. If I send request_approval now, they can review the prompt on the canvas and click approve. That matches \"review first\" — the approval card requires their confirmation before generation. But maybe they want to comment first. Hmm. The flow in the instructions: after rewriting the prompt, ask for approval again. The user explicitly asked for review — the approval card is the review mechanism. Send request_approval with a note listing the changes, and keep the reply short."
+    - generic: "Also, note_feedback for Candidate 1: the user complained Candidate 1 was standing it up + AI text. Recording is good. Two note_feedback calls (Candidate 1 revise=false, Candidate 2 revise=true). Candidate 2 issues: light (shadows too hard), background (AI-generated text in lower right). Candidate 1: composition (standing it up), background (AI text)."
+    - generic: "Wait — the AI text issue: the user said \"the 'AI-generated' text in the lower-right corner doesn't meet the no-text requirement, please handle it too\" — probably Candidate 2 also had it, or they're referring to Candidate 1's? Ambiguous. \"Also please handle\" in the context of the Candidate 2 revision — probably Candidate 2 also had it, or they're just adding it generally. Record it on Candidate 2 too (note says lower-right AI-generated text). Fine."
+    - generic: "Order: note_feedback (Candidate 2, revise=true) first to restore the plan? The status already says \"Revising from Round 1 Candidate 2: plan has been restored to that version.\" So the revision is already active. Still, recording feedback is part of the flow. All calls are independent so can be batched: note_feedback ×2, set_style, draft_prompt. Then request_approval separately (depends on prompt being written). Then a short reply."
+    - generic: "set_style items: - light: \"tall window natural light, window shadow soft and faint, edges not hard\" basis said, reason \"you asked to only adjust shadows to soft\" - placement: \"a pair of earrings laid flat on the tabletop, not leaning against wall or standing up\" basis said - banned: \"no text of any kind in the image, including watermarks, borders and 'AI-generated' text; no gems added; no props other than the wall recess\" basis said, reason \"you asked to handle the lower-right AI text\""
+    - generic: "New prompt:"
+    - generic: "\"E-commerce product main image: a pair of handmade brass earrings, rectangular pendants, brass matte/brushed surface, exactly 3 vertical long cutouts per piece, pendants attached via a small connecting ring to curved ear hooks, ear hooks with one small round bead; total length approx 38mm, width approx 14mm. Fidelity requirements: strictly reproduce color, quantity, outline, connection structure and cutouts per reference image, exactly 3 vertical openings per piece, not blocked, not added or removed, all three holes clearly visible; keep outer frame, connecting ring and ear hooks as-is; no gems or decorations added, no clasps added, no chain extensions, no filling in parts not visible in reference image. Composition: a pair of earrings laid flat on the concrete tabletop, both pieces fully within frame, margins on all four sides, not cropped; not leaning against wall or standing up; shot from oblique front angle with camera position unchanged, clearly showing the three cutouts, outer frame, connecting ring and ear hooks of each earring, while the image includes the turn from concrete tabletop to warm gray back wall, window shadow direction coming in from the tall window on the left. Scene: warm gray refined tone; background is a corner of a studio with a tall window, concrete tabletop connecting to warm gray back wall, a vertical recessed groove on the right side of the back wall, window position unchanged; tall window natural light, window shadow soft and faint, edges not hard, not heavy not black; no props placed. Atmosphere: orderly, clean, like the architectural line feel of afternoon window frame shadows falling on the tabletop. Output: e-commerce product main image, no text of any kind in the image, including watermarks, borders and 'AI-generated' text, 1:1 square ratio.\""
+    - generic: Good. Keep the reply short per the user's request.
+    - generic: Okay, now I'll edit the style and rewrite the prompt.
+    - generic: The user said "先给我审核" (let me review it first)—meaning they want to review the prompt before generating. The approval card is the means for that. I'll send request_approval with a note attached.
+    - generic: The approval card is being blocked by "已有任务在生成中" (a task is already being generated). In other words, a generation task is already running (probably a retry, or the generation for the second round is in progress). I should tell the user that a task is currently being generated, and that the approval card can't be issued until that task completes. Keep the reply short.
+    - generic: "Wait — the status said \"进度：出图；第 2 轮候选 1、2：生成中\" (progress: image output; Round 2 candidates 1, 2: generating). So Round 2 is already being generated. The user asked to revise from Round 1 Candidate 2, but Round 2 is in progress. I shouldn't start another generation. I'll just report: the changes are done, the prompt has been rewritten for review, but since the current task is still generating, the approval card will be available after it finishes."
+    - generic: Keep the reply concise.
+    - paragraph:
+      - generic: 已记在第 1 轮候选 2 上（问题：光线、背景；说明：影子太硬要调柔，三个孔仍要清楚；右下角有AI生成字样，不符合无字要求）；方案已恢复成那一版，改好后请用户重新批准。验收结果仍由用户在画布上点
+    - paragraph:
+      - generic: 已记在第 1 轮候选 1 上（问题：构图、背景；说明：明确要求平铺却靠墙立放；右下角有AI生成字样）。验收结果仍由用户在画布上点
+    - paragraph:
+      - generic: 风格卡已更新：光线「高窗自然光，窗影柔和、边缘不硬，但方向仍看得见」、摆放「耳饰一对平铺在台面上，不靠墙、不立放」、禁止出现「画面无任何文字，含水印、边框和「AI生成」字样；不加宝石；除墙面凹槽外不放道具」
+    - paragraph:
+      - generic: 已写好提示词，可以批准了
+    - generic: 已批准第 2 版方案，已用于第 2 轮生成
+    - button "看结果"
+    - paragraph: 改好了，只动了三处：
+    - list:
+      - listitem: 窗影调柔：边缘不硬、不浓重，但方向还看得见；
+      - listitem: 写死「平铺在台面上，不靠墙、不立放」；
+      - listitem: 无字要求点名禁止「AI生成」字样。
+    - paragraph: 其他都没改。提示词在画布「方案」里可以逐句核对。
+    - paragraph: 不过现在有一轮生成还在跑，批准卡片暂时放不出来——等这批结果出来，你审核完提示词，我再请你批准一次，然后按这版重新生成。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - textbox "和小间说":
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加":
+    - button "对话模型：Qwen 3.8 Flash":
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite":
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "发送" [disabled]:
+  - region "画布":
+    - heading "出图" [level=2]
+    - paragraph: 两项都满意才算完成、才能导出。验收只代表你满意，不代表和实物完全一致，也不代表符合平台规则。
+    - heading "第 2 轮" [level=3]
+    - generic: 第 2 版方案 · 1:1 · Seedream 5.0 Lite · 路线 B
+    - generic "这一轮的方案"
+    - link "查看候选 1 大图":
+      - /url: blob:http://127.0.0.1:3000/1e30770a-481d-44ea-8767-d30777c53a6b
+      - img "候选 1":
+        - status: 生成好了
+    - paragraph: 改自第 1 轮候选 2
+    - strong: 像实物
+    - button "像"
+    - button "不像"
+    - button "对照原图"
+    - strong: 风格
+    - button "对"
+    - button "不对"
+    - button "从这一版修改"
+    - button "加入对比"
+    - link "查看候选 2 大图":
+      - /url: blob:http://127.0.0.1:3000/1367f645-c341-4573-ba2b-c3d48334a8b5
+      - img "候选 2":
+        - status: 生成好了
+    - paragraph: 改自第 1 轮候选 2
+    - strong: 像实物
+    - button "像"
+    - button "不像"
+    - button "对照原图"
+    - strong: 风格
+    - button "对"
+    - button "不对"
+    - button "从这一版修改"
+    - button "加入对比"
+    - heading "第 1 轮" [level=3]
+    - generic: 第 1 版方案 · 1:1 · Seedream 5.0 Lite · 路线 B
+    - generic: 基于之前的方案
+    - generic "这一轮的方案"
+    - link "查看候选 1 大图":
+      - /url: blob:http://127.0.0.1:3000/ed1e1989-27fb-46aa-b58f-92e78be1eef9
+      - img "候选 1"
+    - strong: 像实物
+    - button "像"
+    - button "不像"
+    - button "对照原图"
+    - strong: 风格
+    - button "对"
+    - button "不对" [pressed]
+    - button "背景" [pressed]
+    - button "光线"
+    - button "道具"
+    - button "构图" [pressed]
+    - textbox "具体哪里不对":
+      - /placeholder: 具体哪里不对？比如：链子变长了
+      - text: 明确要求平铺，候选1却靠墙立放，右下角还有AI生成字样；未满足批准方案。；明确要求平铺却靠墙立放；右下角有AI生成字样
+    - button "告诉小间哪里不对"
+    - button "从这一版修改"
+    - button "加入对比"
+    - link "查看候选 2 大图":
+      - /url: blob:http://127.0.0.1:3000/23e6c4b0-60f5-4995-993b-1f80526e337d
+      - img "候选 2"
+    - strong: 像实物
+    - button "像"
+    - button "不像"
+    - button "对照原图"
+    - strong: 风格
+    - button "对"
+    - button "不对"
+    - button "从这一版修改"
+    - button "加入对比"
+- button "Open Next.js Dev Tools":
+- alert: 潮线项链

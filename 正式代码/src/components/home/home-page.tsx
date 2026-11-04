@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { use, useEffect, useRef, useState } from 'react';
+import { use, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { browser } from 'react-dom';
 import { BUILTIN_SCENES } from '@/config/scenes';
 import { UPLOAD } from '@/config/upload';
@@ -35,6 +35,22 @@ export function HomePage() {
     },
     [],
   );
+  // 离开的页面会被 Activity 保留（next.config 开了 cacheComponents）：开始了一件作品再回到首页，
+  // 要是空白的新首页，不留上一件的照片、文字和「开始中」；没开始就离开的草稿照常保留
+  const startedRef = useRef(false);
+  useLayoutEffect(
+    () => () => {
+      if (!startedRef.current) return;
+      startedRef.current = false;
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+      previewRef.current = null;
+      setPreview(null);
+      setText('');
+      setFile(null);
+      setStarting(false);
+    },
+    [],
+  );
 
   const start = async (sceneId?: string) => {
     if (starting) return;
@@ -55,6 +71,7 @@ export function HomePage() {
       }
       const first = text.trim() || (scene ? `我想用「${scene.name}」这套布景` : '');
       if (first || assetIds.length) setFirstMessage(work.id, first, assetIds);
+      startedRef.current = true;
       router.push(`/works/${work.id}`);
     } catch (e) {
       setProblem(`没能新建作品：${e instanceof Error ? e.message : String(e)}`);

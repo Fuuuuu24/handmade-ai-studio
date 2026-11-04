@@ -1,7 +1,7 @@
 import { STEPS, type StepId } from '@/config/steps';
 import { approvalStatus } from './approval';
 import { generating, passed, roundResults, roundSlots, slotState } from './generation';
-import { infoReady } from './info';
+import { infoDone } from './info';
 import { activeUploads } from './snapshot';
 import type { Approval, Asset, Result, Snapshot, Task, Work } from './types';
 
@@ -83,7 +83,7 @@ export function stepStates({ work, results, approval, current }: StatusInput): R
   const anyResults = results.some((r) => r.workId === work.id);
   return {
     asset: work.assetsConfirmed ? 'done' : 'todo',
-    info: infoReady(work.info) ? 'done' : 'todo',
+    info: infoDone(work.info) ? 'done' : 'todo',
     story: work.story.summaryState === 'confirmed' ? 'done' : 'todo',
     plan: ap.kind === 'valid' ? 'done' : ap.kind === 'stale' ? 'stale' : 'todo',
     output:

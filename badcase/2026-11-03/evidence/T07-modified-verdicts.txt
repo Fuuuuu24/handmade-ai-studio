@@ -1,0 +1,215 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "青苔耳饰" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": 青苔耳饰
+    - generic: 待验收
+  - generic: 已保存
+  - navigation "流程进度":
+    - button "资产 （完成）":
+      - text: 资产
+      - generic: （完成）
+    - button "信息 （完成）":
+      - text: 信息
+      - generic: （完成）
+    - button "共创 （完成）":
+      - text: 共创
+      - generic: （完成）
+    - button "方案 （完成）":
+      - text: 方案
+      - generic: （完成）
+    - button "出图 （当前）":
+      - text: 出图
+      - generic: （当前）
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我想有个安静的标本小屋，石台、灰泥墙，旁边来一点窗光，远处壁龛放一个棕瓶子。不要把耳环丢在一堆植物里。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: The user is describing a style vision for their product photography—a quiet specimen cottage aesthetic with stone surfaces, gray plaster walls, window light, and a distant brown bottle in a niche, while making sure the earrings don't get buried in plants. I'm looking at resin earrings with moss or seaweed specimens inside, oval-shaped with silver French hook ear wires, and I need to move through the workflow starting with asset confirmation before diving into product details.
+    - generic: "Since the asset route is B (original photo as reference), I can confirm the assets and then ask about the missing product information like category, material, and size. The user's style preferences should be recorded as \"said\" since they explicitly described them, but I'll gather the product details first before applying those style elements to avoid rework. I'm deciding whether to call show_step to move the canvas to the info panel, which would help the user fill in the fields directly. I'll also record the user's aesthetic vision for the specimen house scene using record_story with kind=theme, capturing the quiet specimen house concept they described. Then I'll batch the calls together: update_info, record_story, set_style, show_step, and suggest_name."
+    - generic: For the style fields, I'm setting tone to "安静的标本小屋感，低饱和、偏冷灰" based on their description, background as "灰色石台＋灰泥墙面，远处壁龛里放一个棕色小瓶", light as "侧面窗光，柔和、有淡淡影子", and placement as "一对耳环立着或斜靠在石台上，单独呈现，不埋进植物堆".
+    - generic: I'm also adding composition as "主体居中偏下，四周留边距，壁龛与棕瓶在远处虚化", props as "只放棕色小瓶（壁龛里一个），不放植物堆", and banned items as "不要把耳环丢在一堆植物里，不出现制作工具、模具、木棒". That's six fields total, within the limit.
+    - generic: For the product info, I'm updating category to "耳坠（树脂封藏苔藓/水下植物标本）" and material to "透明树脂封藏绿色苔藓状植物标本＋银色耳勾（以照片为准）", though I'm still working through how to describe the material honestly based on what's visible in the photo.
+    - generic: I'll use the note field to clarify what's visible versus what needs confirmation, and I'm asking the user about the exact plant species, dimensions, price, and target audience. For the name, I'm considering something like "苔影树脂耳坠" or "苔藓标本耳坠" based on the category and form, and I'll keep my reply brief and ask just one or two key questions.
+    - generic: I need to show the user the info panel and ask a couple of questions about the material and size, while also reminding them to confirm the assets in the canvas since that's still pending. I'll keep it brief and ask just one or two things rather than overwhelming them with too many questions.
+    - generic: I'm thinking through how to respond to the user's request.
+    - paragraph:
+      - generic: 已写成待确认建议：品类「耳坠（一对，树脂封藏植物标本）」、材料「透明树脂＋绿色苔藓状植物标本＋银色耳勾」、尺寸「未知（照片看不出实际尺寸）」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 已记下：你想要的画面：一个安静的标本小屋——石台、灰泥墙，旁边一点窗光，远处壁龛放一个棕瓶子。明确不要把耳环丢在一堆植物里。
+    - paragraph:
+      - generic: 风格卡已更新：色调「安静标本小屋感，低饱和、偏冷灰」、背景「灰色石台面＋灰泥墙，远处壁龛里一个棕色小瓶」、光线「侧面窗光，柔和，带淡淡影子」、摆放「一对耳环单独立在石台上，不埋进植物堆」、道具「只放壁龛里的棕色小瓶，不放植物堆」、禁止出现「不要一堆植物、不要制作工具/模具/木棒入镜」、构图「主体居中偏下，整对完整入框，四周留边距，壁龛与棕瓶在远处略虚」（推荐，待确认）
+    - paragraph:
+      - generic: 已写成名字建议「苔藓标本耳坠」，用户在顶栏接受后才改名
+    - paragraph: 照片收到了，这对椭圆形树脂耳坠里的绿色植物标本很好看。你说的「标本小屋」画面我已经记进共创，也按你说的把风格卡填好了：灰石台＋灰泥墙、侧面窗光、远处壁龛一个棕瓶，一对耳环单独立着，不埋植物堆，模具和木棒这些制作痕迹都不入镜。
+    - paragraph: 右侧「信息」里我按照片提了三条待确认：品类（耳坠一对）、材料（透明树脂＋苔藓状植物＋银耳勾）、尺寸（照片看不出，先标未知）。你在画布上点接受才生效。
+    - paragraph: 两个小问题：里面那株植物你当时用的是什么？还有这对耳坠大概多大（比如坠体长几厘米）？不知道也没关系，我们继续往下走。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 原图已确认，商品实际叫青苔耳饰，是一对无色透明树脂椭圆耳饰，内嵌深绿干燥苔藓、银耳钩，总长35毫米、宽16毫米，售价158元。保留内嵌分布、透明边缘和银耳钩，不要变成不透明绿石，不加外部花草遮挡。灵感来自雨后石阶的苔藓，希望喜欢安静植物意象的人感到自然、安静。还有，偏冷灰和立放是你推测的，不是我说的，别标“你说的”；我选米白灰泥墙、浅石台面、自然柔光、耳饰平铺。请纠正并简短整理信息和共创。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: "The user is clarifying the product details: these are moss earrings made from transparent resin with embedded dried green moss and silver ear hooks, priced at 158 yuan, sized at 35mm by 16mm. They're emphasizing that the key features to preserve are the moss distribution pattern, the transparent edges, and the silver ear hooks—avoiding any shift toward opaque green stone or adding external floral elements that would obscure the design."
+    - generic: "The inspiration comes from moss on stone steps after rain, and the target audience is people drawn to quiet, natural plant imagery who want to feel a sense of calm and connection to nature. I need to correct the styling approach: the user is specifying an off-white plaster wall with a light stone surface, natural soft lighting, and flat-lay placement of the earrings—these are their explicit choices, not my recommendations. I should also remove the cold gray tone I'd suggested earlier and replace it with a warmer, softer natural aesthetic that aligns with their vision. The composition suggestion about centering the subject with margins still works for a flat-lay arrangement, so I'll keep that as a recommendation pending their confirmation."
+    - generic: "For the props, the user hasn't mentioned the brown bottle niche anymore, but they did originally request it, so I should keep that suggestion since it's still part of their initial vision. However, I need to clarify the banned items: no plant piles, no external flowers or grasses obscuring the earrings, and no tools or molds. I also need to make sure the earrings don't appear as opaque green stones—that's a fidelity concern about the material itself, not just a styling preference."
+    - generic: I'm also working through the category field and how to structure the product information. The user mentioned "青苔耳饰" and wants me to organize the information and co-creation content briefly. I need to decide whether to include all the details like material, size, price, and target audience in the update_info call, keeping in mind the six-item limit. I'm considering whether to combine size dimensions into a single field or split them across multiple entries.
+    - generic: "For the \"不能改的细节\" field, I'm capturing the user's explicit requirements: preserve the moss distribution, transparent edges, and silver ear hooks; avoid making it look like opaque green stone; don't add external plant obstruction. Now I'm moving into the story section where I need to record the inspiration and emotional intent separately, then draft a summary that ties everything together—what the piece expresses, what feeling it should evoke in customers, and what to actively avoid."
+    - generic: "I'm also reviewing the style corrections the user specified: the background should be an off-white plaster wall with a stone shelf and a brown bottle in a distant niche, the lighting needs to be natural and soft, the earrings should be laid flat on the stone surface, and the tone should shift to a quiet, natural feel with lower saturation and off-white grays rather than the cold gray I'd suggested before."
+    - generic: For the composition, I'm adjusting it so the earrings lie flat with both pieces fully in frame and margins around them, with the niche and brown bottle slightly blurred in the background. I need to make sure the props field reflects that only the brown bottle goes in the niche without any plant piles or external floral elements blocking the earrings.
+    - generic: I'm also checking the field limits — I have room for six info items and eight style items, so I can batch these calls together since they're independent operations. The name is already set to 青苔耳饰, so no suggestion needed there.
+    - generic: "For the next steps, the user asked me to briefly organize the information and co-creation work. I should draft the summary and present it as a draft for them to confirm on the card, then write the prompt once they approve. The flow is: confirm the summary, then draft the prompt, then request approval."
+    - generic: I need to revise the styling approach based on the user's feedback, then put together a summary of the changes.
+    - generic: I need to keep my response brief and make sure to reference the canvas cards they should be aware of.
+    - paragraph:
+      - generic: 已写成待确认建议：品类「青苔耳饰（一对，无色透明树脂椭圆耳饰）」、材料「无色透明树脂＋内嵌深绿干燥苔藓＋银耳钩」、尺寸「总长35毫米、宽16毫米」、售价「158元」、目标顾客「喜欢安静植物意象的人」、不能改的细节「保留苔藓内嵌分布、透明边缘、银耳钩；不能变成不透明绿石；不加外部花草遮挡」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 已记下：灵感来自雨后石阶上的苔藓。
+    - paragraph:
+      - generic: 已记下：希望喜欢安静植物意象的人看到后感到自然、安静。
+    - paragraph:
+      - generic: 风格卡已更新：背景「米白灰泥墙＋浅石台面，远处壁龛里一个棕色小瓶」、光线「自然柔光」、摆放「一对耳饰平铺」、色调「安静自然，低饱和、米白调（不偏冷灰，冷灰是我之前的推测）」、禁止出现「不要一堆植物、不要制作工具/模具/木棒入镜、不加外部花草遮挡」、道具「只放壁龛里的棕色小瓶，不放植物堆、不加外部花草」、构图「一对耳饰平铺居中，整对完整入框，四周留边距，壁龛与棕瓶在远处略虚」（推荐，待确认）
+    - paragraph:
+      - generic: 已起草共创总结，在画布上确认或修改后生效
+    - paragraph: 抱歉，冷灰和立放确实是我猜的，已经改成「你说的」只有你真正选的：米白灰泥墙＋浅石台面、自然柔光、一对平铺；构图那条仍标着「我推荐、待你确认」。
+    - paragraph: 简短整理如下：
+    - paragraph:
+      - strong: 信息
+      - text: （在「信息」里点接受才生效）
+    - list:
+      - listitem: 青苔耳饰，一对，无色透明树脂椭圆，内嵌深绿干燥苔藓＋银耳钩
+      - listitem: 总长35毫米、宽16毫米，售价158元，给喜欢安静植物意象的人
+      - listitem: 不能改：苔藓内嵌分布、透明边缘、银耳钩；不能变不透明绿石；不加外部花草遮挡
+    - paragraph:
+      - strong: 共创
+      - text: （草稿已放在「共创」卡片上，等你确认）
+    - list:
+      - listitem: 表达：把雨后石阶上的苔藓封进透明树脂，做成一对可佩戴的安静植物标本
+      - listitem: 感受：第一眼自然、安静
+      - listitem: 避免：不丢进植物堆、不加外部花草、不拍成不透明绿石、工具模具不入镜
+    - paragraph: 你在画布上把这两处确认后，我就写生图提示词。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 信息和总结都已确认。最后补全空间：米白灰泥墙、浅石台面，左侧窗的自然柔光，后右方木框浅壁龛里只放一个深棕玻璃瓶。耳饰一对平铺，透明边缘清楚，商品清晰，台面后缘、墙面转折与远处壁龛提供纵深，别把背景全虚化到认不出。不要外部花草、制作工具、文字水印。做1:1无字商品图，请简短整理最终方案与提示词给我审核。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: I'm finalizing the spatial composition with an off-white plaster wall and light stone surface, natural window light from the left, and a wooden niche containing a single dark brown glass bottle positioned toward the back right. The earrings are laid flat with transparent edges clearly visible, the product stays sharp while the background elements—the stone edge, wall corner, and distant niche—create depth without being blurred beyond recognition. I need to avoid any external plants, tools, text or watermarks, keeping the final image at 1:1 aspect ratio with no text overlay.
+    - generic: "Now I'm updating the style card fields to reflect these specifications: background, lighting, placement, props, banned elements, and composition all marked as user-said requirements. The tone remains consistent with the quiet, natural, low-saturation off-white aesthetic. I'll draft the prompt based on the confirmed product information and style guidelines, then request approval. 壁龛和玻璃瓶要放在背景右后方，用木框和深棕色玻璃瓶营造纵深感，但要保持清晰可认，不能过度虚化。画面要避免出现外部花草、植物堆、制作工具、文字水印，以及任何过艳或暖黄的滤镜效果。整体氛围是安静自然的标本小屋感，让透明树脂里的深绿苔藓成为焦点，输出1:1的电商商品主图。"
+    - generic: Now I'm working on the draft prompt, making sure it stays within the 2000 character limit while keeping it concise.
+    - generic: I need to keep the summary brief and then request approval for it.
+    - generic: I should keep my response brief and summarize the key points.
+    - paragraph:
+      - generic: 风格卡已更新：背景「米白灰泥墙＋浅石台面，后右方木框浅壁龛里只放一个深棕玻璃瓶」、光线「左侧窗的自然柔光」、摆放「一对耳饰平铺，透明边缘清楚，商品清晰」、道具「只放壁龛里一个深棕玻璃瓶，不放外部花草、不放制作工具」、禁止出现「不要外部花草/植物堆、不要制作工具模具、不要文字水印、不要把背景全虚化到认不出」、构图「一对平铺居中、整对完整入框留边距；用台面后缘、墙面转折与远处壁龛做纵深，背景保留可认细节」
+    - paragraph:
+      - generic: 比例本来就是 1:1
+    - paragraph:
+      - generic: 已写好提示词，可以批准了
+    - generic: 已批准第 1 版方案，已用于第 1 轮生成
+    - button "看结果"
+    - paragraph: 最终方案（都已标「你说的」）：
+    - list:
+      - strong: 空间
+      - text: ：米白灰泥墙＋浅石台面，左侧窗自然柔光；后右方木框浅壁龛里只放一个深棕玻璃瓶
+      - strong: 摆法
+      - text: ：一对平铺居中，透明边缘清楚、商品清晰；台面后缘、墙面转折和远处壁龛拉出纵深，背景不全虚化
+      - strong: 排除
+      - text: ：外部花草、植物堆、制作工具模具、文字水印
+      - strong: 规格
+      - text: ：1:1，Seedream 5.0 Lite，一次出两张候选
+    - paragraph: 提示词已按「主体 → 保真细节 → 构图 → 场景 → 氛围 → 输出」写好，你在「方案」里可以展开直接改。批准卡片已经放出，你确认一次我就开始生成。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - textbox "和小间说":
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加":
+    - button "对话模型：Qwen 3.8 Flash":
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite":
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "发送" [disabled]:
+  - region "画布":
+    - heading "出图" [level=2]
+    - paragraph: 两项都满意才算完成、才能导出。验收只代表你满意，不代表和实物完全一致，也不代表符合平台规则。
+    - heading "第 1 轮" [level=3]
+    - generic: 第 1 版方案 · 1:1 · Seedream 5.0 Lite · 路线 B
+    - generic "这一轮的方案"
+    - link "查看候选 1 大图":
+      - /url: blob:http://127.0.0.1:3000/921549b0-9da3-42c2-8346-14cd9bc7cc4e
+      - img "候选 1":
+        - status: 生成好了
+    - strong: 像实物
+    - button "像"
+    - button "不像"
+    - button "对照原图"
+    - strong: 风格
+    - button "对"
+    - button "不对" [pressed]
+    - button "背景"
+    - button "光线"
+    - button "道具"
+    - button "构图"
+    - textbox "具体哪里不对":
+      - /placeholder: 具体哪里不对？比如：链子变长了
+      - text: 修改版续测：明确要求平铺，候选1仍直立在石台上；右下角还有AI生成字样，无字要求未过。透明边缘、苔藓和单个棕瓶可见，未混入工具和外部植物。
+    - button "告诉小间哪里不对"
+    - button "从这一版修改"
+    - button "加入对比"
+    - link "查看候选 2 大图":
+      - /url: blob:http://127.0.0.1:3000/a30d5ba3-bfd2-482a-ba3a-9659805bccf5
+      - img "候选 2":
+        - status: 生成好了
+    - strong: 像实物
+    - button "像"
+    - button "不像"
+    - button "对照原图"
+    - strong: 风格
+    - button "对"
+    - button "不对" [pressed]
+    - button "背景"
+    - button "光线"
+    - button "道具"
+    - button "构图"
+    - textbox "具体哪里不对" [active]:
+      - /placeholder: 具体哪里不对？比如：链子变长了
+      - text: 修改版续测：右下角仍有AI生成字样，无字主图未过；不据此验收为合格环境基准。
+    - button "告诉小间哪里不对"
+    - button "从这一版修改"
+    - button "加入对比"
+- button "Open Next.js Dev Tools":
+- alert

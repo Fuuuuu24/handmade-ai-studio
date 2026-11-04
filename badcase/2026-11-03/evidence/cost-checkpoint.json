@@ -1,0 +1,9 @@
+{
+  "baselineEntryCount": 37,
+  "limitUSD": 2,
+  "entriesThisRun": 59,
+  "imageRequests": 10,
+  "conservativeUSD": 0.42629649735,
+  "reservedCount": 12,
+  "note": "只表示服务端账本计算，reserved也计入，非供应商实际扣款；T07尚未生成。"
+}
