@@ -2,7 +2,8 @@
 
 import { INFO_CORE, INFO_FIELDS, INFO_KEYS, INFO_REQUIRED, type InfoKey } from '@/config/info';
 import { mutateWork } from '@/client/work-store';
-import { infoReady } from '@/domain/info';
+import { infoReady, pendingCore, pendingSuggestions } from '@/domain/info';
+import type { Work } from '@/domain/types';
 import { acceptSuggestion, dismissSuggestion, markUnknown, removeFollowup, setInfo } from '@/domain/work';
 import { DraftInput, DraftTextarea } from '@/components/ui/draft-field';
 import { Icon } from '@/components/ui/icon';
@@ -13,8 +14,13 @@ import WarmTooltip from '@/components/bits/WarmTooltip/WarmTooltip';
 const OPTIONAL: readonly InfoKey[] = ['price', 'audience'];
 
 function InfoRow({ k }: { k: InfoKey }) {
-  const { ctx, workId } = useWorkspace();
+  const { ctx, workId, setViewing } = useWorkspace();
   const field = ctx.work.info[k];
+  // 逐条处理小间的建议时停在这一步：还有别的建议就不跟着跳走，最后一条处理完再跟到当前该做的一步（BC-002）
+  const decide = (fn: (w: Work, key: InfoKey) => Work) => {
+    setViewing(pendingSuggestions(ctx.work.info).some((x) => x !== k) ? 'info' : null);
+    void mutateWork(workId, (c) => fn(c.work, k));
+  };
   const required = (INFO_REQUIRED as readonly InfoKey[]).includes(k);
   const missing = required && !field.value && !field.unknown;
   // 核心信息锁进了批准快照，生成中不能改；售价、目标顾客不影响生成，随时可改
@@ -57,10 +63,10 @@ function InfoRow({ k }: { k: InfoKey }) {
             <span className="text-ink">{field.suggestion.value}</span>
             {field.suggestion.note && <span className="text-muted">（{field.suggestion.note}）</span>}
             <span className="ml-auto flex gap-1.5">
-              <button type="button" className="mini-btn" disabled={locked} onClick={() => void mutateWork(workId, (c) => acceptSuggestion(c.work, k))}>
+              <button type="button" className="mini-btn" disabled={locked} onClick={() => decide(acceptSuggestion)}>
                 接受
               </button>
-              <button type="button" className="mini-btn" onClick={() => void mutateWork(workId, (c) => dismissSuggestion(c.work, k))}>
+              <button type="button" className="mini-btn" onClick={() => decide(dismissSuggestion)}>
                 忽略
               </button>
             </span>
@@ -75,10 +81,11 @@ function InfoRow({ k }: { k: InfoKey }) {
 export function InfoStep() {
   const { ctx } = useWorkspace();
   const ready = infoReady(ctx.work.info);
+  const pending = pendingCore(ctx.work.info).length > 0;
   return (
     <div>
       <StepHead step="info">
-        <span className={ready ? 'chip chip-ok' : 'chip chip-warn'}>{ready ? '已填好' : '待补充'}</span>
+        <span className={ready && !pending ? 'chip chip-ok' : 'chip chip-warn'}>{!ready ? '待补充' : pending ? '有建议待确认' : '已填好'}</span>
       </StepHead>
       {ctx.isGenerating && <p className="-mt-2 mb-3 text-aux text-muted">正在生成这一轮，品类、材料、尺寸和不能改的细节暂时锁定。</p>}
       <div className="max-w-[640px] rounded-xl bg-white px-5 py-3">

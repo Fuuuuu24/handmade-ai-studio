@@ -111,18 +111,32 @@ export const dismissSuggestion = (w: Work, key: InfoKey) =>
 
 /* ---------- 共创 ---------- */
 
+// 同样的内容只记一次：小间续轮时可能把同一批工具再调一遍（BC-007）
 export function addStoryNote(w: Work, kind: StoryNote['kind'], text: string): Work {
   const t = text.trim();
-  if (!t) return w;
+  if (!t || w.story.notes.some((n) => n.text === t)) return w;
   const note: StoryNote = { id: newId('note'), kind, text: t, at: Date.now() };
   return touch(w, { story: { ...w.story, notes: [...w.story.notes, note] } });
 }
 
 export const setNoStory = (w: Work, noStory: boolean) => touch(w, { story: { ...w.story, noStory } });
 
-// 小间起草：总是草稿，确认由用户点（PRD 4.2 第 3 条、AC-04.4）
-export const draftSummary = (w: Work, summary: StorySummary) =>
-  touch(w, { story: { ...w.story, summary: trimSummary(summary), summaryState: 'draft' } });
+// 小间起草：总是草稿，确认由用户点（PRD 4.2 第 3 条、AC-04.4）。和现在的总结一样就不动，
+// 免得重复起草把用户的确认打回草稿（BC-007）。drafted 记下小间写的原文，用户改过哪几项可以告诉小间（BC-003）
+export function draftSummary(w: Work, summary: StorySummary): Work {
+  const s = trimSummary(summary);
+  if (w.story.summary && sameSummary(w.story.summary, s)) return w;
+  return touch(w, { story: { ...w.story, summary: s, summaryState: 'draft', drafted: s } });
+}
+
+const SUMMARY_PARTS = ['express', 'feel', 'avoid'] as const;
+
+// 用户在小间起草的基础上改过的几项：以用户的为准，小间不能再用草稿里被改掉的说法（BC-003）
+export function summaryEdits(story: Story): { part: keyof StorySummary; drafted: string; now: string }[] {
+  const { summary, drafted } = story;
+  if (!summary || !drafted) return [];
+  return SUMMARY_PARTS.filter((k) => drafted[k] !== summary[k]).map((k) => ({ part: k, drafted: drafted[k], now: summary[k] }));
+}
 
 // 用户自己改总结：不改变确认状态；原来没有总结时成为草稿
 export const editSummary = (w: Work, summary: StorySummary) =>

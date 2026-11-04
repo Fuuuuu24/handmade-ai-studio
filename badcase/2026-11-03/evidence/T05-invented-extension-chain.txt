@@ -1,0 +1,123 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "未命名作品" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": 未命名作品
+    - generic: 资产待确认
+    - generic "你说的名字":
+      - generic: 小间建议
+      - generic: 晚潮
+      - button "用这个"
+      - button "不用"
+  - generic: 已保存
+  - navigation "流程进度":
+    - button "资产 （当前）":
+      - text: 资产
+      - generic: （当前）
+    - button "信息":
+      - text: 信息
+    - button "共创":
+      - text: 共创
+    - button "方案":
+      - text: 方案
+    - button "出图":
+      - text: 出图
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我想在自己的原木手作台上拍晚潮，后面有架子和线团，能看见前后层次，但珍珠还是主角，九颗不规则的形状要保留。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: The user shared a photo of a baroque pearl bracelet on a workbench, and wants to shoot "晚潮" (evening tide?) on their own raw-wood handmade workbench, with shelves and thread spools behind, showing front-back layers, pearls still the protagonist, and the nine irregular shapes preserved.
+    - generic: "Wait — \"晚潮\" might be the name of the work! The user says \"我想在自己的原木手作台上拍晚潮\" — \"I want to shoot 晚潮 on my raw-wood workbench\". Hmm, \"拍\" here means photograph. So 晚潮 is likely the work's name. The work is still called 未命名作品, and the category is clear (珍珠手链). So I could suggest the name \"晚潮\" — actually the user said it, so suggest_name with \"晚潮\" is appropriate. Category is clear (手链/手串). Let me count the pearls: I see 9 baroque pearls in the image. User says 九颗不规则的形状要保留. Good."
+    - generic: "Let me look at the photo: a bracelet of 9 irregular baroque freshwater pearls, cream/ivory with iridescent luster, connected by small silver jump rings with wire-wrapped coils, lobster clasp with short chain extender at top. Lying on grey-blue striped linen on a wooden table, with scissors, pins, thread."
+    - generic: "Now, first steps: asset confirmation (B route, original photo as reference — need user to confirm asset on canvas? The status says 资产还没确认; 进度：资产待确认. I should guide user to confirm the asset in canvas. But also collect product info."
+    - generic: "Per workflow: confirm product photo → product info → co-create story → style/ratio/prompt."
+    - generic: "The user has already given quite a lot of info: they want the scene (原木手作台, 后面架子和线团, 前后层次, 珍珠主角, 九颗不规则形状保留). That's style info (placement, props, composition) and also \"不能改的细节\" (九颗不规则珍珠)."
+    - generic: "I should: 1. suggest_name \"晚潮\" (user said it, category clear). 2. update_info with items: 品类 (珍珠手链 — visible), 材料 (巴洛克淡水珍珠 + 银色金属连接环/龙虾扣 — visible in photo; careful not to fabricate. Photo shows irregular baroque pearls with iridescent luster, silver-toned jump rings and lobster clasp. I can write \"不规则巴洛克珍珠，银色金属连接环与龙虾扣（以照片为准）\" as 待确认建议 with note \"照片里看到\"), 不能改的细节 (九颗不规则珍珠形状、每颗之间的小银环缠绕结构、龙虾扣), 尺寸 unknown — user didn't say. Maybe ask about size? Keep to 1-2 questions. 3. set_style basis=said for 道具 (原木手作台，后方架子和线团), 构图 (珍珠为主角、前后层次), maybe 摆放. 4. record_story: theme/emotion about 晚潮? The user said \"拍晚潮\" — that's likely the name. The story: they want their own workbench with layers. I can record as theme/other using their own words: \"想在原木手作台上拍，背景有架子和线团，看得见前后层次，珍珠是主角\". Actually that's more style. Maybe record_story kind=theme with 晚潮 name? Careful not to fabricate meaning. I'll record emotion/other: 「想在原木手作台上拍『晚潮』，背景有架子和线团，看得见前后层次，珍珠是主角」."
+    - generic: "Also need to confirm asset: ask user to confirm the photo on canvas (资产 step). show_step(\"asset\")? Maybe."
+    - generic: "Let me be careful about the number of tool calls. I'll do independent calls in one block: suggest_name, update_info, set_style, record_story. Then reply asking about missing info (尺寸? 材料确认) and next step (确认资产 + 共创故事)."
+    - generic: "Actually the flow: 资产待确认 first. I should ask user to confirm the asset in canvas. And 商品信息 needs 品类/材料/尺寸. I'll propose suggestions and ask about 尺寸 and material confirmation."
+    - generic: "Also the story co-creation should be deep: 灵感从哪来、想表达的主题、希望顾客第一眼的感受、明确不想要的画面. The user gave scene wishes but not story. I should ask about 晚潮 — what does it mean / where did the inspiration come from. One or two questions."
+    - generic: "Let me not overdo set_style yet — but user explicitly said props and composition, so basis=said is right. Also 摆放: 平铺? They said \"在自己的原木手作台上拍\" — placement on workbench. 背景: 原木手作台 + 后面架子和线团. 色调: not said yet — maybe warm evening? \"晚潮\" hmm. Don't guess tone. Leave."
+    - generic: "Let me write the reply concisely: confirm what I see (9 baroque pearls, silver rings, lobster clasp), name suggestion, ask 2 questions: 尺寸/材料 (or ask what 晚潮 means). Keep short."
+    - generic: "I'll ask: 1) 「晚潮」这个名字有什么由来吗？想让人第一眼感到什么？ 2) 手链长度/珠径大概多少，不知道就写未知。"
+    - generic: Let me do the tool calls.
+    - generic: "update_info items max 6: - category: \"手链（巴洛克珍珠串珠手链）\" note \"照片里看到\" - material: \"不规则巴洛克珍珠，银色金属小连接环＋龙虾扣；珍珠具体品种以你的说法为准\" — note \"照片里看到\" - keep: \"九颗不规则珍珠的形状和大小排列不变；每颗之间的小银环缠绕结构不变；龙虾扣和延长链位置不变\" note \"你说的（九颗形状要保留）＋照片\" - size: unknown? Don't fill; ask instead. Skip."
+    - generic: "suggest_name: \"晚潮\" note \"你说的名字\""
+    - generic: "record_story: kind=other or theme: \"作品名『晚潮』；拍摄想在自己的原木手作台上，背景有架子和线团，看得见前后层次，珍珠仍是主角\" — hmm, that's style info. Story record should be inspiration/theme/emotion. The name 晚潮 suggests something but I shouldn't invent meaning. I'll record kind=theme with the user's own words about wanting to shoot it on their own workbench — that's about the work's presentation intent. Maybe better to hold record_story until they answer about inspiration. But recording the name intent is fine: kind=other, text: 「你把它叫『晚潮』，希望在自己的原木手作台上拍，背景有架子和线团、看得见前后层次，珍珠是主角」. OK."
+    - generic: "set_style items: - props: \"后方放架子和线团，虚化在背景里；不放剪刀、别针、塑料袋这些杂物\" — careful: user didn't say exclude scissors. Don't invent banned. Just props: \"原木手作台面上的架子和线团（在后方）\" basis=said. - background: \"自己的原木手作台（木纹台面）\" basis=said - placement: \"手链平铺在台面上，位于画面前景\" basis=said? User said 珍珠还是主角 + 前后层次 → implies bracelet in front. Reasonable: basis=said with reason \"你说的：前后层次、珍珠是主角\". - composition: \"前景珍珠清晰、后方架子线团形成层次；珍珠占主体\" basis=said."
+    - generic: That's 4 items, fine.
+    - generic: Then reply with questions.
+    - generic: I need to confirm the asset details with the user since we're on route B, which means the original photo serves as the reference and they just need to verify it. I should ask about the missing size information and clarify the story elements like inspiration and theme.
+    - paragraph:
+      - generic: 已写成名字建议「晚潮」，用户在顶栏接受后才改名
+    - paragraph:
+      - generic: 已写成待确认建议：品类「珍珠手链（串珠款）」、材料「不规则巴洛克珍珠，银色小连接环串联，配龙虾扣和一小段延长链」、不能改的细节「九颗珍珠各自的不规则形状和大小、串的顺序不能改；每颗之间的小银环缠绕结构不能改；龙虾扣和延长链保持照片里的样子」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 已记下：你把它叫「晚潮」，想在自己的原木手作台上拍：后面有架子和线团，看得见前后层次，但珍珠还是主角。
+    - paragraph:
+      - generic: 风格卡已更新：背景「自己的原木手作台面（木纹台面）」、道具「后方放架子和线团，作为远景层次」、摆放「手链平铺在前景台面上，完整成圈」、构图「前景珍珠清楚锐利，后方架子线团退成层次；珍珠占画面主体」
+    - paragraph: 照片收到了，我看清了：九颗不规则巴洛克珍珠，银色小环一颗颗串起来，配龙虾扣和一小段延长链。名字我按你说的建议成「晚潮」，你在顶栏点一下就改过来。
+    - paragraph: 拍摄这边我已经记下：原木手作台面、后面架子和线团退成层次、珍珠在前景当主角；九颗珍珠各自的形状和串的顺序也写进「不能改的细节」了，你在信息那一步确认一下。
+    - paragraph: 下一步先请你到「资产」这一步把这张照片确认掉（就一张整体照，够用了）。另外想问你两个小问题：「晚潮」这个名字是怎么来的，是珠子那种泛着水光的白让你想到什么吗？还有手链大概多长、珠子多大，不知道就填未知，我不猜。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - textbox "和小间说":
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加":
+    - button "对话模型：Qwen 3.8 Flash":
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite":
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "发送" [disabled]:
+  - region "画布":
+    - heading "资产" [level=2]
+    - generic: 待确认
+    - paragraph: 对照检查：颜色、形状、细链、镂空、透明部分和数量都拍清楚了吗？看不清的部分小间不会去猜，建议补拍。
+    - figure "1254×1254 替换这张照片 不再使用这张照片":
+      - img "整体照片"
+      - combobox "照片类型":
+        - generic: 整体
+      - generic: 1254×1254
+      - button "替换这张照片":
+      - button "不再使用这张照片":
+    - button "再加一张":
+      - text: 再加一张
+    - button "确认资产"
+    - generic: 原图路线：确认后用这些照片作参考图
+- button "Open Next.js Dev Tools":
+- alert: 今天想给哪件作品拍主图？

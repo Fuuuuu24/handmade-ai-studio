@@ -228,3 +228,78 @@ test('替换原图：确认后换上新照片，原图记录保留，资产要�
   expect(stored).toEqual(expect.arrayContaining([{ removed: true, replaced: true }, { removed: false, replaced: false }]));
   await expect(canvas(page).getByRole('img', { name: '整体照片' })).toHaveCount(1);
 });
+
+/* 2026-11-03 浏览器实测 badcase 的回归（badcase/修复记录/2026-11-03-修复状态.md） */
+
+test('回归 BC-010：开始一件后点「新建作品」，首页是空白的，能接着开始下一件', async ({ page }) => {
+  await startWork(page, '第一件');
+  const first = page.url();
+  await page.getByRole('link', { name: '新建作品' }).click();
+  await expect(page.getByRole('heading', { name: '今天想给哪件作品拍主图？' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: '说说你的作品' })).toHaveValue('');
+  await expect(page.getByRole('img', { name: '待上传的作品照片' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^雨后清晨/ })).toBeEnabled();
+  await page.getByRole('textbox', { name: '说说你的作品' }).fill('第二件');
+  await page.getByRole('button', { name: '开始' }).click();
+  await page.waitForURL((u) => /\/works\/work_/.test(u.pathname) && u.href !== first);
+  await expect(chat(page).getByText('第二件')).toBeVisible();
+});
+
+test('回归 BC-002：逐条接受建议时画布停在信息，核心建议没处理完不算完成', async ({ page }) => {
+  await startWork(page, '【测试：完整信息】');
+  await canvas(page).getByRole('button', { name: '确认资产' }).click(); // 画布跟着当前该做的一步，到信息
+  // 先接受品类、材料、尺寸：必填齐了，画布仍在信息（看得到接受后的尺寸），「不能改的细节」还是建议
+  for (let i = 0; i < 3; i++) await canvas(page).getByRole('button', { name: '接受' }).first().click();
+  await expect(canvas(page).locator('#info-size')).toHaveValue('长 3cm');
+  await expect(canvas(page).getByText('有建议待确认')).toBeVisible();
+  await expect(step(page, '信息')).not.toHaveAccessibleName(/完成/);
+  // 接受保真细节：这一步完成，但售价的建议还在，画布不跳走
+  await canvas(page).getByRole('button', { name: '接受' }).first().click();
+  await expect(canvas(page).locator('#info-keep')).toHaveValue('蝴蝶结的两个圈不能变形');
+  await expect(step(page, '信息')).toHaveAccessibleName(/完成/);
+  // 最后一条处理完，跟到当前该做的一步
+  await canvas(page).getByRole('button', { name: '忽略' }).click();
+  await expect(canvas(page).getByRole('heading', { name: '共创', exact: true })).toBeVisible();
+});
+
+test('回归 BC-012：矮窗口里对照原图也能看到整张图，不裁下沿', async ({ page }) => {
+  await page.setViewportSize({ width: 1250, height: 579 });
+  await startWork(page, '【测试：信息】');
+  await canvas(page).getByRole('button', { name: '确认资产' }).click();
+  await step(page, '信息').click();
+  for (let i = 0; i < 3; i++) await canvas(page).getByRole('button', { name: '接受' }).first().click();
+  await say(page, '【测试：总结】');
+  await step(page, '共创').click();
+  await canvas(page).getByRole('button', { name: '确认总结' }).click();
+  await say(page, '【测试：布景】【测试：比例】【测试：提示词】'); // 3:4 的竖图最容易被裁
+  await step(page, '方案').click();
+  await approveBy(canvas(page).getByRole('slider', { name: /滑动批准并生成两张/ }));
+  await expect(canvas(page).getByRole('img', { name: '候选 2' })).toBeVisible({ timeout: 60_000 });
+  const fits = async (img: Locator, name: string) => {
+    await expect(img).toBeVisible();
+    const box = (await img.boundingBox())!;
+    const frame = (await img.locator('..').boundingBox())!;
+    expect(box.height, name).toBeLessThanOrEqual(frame.height + 1);
+    expect(box.width, name).toBeLessThanOrEqual(frame.width + 1);
+  };
+  await canvas(page).getByRole('button', { name: '对照原图' }).first().click();
+  const dialog = page.getByRole('dialog', { name: /对照原图/ });
+  for (const name of ['原图', '候选 1']) await fits(dialog.getByRole('img', { name, exact: true }), name);
+  await page.keyboard.press('Escape');
+  // 两版对比：框有 420px 的高度上限，竖图同样不能被裁
+  for (let i = 0; i < 2; i++) await canvas(page).getByRole('button', { name: '加入对比' }).first().click(); // 点过的变成「取消对比」
+  const compare = canvas(page).getByRole('heading', { name: '两版对比' }).locator('xpath=ancestor::section[1]');
+  await fits(compare.getByRole('img', { name: '第 1 轮候选 1' }), '两版对比');
+});
+
+test('回归 BC-001：回复只有思考、没写完时如实提示，可以重试，重试有上限', async ({ page }) => {
+  await startWork(page, '你好');
+  await say(page, '继续【测试：只想不说】');
+  const alert = chat(page).getByRole('alert');
+  await expect(alert).toContainText('小间这次的回复超出了单次长度上限，没说完。');
+  await chat(page).getByRole('button', { name: '重试' }).click();
+  await chat(page).getByRole('button', { name: '重试' }).click();
+  await expect(alert).toContainText('已经重试 2 次');
+  await say(page, '你好');
+  await expect(alert).toHaveCount(0);
+});

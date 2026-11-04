@@ -1,4 +1,4 @@
-import { tool, type InferUITools, type UIMessage } from 'ai';
+import { tool, type FinishReason, type InferUITools, type UIMessage } from 'ai';
 import { z } from 'zod';
 import { INFO_KEYS } from '@/config/info';
 import { IMAGE_MODELS } from '@/config/models';
@@ -75,7 +75,7 @@ export const agentTools = {
   set_style: tool({
     outputSchema: toolOutput,
     description:
-      '修改风格卡的一项或多项。basis=said 表示用户明确说过；basis=recommend 表示你的推荐，会显示为待确认。道具不放时 value 写「不放道具」。',
+      '修改风格卡的一项或多项。basis=said 只用于用户原话里明确说过的那一项；从感受、氛围推断出来的都是你的推荐，写 basis=recommend，会显示为「小间推荐」。道具不放时 value 写「不放道具」。',
     inputSchema: z.object({
       items: z
         .array(
@@ -202,6 +202,9 @@ export interface MessageMeta {
   model?: string;
   modelLabel?: string;
   costUSD?: number;
+  // 最近一次请求怎么结束的：模型给的结束原因，或者服务端超时中止（timeout）。每次请求开始时清空（null）。
+  // 只有思考、没写完时界面据此说明原因（BC-001），也留给排查
+  endReason?: FinishReason | 'timeout' | 'aborted' | null;
 }
 
 // 用户消息里附带的照片只记素材编号，图片本身每次请求单独附上（技术写法第 6 节）

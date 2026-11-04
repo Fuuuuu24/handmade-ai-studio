@@ -21,6 +21,19 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
       ],
     },
   },
+  // 核心信息和选填项一起建议：测逐条接受时画布不跳走（BC-002）
+  完整信息: {
+    tool: 'update_info',
+    input: {
+      items: [
+        { field: 'category', value: '耳饰', note: '测试' },
+        { field: 'material', value: '925 银', note: '测试' },
+        { field: 'size', value: '长 3cm', note: '测试' },
+        { field: 'keep', value: '蝴蝶结的两个圈不能变形', note: '测试' },
+        { field: 'price', value: '128 元', note: '测试' },
+      ],
+    },
+  },
   起名: { tool: 'suggest_name', input: { name: '蝴蝶结耳坠', note: '测试' } },
   记录: { tool: 'record_story', input: { kind: 'theme', text: '雨后石阶上的蝴蝶结' } },
   总结: { tool: 'draft_summary', input: { express: '雨后蝴蝶结的安静', feel: '安静、想凑近看', avoid: '太花、道具抢戏' } },
@@ -58,12 +71,16 @@ const MARK = /【测试：([^】]+)】/g;
 
 type Prompt = Parameters<LanguageModelV4['doStream']>[0]['prompt'];
 
+// 「【测试：只想不说】」：只出一段思考就以长度上限结束，用来测回复停在半路时界面的提示和重试（BC-001）
+const THINK_ONLY = '【测试：只想不说】';
+
 // 根据对话决定这一步怎么回：工具结果刚回来就收尾；否则按用户最后一句里的标记调用工具
-export function fakeTurn(prompt: Prompt): { text: string; calls: { tool: string; input: Record<string, unknown> }[] } {
+export function fakeTurn(prompt: Prompt): { text: string; calls: { tool: string; input: Record<string, unknown> }[]; thinkOnly?: true } {
   const last = prompt.at(-1);
   if (last?.role === 'tool') return { text: '（测试对话模型）好了，看看右边画布。', calls: [] };
   const user = [...prompt].reverse().find((m) => m.role === 'user');
   const text = user?.role === 'user' ? user.content.map((c) => (c.type === 'text' ? c.text : '')).join('') : '';
+  if (text.includes(THINK_ONLY)) return { text: '', calls: [], thinkOnly: true };
   const calls = [...text.matchAll(MARK)].map((m) => FAKE_SCRIPT[m[1]]).filter((c): c is (typeof FAKE_SCRIPT)[string] => !!c);
   if (calls.length) return { text: '', calls };
   return { text: `（测试对话模型，不是 AI）收到：${text.replaceAll(MARK, '').slice(0, 40) || '照片'}`, calls: [] };
@@ -78,6 +95,15 @@ export function fakeChatModel(): LanguageModelV4 {
     doStream: async ({ prompt }) => {
       const turn = fakeTurn(prompt);
       const chunks: LanguageModelV4StreamPart[] = [];
+      if (turn.thinkOnly) {
+        chunks.push(
+          { type: 'reasoning-start', id: 'r' },
+          { type: 'reasoning-delta', id: 'r', delta: '（测试对话模型的思考，不是 AI）想了很久还没写答复' },
+          { type: 'reasoning-end', id: 'r' },
+          { type: 'finish', finishReason: { unified: 'length', raw: 'length' }, usage },
+        );
+        return { stream: simulateReadableStream({ chunks, chunkDelayInMs: 20 }) };
+      }
       if (turn.text) chunks.push({ type: 'text-start', id: 't' }, { type: 'text-delta', id: 't', delta: turn.text }, { type: 'text-end', id: 't' });
       turn.calls.forEach((c, i) => chunks.push({ type: 'tool-call', toolCallId: `fake_${Date.now()}_${i}`, toolName: c.tool, input: JSON.stringify(c.input) }));
       chunks.push({ type: 'finish', finishReason: { unified: turn.calls.length ? 'tool-calls' : 'stop', raw: undefined }, usage });

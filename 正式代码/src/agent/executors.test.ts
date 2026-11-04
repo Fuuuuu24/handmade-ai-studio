@@ -1,10 +1,11 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useTestDb } from '@/data/db';
-import { addUpload, getShopStyle, getWork, listResults, listScenes, putTask, saveResult, saveShopStyle, saveWork } from '@/data/repo';
+import { loadContext } from '@/client/work-store';
+import { addUpload, getShopStyle, getWork, listResults, listScenes, putTask, saveApproval, saveResult, saveShopStyle, saveWork } from '@/data/repo';
 import type { Result } from '@/domain/types';
 import { newId } from '@/domain/util';
-import { confirmSummary, editPrompt, draftSummary, setStyle } from '@/domain/work';
+import { approve, confirmSummary, editPrompt, draftSummary, setStyle, startRound } from '@/domain/work';
 import { currentBasis, readyWork, result, task } from '@/test/fixtures';
 import { executeTool } from './executors';
 
@@ -67,6 +68,37 @@ describe('小间的工具：硬规则', () => {
     const out = await executeTool(w.id, 'request_approval', {}, deps);
     expect(out.message).toBe('批准卡片已放出，但还缺：提示词还没写');
     expect((await getWork(w.id))?.approvalId).toBeNull();
+  });
+
+  it('用户在小间回复时已经批准并开始生成：request_approval 说明不用再批准，生成完再说要怎样再来一轮（BC-009）', async () => {
+    const w = await seed();
+    await executeTool(w.id, 'draft_prompt', { prompt: '一对手作耳饰，严格按参考图还原颜色、数量、轮廓和连接结构，画面里不要任何文字。' }, deps);
+    const ctx = await loadContext(w.id);
+    const a = approve(ctx.work, ctx.assets, ctx.snapshot, false);
+    if (!a.ok) throw new Error('应当可以批准');
+    const s = startRound(a.work, a.approval, ctx.snapshot, false);
+    if (!s.ok) throw new Error('应当可以生成');
+    await saveApproval(s.work, s.approval);
+    const running = { ...task(w.id, 1, 0, 'running'), approvalId: s.approval.id };
+    await putTask(running);
+    const out = await executeTool(w.id, 'request_approval', {}, deps);
+    expect(out.message).toBe('用户已经批准了当前方案（第 1 版），第 1 轮正在生成，不需要再批准；等结果出来请用户验收');
+
+    await putTask({ ...running, status: 'succeeded' });
+    const after = await executeTool(w.id, 'request_approval', {}, deps);
+    expect(after.message).toBe('当前方案已经批准过（第 1 版）并生成了第 1 轮；要按同一方案再生成一轮，需要用户在画布「方案」里再批准一次');
+  });
+
+  it('record_story 同样内容只记一次；draft_summary 内容没变时不把已确认的总结打回草稿（BC-007）', async () => {
+    const w = await seed();
+    expect((await executeTool(w.id, 'record_story', { kind: 'inspiration', text: '午后窗框投影' }, deps)).message).toBe('已记下：午后窗框投影');
+    const again = await executeTool(w.id, 'record_story', { kind: 'inspiration', text: '午后窗框投影' }, deps);
+    expect(again).toEqual({ ok: true, message: '这一条之前已经记下了，没有重复记录：午后窗框投影' });
+    expect((await getWork(w.id))?.story.notes).toHaveLength(1);
+
+    const same = await executeTool(w.id, 'draft_summary', { express: '雨后青苔', feel: '安静', avoid: '太花' }, deps);
+    expect(same.message).toBe('总结和现在的一样，没有改动（仍是用户确认过的）');
+    expect((await getWork(w.id))?.story.summaryState).toBe('confirmed');
   });
 
   it('没有待核对的手改时 resolve_prompt_sync 被拒绝；有手改时写回核对结果', async () => {

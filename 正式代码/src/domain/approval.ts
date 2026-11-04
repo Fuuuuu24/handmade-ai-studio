@@ -62,6 +62,14 @@ export function approvalStatus(approval: Approval | null, current: Snapshot): Ap
   return changed.length ? { kind: 'stale', changed } : { kind: 'valid' };
 }
 
+// 当前方案已经有有效批准时它到了哪一步：还没生成、这一轮正在生成、已经生成过。
+// 批准卡片工具和给小间的作品状态都按它说明，不把「正在生成」当成还要批准的理由（BC-009）
+export function approvedPhase(approval: Approval | null, current: Snapshot, isGenerating: boolean): 'unused' | 'generating' | 'used' | null {
+  if (!approval || approvalStatus(approval, current).kind !== 'valid') return null;
+  if (approval.usedRound == null) return 'unused';
+  return isGenerating ? 'generating' : 'used';
+}
+
 // 发起生成的条件（PRD 4.2 第 1 条）：有效批准、这版批准还没用过、没有正在生成的任务
 export function generationBlockers(approval: Approval | null, current: Snapshot, isGenerating: boolean): string[] {
   const status = approvalStatus(approval, current);

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Icon } from './icon';
 
 /* 统一的弹窗：用原生 <dialog>（自带焦点管理与 Esc 关闭）。确认弹窗用 useConfirm() 以 Promise 形式拿到结果，
@@ -19,7 +19,9 @@ interface ModalProps {
 
 export function Modal({ open, onClose, title, sub, children, labelledBy, wide = false }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
-  const id = labelledBy ?? `dlg-${title}`;
+  // 不用标题拼 id：标题里有空格时（比如「对照原图：第 1 轮候选 1」），aria-labelledby 会按空格拆开，弹窗就没有名字
+  const autoId = useId();
+  const id = labelledBy ?? autoId;
   useEffect(() => {
     const d = ref.current;
     if (!d) return;

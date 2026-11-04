@@ -2,7 +2,7 @@ import { INFO_FIELDS } from '@/config/info';
 import { imageModel } from '@/config/models';
 import type { StepId } from '@/config/steps';
 import { STYLE_LABELS } from '@/config/style';
-import { approvalBlockers } from '@/domain/approval';
+import { approvalBlockers, approvedPhase } from '@/domain/approval';
 import { passed } from '@/domain/generation';
 import { sceneParamsOf, sceneSaveProblem, shopDiff, shopItemsOf } from '@/domain/library';
 import { activeUploads } from '@/domain/snapshot';
@@ -80,13 +80,25 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
     }
     case 'record_story': {
       const { kind, text } = rawInput as Input<'record_story'>;
-      await change(workId, (c) => addStoryNote(c.work, kind, text));
-      return done(`已记下：${text}`);
+      let added = false;
+      await change(workId, (c) => {
+        const w = addStoryNote(c.work, kind, text);
+        added = w !== c.work;
+        return w;
+      });
+      return done(added ? `已记下：${text}` : `这一条之前已经记下了，没有重复记录：${text}`);
     }
     case 'draft_summary': {
       const sum = rawInput as Input<'draft_summary'>;
-      const wasConfirmed = ctx.work.story.summaryState === 'confirmed';
-      await change(workId, (c) => draftSummary(c.work, sum));
+      let changed = false;
+      let wasConfirmed = false;
+      await change(workId, (c) => {
+        wasConfirmed = c.work.story.summaryState === 'confirmed';
+        const w = draftSummary(c.work, sum);
+        changed = w !== c.work;
+        return w;
+      });
+      if (!changed) return done(`总结和现在的一样，没有改动（仍是${wasConfirmed ? '用户确认过的' : '草稿'}）`);
       return done(
         `已起草共创总结${wasConfirmed ? '（原来确认过的总结回到草稿）' : ''}，在画布上确认或修改后生效`,
         ['共创总结（草稿）'],
@@ -130,6 +142,13 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
       return done(conflicts.length ? `已标出 ${conflicts.length} 处矛盾，需要你决定` : '核对完成，提示词和方案一致');
     }
     case 'request_approval': {
+      // 小间回复的同时，用户可能已经在画布上批准并开始生成了（BC-009）
+      const phase = approvedPhase(ctx.approval, ctx.snapshot, ctx.isGenerating);
+      const v = ctx.approval?.version;
+      const r = ctx.approval?.usedRound;
+      if (phase === 'generating') return done(`用户已经批准了当前方案（第 ${v} 版），第 ${r} 轮正在生成，不需要再批准；等结果出来请用户验收`);
+      if (phase === 'used') return done(`当前方案已经批准过（第 ${v} 版）并生成了第 ${r} 轮；要按同一方案再生成一轮，需要用户在画布「方案」里再批准一次`);
+      if (phase === 'unused') return done(`当前方案已经批准（第 ${v} 版），还没生成；用户要生成时用 start_generation，不需要再批准`);
       const blockers = approvalBlockers(ctx.work, ctx.assets, ctx.basis, ctx.isGenerating);
       return done(
         blockers.length ? `批准卡片已放出，但还缺：${blockers.map((b) => b.text).join('；')}` : '批准卡片已放出，等待确认',

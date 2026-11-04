@@ -1,0 +1,54 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品" [active]:
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "今天想给哪件作品拍主图？" [level=1]
+  - img "待上传的作品照片"
+  - button "移除这张照片":
+  - generic: 说说你的作品
+  - textbox "说说你的作品":
+    - /placeholder: 上传一张作品照片，说说它是什么、想要什么感觉…
+    - text: 我想给窗影耳饰找一间有高窗、混凝土台面的小工作室，能看见台面和后墙的转折，别拍成只有桌面。
+  - button "上传照片":
+    - text: 上传照片
+  - button "开始" [disabled]:
+  - heading "从一套布景开始" [level=2]
+  - generic: 选一套，小间会按它准备方案，之后还能换
+  - button "雨后清晨 苔绿手工纸，清冷晨光" [disabled]:
+    - generic: 雨后清晨
+    - generic: 苔绿手工纸，清冷晨光
+  - button "午后书桌 米白亚麻，暖调午后光" [disabled]:
+    - generic: 午后书桌
+    - generic: 米白亚麻，暖调午后光
+  - button "干净陈列 浅灰石材，柔和自然光" [disabled]:
+    - generic: 干净陈列
+    - generic: 浅灰石材，柔和自然光
+  - button "温柔礼物 灰粉手工纸，柔光" [disabled]:
+    - generic: 温柔礼物
+    - generic: 灰粉手工纸，柔光
+  - paragraph: 布景示意图待提供，现在先用色块表示色调。
+- button "Open Next.js Dev Tools":
+- alert: 今天想给哪件作品拍主图？

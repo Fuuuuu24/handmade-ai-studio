@@ -55,7 +55,8 @@ function CompareModal({ open, onClose, result, approval }: { open: boolean; onCl
   const ref = ctx.assets.find((a) => a.id === refId) ?? activeUploads(ctx.assets, ctx.work.id)[0];
   const refUrl = useBlobUrl(open ? ref?.blobId : null);
   const url = useBlobUrl(open ? result.blobId : null);
-  const frame = 'grid h-[min(64vh,640px)] place-items-center overflow-hidden rounded-lg bg-soft';
+  // 行列写成 minmax(0,1fr)（grid-*-1）：默认的 auto 行会按图片原高撑开，框比图矮时下沿被裁掉，看不全商品（BC-012）
+  const frame = 'grid h-[min(64vh,640px)] grid-cols-1 grid-rows-1 place-items-center overflow-hidden rounded-lg bg-soft';
   return (
     <Modal open={open} onClose={onClose} wide title={`对照原图：第 ${result.round} 轮候选 ${result.slot + 1}`} sub="看颜色、数量、轮廓、连接结构、纹样和材质有没有走样">
       <div className="grid grid-cols-2 gap-4">
@@ -399,8 +400,9 @@ function CompareColumn({ result, approval }: { result: Result; approval: Approva
     <div className="flex min-w-0 flex-col gap-2.5">
       <div className="grid max-h-[420px] place-items-center overflow-hidden rounded-lg bg-soft" style={{ aspectRatio: `${result.width} / ${result.height}` }}>
         {url && (
+          // 限制图片本身的宽高：框被 420px 截短时，网格行仍按截短前的高度算，size-full 会让竖图下沿被裁掉（BC-012）
           // eslint-disable-next-line @next/next/no-img-element -- 本地数据库里的生成结果
-          <img src={url} alt={`第 ${result.round} 轮候选 ${result.slot + 1}`} className="size-full object-contain" />
+          <img src={url} alt={`第 ${result.round} 轮候选 ${result.slot + 1}`} className="max-h-[420px] max-w-full" />
         )}
       </div>
       <dl className="grid grid-cols-[48px_1fr] gap-x-3 gap-y-1 text-aux text-ink-2">

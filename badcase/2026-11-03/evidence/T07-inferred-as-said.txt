@@ -1,0 +1,214 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "未命名作品" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": 未命名作品
+    - generic: 资产待确认
+    - generic "按品类和照片里的造型起的":
+      - generic: 小间建议
+      - generic: 苔藓标本耳坠
+      - button "用这个"
+      - button "不用"
+  - generic: 已保存
+  - navigation "流程进度":
+    - button "资产 （当前）":
+      - text: 资产
+      - generic: （当前）
+    - button "信息":
+      - text: 信息
+    - button "共创":
+      - text: 共创
+    - button "方案" [active]:
+      - text: 方案
+    - button "出图":
+      - text: 出图
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我想有个安静的标本小屋，石台、灰泥墙，旁边来一点窗光，远处壁龛放一个棕瓶子。不要把耳环丢在一堆植物里。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: The user is describing a style vision for their product photography—a quiet specimen cottage aesthetic with stone surfaces, gray plaster walls, window light, and a distant brown bottle in a niche, while making sure the earrings don't get buried in plants. I'm looking at resin earrings with moss or seaweed specimens inside, oval-shaped with silver French hook ear wires, and I need to move through the workflow starting with asset confirmation before diving into product details.
+    - generic: "Since the asset route is B (original photo as reference), I can confirm the assets and then ask about the missing product information like category, material, and size. The user's style preferences should be recorded as \"said\" since they explicitly described them, but I'll gather the product details first before applying those style elements to avoid rework. I'm deciding whether to call show_step to move the canvas to the info panel, which would help the user fill in the fields directly. I'll also record the user's aesthetic vision for the specimen house scene using record_story with kind=theme, capturing the quiet specimen house concept they described. Then I'll batch the calls together: update_info, record_story, set_style, show_step, and suggest_name."
+    - generic: For the style fields, I'm setting tone to "安静的标本小屋感，低饱和、偏冷灰" based on their description, background as "灰色石台＋灰泥墙面，远处壁龛里放一个棕色小瓶", light as "侧面窗光，柔和、有淡淡影子", and placement as "一对耳环立着或斜靠在石台上，单独呈现，不埋进植物堆".
+    - generic: I'm also adding composition as "主体居中偏下，四周留边距，壁龛与棕瓶在远处虚化", props as "只放棕色小瓶（壁龛里一个），不放植物堆", and banned items as "不要把耳环丢在一堆植物里，不出现制作工具、模具、木棒". That's six fields total, within the limit.
+    - generic: For the product info, I'm updating category to "耳坠（树脂封藏苔藓/水下植物标本）" and material to "透明树脂封藏绿色苔藓状植物标本＋银色耳勾（以照片为准）", though I'm still working through how to describe the material honestly based on what's visible in the photo.
+    - generic: I'll use the note field to clarify what's visible versus what needs confirmation, and I'm asking the user about the exact plant species, dimensions, price, and target audience. For the name, I'm considering something like "苔影树脂耳坠" or "苔藓标本耳坠" based on the category and form, and I'll keep my reply brief and ask just one or two key questions.
+    - generic: I need to show the user the info panel and ask a couple of questions about the material and size, while also reminding them to confirm the assets in the canvas since that's still pending. I'll keep it brief and ask just one or two things rather than overwhelming them with too many questions.
+    - generic: I'm thinking through how to respond to the user's request.
+    - paragraph:
+      - generic: 已写成待确认建议：品类「耳坠（一对，树脂封藏植物标本）」、材料「透明树脂＋绿色苔藓状植物标本＋银色耳勾」、尺寸「未知（照片看不出实际尺寸）」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 已记下：你想要的画面：一个安静的标本小屋——石台、灰泥墙，旁边一点窗光，远处壁龛放一个棕瓶子。明确不要把耳环丢在一堆植物里。
+    - paragraph:
+      - generic: 风格卡已更新：色调「安静标本小屋感，低饱和、偏冷灰」、背景「灰色石台面＋灰泥墙，远处壁龛里一个棕色小瓶」、光线「侧面窗光，柔和，带淡淡影子」、摆放「一对耳环单独立在石台上，不埋进植物堆」、道具「只放壁龛里的棕色小瓶，不放植物堆」、禁止出现「不要一堆植物、不要制作工具/模具/木棒入镜」、构图「主体居中偏下，整对完整入框，四周留边距，壁龛与棕瓶在远处略虚」（推荐，待确认）
+    - paragraph:
+      - generic: 已写成名字建议「苔藓标本耳坠」，用户在顶栏接受后才改名
+    - paragraph: 照片收到了，这对椭圆形树脂耳坠里的绿色植物标本很好看。你说的「标本小屋」画面我已经记进共创，也按你说的把风格卡填好了：灰石台＋灰泥墙、侧面窗光、远处壁龛一个棕瓶，一对耳环单独立着，不埋植物堆，模具和木棒这些制作痕迹都不入镜。
+    - paragraph: 右侧「信息」里我按照片提了三条待确认：品类（耳坠一对）、材料（透明树脂＋苔藓状植物＋银耳勾）、尺寸（照片看不出，先标未知）。你在画布上点接受才生效。
+    - paragraph: 两个小问题：里面那株植物你当时用的是什么？还有这对耳坠大概多大（比如坠体长几厘米）？不知道也没关系，我们继续往下走。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - textbox "和小间说":
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加":
+    - button "对话模型：Qwen 3.8 Flash":
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite":
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "发送" [disabled]:
+  - region "画布":
+    - heading "方案" [level=2]
+    - button "回到当前这步"
+    - heading "摄影布景" [level=3]
+    - button "存为布景"
+    - button "更新为我的风格"
+    - button "雨后清晨": 雨后清晨
+    - button "午后书桌": 午后书桌
+    - button "干净陈列": 干净陈列
+    - button "温柔礼物": 温柔礼物
+    - generic: 色调
+    - generic: 你说的
+    - button "雨后苔绿": 雨后苔绿
+    - button "奶油米白": 奶油米白
+    - button "石灰浅灰": 石灰浅灰
+    - button "干燥玫瑰": 干燥玫瑰
+    - button "深墨对比": 深墨对比
+    - textbox "色调":
+      - /placeholder: 自己描述
+      - text: 安静标本小屋感，低饱和、偏冷灰
+    - generic: 背景
+    - generic: 你说的
+    - button "手工纸"
+    - button "亚麻布"
+    - button "原木"
+    - button "石材"
+    - button "纯色背景"
+    - textbox "背景":
+      - /placeholder: 自己描述
+      - text: 灰色石台面＋灰泥墙，远处壁龛里一个棕色小瓶
+    - generic: 光线
+    - generic: 你说的
+    - button "柔和自然光"
+    - button "窗边侧光"
+    - button "暖调午后光"
+    - button "清冷晨光"
+    - button "明暗对比光"
+    - textbox "光线":
+      - /placeholder: 自己描述
+      - text: 侧面窗光，柔和，带淡淡影子
+    - generic: 摆放
+    - generic: 你说的
+    - button "平铺"
+    - button "悬挂"
+    - button "支架"
+    - textbox "摆放":
+      - /placeholder: 自己描述
+      - text: 一对耳环单独立在石台上，不埋进植物堆
+    - generic: 道具
+    - generic: 你说的
+    - textbox "道具":
+      - /placeholder: 不放道具
+      - text: 只放壁龛里的棕色小瓶，不放植物堆
+    - generic: 禁止出现
+    - generic: 你说的
+    - textbox "禁止出现":
+      - /placeholder: 比如：花、玻璃器皿
+      - text: 不要一堆植物、不要制作工具/模具/木棒入镜
+    - generic: 构图
+    - generic "让石台和窗光留出呼吸感，棕瓶只做远景": 小间推荐
+    - button "主体居中，留白多"
+    - button "主体偏一侧，留出呼吸感"
+    - button "主体放大，突出细节"
+    - textbox "构图":
+      - /placeholder: 自己描述
+      - text: 主体居中偏下，整对完整入框，四周留边距，壁龛与棕瓶在远处略虚
+    - paragraph: 理由：让石台和窗光留出呼吸感，棕瓶只做远景
+    - generic: 表达
+    - textbox "表达":
+      - /placeholder: 用自己的话描述
+    - heading "比例" [level=3]
+    - radiogroup "主图比例":
+      - radio "1:1" [checked]:
+        - generic: 1:1
+      - radio "3:4":
+        - generic: 3:4
+      - radio "9:16":
+        - generic: 9:16
+    - generic: 淘宝／天猫、微信小店主图必传比例
+    - heading "可读方案" [level=3]
+    - generic: 比例 1:1
+    - generic: ·
+    - generic: Seedream 5.0 Lite
+    - generic: ·
+    - generic: 两张候选
+    - term: 色调
+    - definition: 安静标本小屋感，低饱和、偏冷灰
+    - term: 背景
+    - definition: 灰色石台面＋灰泥墙，远处壁龛里一个棕色小瓶
+    - term: 光线
+    - definition: 侧面窗光，柔和，带淡淡影子
+    - term: 摆放
+    - definition: 一对耳环单独立在石台上，不埋进植物堆
+    - term: 道具
+    - definition: 只放壁龛里的棕色小瓶，不放植物堆
+    - term: 禁止
+    - definition: 不要一堆植物、不要制作工具/模具/木棒入镜
+    - term: 构图
+    - definition: 主体居中偏下，整对完整入框，四周留边距，壁龛与棕瓶在远处略虚小间推荐
+    - term: 保真
+    - definition: 按参考图还原颜色、数量、轮廓和连接结构
+    - heading "提示词" [level=3]
+    - generic: 还没写
+    - generic: 由小间撰写，你可以直接改
+    - generic: 完整提示词
+    - textbox "完整提示词":
+      - /placeholder: 风格定好后，小间会在这里写出完整提示词
+    - button "让小间写"
+    - list:
+      - generic: 还缺：商品资产还没确认
+      - button "去资产"
+      - generic: 还缺：品类、材料、尺寸还没填（不知道可以标「未知」）
+      - button "去信息"
+      - generic: 还缺：共创总结还没确认
+      - button "去共创"
+      - generic: 还缺：提示词还没写
+    - generic: 滑动批准并生成两张
+    - generic: 没有生成
+    - slider "滑动批准并生成两张（键盘按 End 键）" [disabled]:
+      - text: 已批准
+- button "Open Next.js Dev Tools":
+- alert: 今天想给哪件作品拍主图？

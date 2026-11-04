@@ -7,6 +7,7 @@ import {
   acceptNameSuggestion,
   acceptSuggestion,
   addCost,
+  addStoryNote,
   applyScene,
   approve,
   cancelRevision,
@@ -31,6 +32,7 @@ import {
   styleLagsSummary,
   suggestInfo,
   suggestName,
+  summaryEdits,
 } from './work';
 
 const fresh = () => newWork({ imageModel: 'img-a', chatModel: 'chat-a', route: 'B' });
@@ -73,6 +75,27 @@ describe('共创总结：小间只能写草稿', () => {
     const empty = fresh();
     expect(confirmSummary(empty).story.summaryState).toBe('none');
     expect(editSummary(empty, { express: '我自己写', feel: '', avoid: '' }).story.summaryState).toBe('draft');
+  });
+
+  it('和现在一样的总结不重复起草，已确认的不会被打回草稿（BC-007）', () => {
+    const { work } = readyWork();
+    expect(draftSummary(work, { express: ' 雨后青苔 ', feel: '安静', avoid: '太花' })).toBe(work);
+    expect(work.story.summaryState).toBe('confirmed');
+  });
+
+  it('记下小间起草的原文，能对出用户确认前改掉了哪几项（BC-003）', () => {
+    const drafted = draftSummary(fresh(), { express: '像退潮后的海边早晨', feel: '清透', avoid: '' });
+    expect(summaryEdits(drafted.story)).toEqual([]);
+    const edited = confirmSummary(editSummary(drafted, { express: '清透、安静，克制的海岸感', feel: '清透', avoid: '' }));
+    expect(summaryEdits(edited.story)).toEqual([{ part: 'express', drafted: '像退潮后的海边早晨', now: '清透、安静，克制的海岸感' }]);
+    // 用户自己从头写的总结没有小间的原文，不报改动
+    expect(summaryEdits(editSummary(fresh(), { express: '我自己写', feel: '', avoid: '' }).story)).toEqual([]);
+  });
+
+  it('同样内容的共创记录只记一次（BC-007）', () => {
+    const w = addStoryNote(fresh(), 'inspiration', '午后窗框投影');
+    expect(addStoryNote(w, 'inspiration', ' 午后窗框投影 ')).toBe(w);
+    expect(addStoryNote(w, 'theme', '建筑线条').story.notes.map((n) => n.text)).toEqual(['午后窗框投影', '建筑线条']);
   });
 });
 

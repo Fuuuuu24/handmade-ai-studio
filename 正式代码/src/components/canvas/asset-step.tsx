@@ -30,7 +30,7 @@ function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
   const low = Math.max(asset.width, asset.height) < UPLOAD.lowEdge;
   return (
     <figure className="m-0 flex flex-col gap-2">
-      <div className="relative grid aspect-square place-items-center overflow-hidden rounded-lg bg-soft-2">
+      <div className="relative grid aspect-square grid-cols-1 grid-rows-1 place-items-center overflow-hidden rounded-lg bg-soft-2">
         {url && (
           // eslint-disable-next-line @next/next/no-img-element -- 本地数据库里的原图
           <img src={url} alt={`${ASSET_KINDS[asset.kind]}照片`} className="size-full object-contain" />
@@ -114,7 +114,8 @@ function PhotoCard({ asset, locked }: { asset: Asset; locked: boolean }) {
 function WhiteCompare({ open, onClose, parent, white }: { open: boolean; onClose: () => void; parent: Asset; white: Asset }) {
   const a = useBlobUrl(open ? parent.blobId : null);
   const b = useBlobUrl(open ? white.blobId : null);
-  const frame = 'grid h-[min(64vh,640px)] place-items-center overflow-hidden rounded-lg bg-soft';
+  // 行列写成 minmax(0,1fr)：默认的 auto 行会按图片原高撑开，框比图矮时下沿被裁掉（BC-012，和出图的对照原图同一个问题）
+  const frame = 'grid h-[min(64vh,640px)] grid-cols-1 grid-rows-1 place-items-center overflow-hidden rounded-lg bg-soft';
   return (
     <Modal open={open} onClose={onClose} wide title="对照白底图" sub="看镂空、细链、透明部分、轮廓和数量有没有走样，有没有被裁掉">
       <div className="grid grid-cols-2 gap-4">

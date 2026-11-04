@@ -29,7 +29,9 @@ export function ApproveButton({ className = '' }: { className?: string }) {
             setReasons(r.reasons);
             throw new Error(r.reasons.join('；'));
           }
-          setViewing(null); // 跟到出图，看生成进度（对话里的批准卡片批准后马上收起，不能等动画结束）
+          // 切到出图看生成进度（对话里的批准卡片批准后马上收起，不能等动画结束）。直接指定出图：
+          // 信息里还有没处理的建议时，「当前该做的一步」会停在信息（BC-002）
+          setViewing('output');
         }}
       />
       {reasons.length > 0 && (
