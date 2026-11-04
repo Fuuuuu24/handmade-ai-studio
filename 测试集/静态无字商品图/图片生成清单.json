@@ -1,0 +1,498 @@
+[
+  {
+    "product": "P01",
+    "role": "整体照",
+    "prompt": "Use case: photorealistic-natural. Asset type: synthetic merchant INPUT reference photo P01, whole product, not a finished advertisement. Generate ONE square photograph, a realistic casual phone photo on an ordinary light grey kitchen desk, soft daylight, modest image quality but clearly focused jewelry, no text, no labels, no watermark, no collage. Subject: one handmade fine 925 silver necklace, a complete continuous fine cable chain with a visible lobster clasp and 5cm extension chain at the top, arranged as a fully closed loose oval; one single small irregular rounded triangular pale aqua sea glass pendant in a simple silver bezel at bottom center, pendant around 12x9 mm, necklace 42cm main chain. Every connection physically continuous, no cut chain, no extra pendant, no gems. Entire necklace plus extension and clasp fully visible with generous margins, near-overhead camera, plausible everyday scale, slight naturally uneven lighting. Exactly one necklace. Preserve ordinary neutral tabletop, do not show a beautiful studio or background room.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T01-建立称心环境/前置图片/01-整体照.png",
+      "T09-同布景换机位/前置图片/01-整体照.png"
+    ],
+    "sha256": "9416a586b10e9efc5c597b11abb5444288d7a6f14eed4ce0713ec61928588d0f",
+    "generator_file_id": "exec-0e8a4583-0570-46c1-a22b-f94b24bcbfcc.png",
+    "reference": null
+  },
+  {
+    "product": "P01",
+    "role": "另一角度",
+    "prompt": "Use case: precise-object-edit. The reference is synthetic input photo P01 of ONE silver necklace. Create ONE NEW ordinary phone photo of the EXACT SAME necklace on the SAME grey tabletop from a slightly lower oblique front-right camera, about 35 degrees away from overhead, not a crop. Keep the whole closed fine cable chain, original lobster clasp and extension chain at top, the exact pale aqua rounded triangular sea-glass pendant, its bezel and bail, all attachment topology and quantity unchanged. Preserve pendant shape and necklace identity. Entire necklace complete in frame with margin, adequate focus across it, plain everyday daylight, no props, no room, no text, no collage. Change only camera position/perspective; do not invent hidden hardware or break the chain.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T01-建立称心环境/前置图片/02-另一角度.png",
+      "T09-同布景换机位/前置图片/02-另一角度.png"
+    ],
+    "sha256": "d6c71b9b0403842b002ff19d0510deadde163f6e3e189b312965ad0cb34f895c",
+    "generator_file_id": "exec-e00c1eeb-e495-4df1-8479-e2e62e515be5.png",
+    "reference": "T01-建立称心环境/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P01",
+    "role": "关键细节",
+    "prompt": "Use case: precise-object-edit. Supporting reference: P01 exact silver necklace. Generate ONE macro phone detail photograph of its lower pendant and connected chain on the identical neutral grey tabletop. Keep exact pale aqua asymmetrical rounded triangular sea-glass pendant in thin silver bezel, its oval silver bail and the continuous fine cable chain passing through bail, same color and physical attachment as reference. Show pendant centered and visible chain continuing naturally out of upper sides of frame; this is intentionally a detail view, not a second necklace design. Realistic jewelry-scale detail, modest everyday soft light, no text, labels, collage, props or studio styling.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T01-建立称心环境/前置图片/03-关键细节.png",
+      "T09-同布景换机位/前置图片/03-关键细节.png"
+    ],
+    "sha256": "74f67c14dd044034505c8ffcb411656306bd6547617936124ef725768d15d890",
+    "generator_file_id": "exec-38d5e32e-6f02-4b65-9341-976ab5f0e910.png",
+    "reference": "T01-建立称心环境/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P01",
+    "role": "杂乱伪实拍",
+    "prompt": "Use case: precise-object-edit. Reference fixes identity of P01 silver fine necklace and pale aqua triangular pendant. Make ONE messy believable amateur smartphone snapshot of that SAME complete necklace on a BUSY USED JEWELRY-MAKING DESK. Not product photography, not a neat flat-lay. Necklace laid slightly skewed off-center on scratched brown wood and wrinkled kraft paper, irregular closed oval, its original chain, clasp, extension and pendant unchanged and all visible. Scattered off-frame pliers at upper left, torn tissue, tangled spare cotton thread crossing empty background only, half-open unbranded plastic organizer at right, tape roll partly cropped at bottom, packaging scraps randomly overlapping each other. Uneven mixed window and warm desk light, slight phone tilt and mild grain, natural shadows, jewelry occupies about half image. Clutter asymmetrical, not arranged in a ring. No extra necklaces, beads or jewelry designs. Do not obscure pendant or chain connectivity. No readable text, labels, watermark or collage. Must look like hurried merchant documentation, not an art-directed ad.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T01-建立称心环境/前置图片/04-杂乱伪实拍.png",
+      "T09-同布景换机位/前置图片/04-杂乱伪实拍.png"
+    ],
+    "sha256": "d7e588b7589e1d5a9790a1541f9094d0fedd412e1e6c6d010795e242d88277eb",
+    "generator_file_id": "exec-bebfc4c8-de29-477d-b036-42b270cf8c94.png",
+    "reference": "T01-建立称心环境/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P02",
+    "role": "整体照",
+    "prompt": "Use case: photorealistic-natural. Generate ONE square casual smartphone INPUT product photograph P02 on plain ordinary light grey tabletop, clear focus, soft imperfect home daylight, no studio scenery, no text or watermark or collage. Subject exactly ONE PAIR of matching handmade pale light-blue transparent resin drop earrings, each a small elongated rounded teardrop 24mm long x12mm wide, total height with sterling silver fishhook about32mm. Smooth transparent resin with visible pale-blue tint and tiny natural casting microtexture, no embedded plants or glitter. Each drop attached with one small silver jump ring to one silver fishhook. Both entire earrings lying side by side, enough margin, near-overhead view, no hands, no extra jewelry. Preserve translucency, paired identity, physical joints, no decorative props.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T02-换商品保持原布景/前置图片/01-整体照.png",
+      "T12-离开后再次使用/前置图片/01-整体照.png"
+    ],
+    "sha256": "740924927fbe5f31623ba5dce375bd3d2fbf071f699f0847fd9dac8b557b80de",
+    "generator_file_id": "exec-58ad6437-011d-4915-afe2-204cf86218c0.png",
+    "reference": null
+  },
+  {
+    "product": "P02",
+    "role": "另一角度",
+    "prompt": "Use case: precise-object-edit. Reference is exact P02 pale blue transparent resin teardrop earring pair. Produce ONE new ordinary phone reference photo of the SAME two earrings, same tabletop and soft daylight, camera moved to a clear oblique three-quarter angle about 35 degrees from overhead so resin thickness is visible. Keep identical droplet silhouettes, blue tint, silver fishhooks, connecting rings and quantity two. Both earrings entirely visible with margins, gently lying on tabletop, physical connections unchanged, no stylized studio, no props, no text, no watermark, no collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T02-换商品保持原布景/前置图片/02-另一角度.png",
+      "T12-离开后再次使用/前置图片/02-另一角度.png"
+    ],
+    "sha256": "719ed78711bb851b90b2ef7481febac5c7aaea19deeff7bc672c947d999c7ccc",
+    "generator_file_id": "exec-339cf1f1-c680-4254-9d4d-9f0ee48e3566.png",
+    "reference": "T02-换商品保持原布景/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P02",
+    "role": "关键细节",
+    "prompt": "Use case: precise-object-edit. Reference is P02 exact blue resin teardrop earrings. Create ONE new macro phone detail shot of the LEFT earring's resin body, top drilled hole, connecting silver jump ring, lower part of fishhook visible. Preserve exact clear pale-blue teardrop, tiny bubbles, thickness and ring attachment. Ordinary same grey tabletop daylight. Body large enough to inspect transparent rim and see grey tabletop through center, plausible close-up, no new design, no extra earrings, no text or collage. Intentionally detail framing, fishhook may leave top edge but resin body must remain whole.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T02-换商品保持原布景/前置图片/03-关键细节.png",
+      "T12-离开后再次使用/前置图片/03-关键细节.png"
+    ],
+    "sha256": "f5728b14140104c77f3dc7ede3fba1ae18cc7506f1bb7545d6a6cb2a0b472cd5",
+    "generator_file_id": "exec-c34e6d5b-6096-4e77-8621-3763c50ec814.png",
+    "reference": "T02-换商品保持原布景/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P02",
+    "role": "杂乱伪实拍",
+    "prompt": "Use case: precise-object-edit. Reference exact P02 pale blue transparent teardrop pair, silver fishhooks and connecting rings. ONE messy amateur smartphone snapshot of SAME pair on creased off-white packing tissue partly covering a worn cutting mat. Pair casually placed at different rotations, not perfectly aligned, both full hooks and same clear blue drops visible. Crowded real craft desk with cropped tape dispenser upper edge, crumpled clear plastic pouch partly beside one drop without covering it, blunt scissors at lower left, a piece of packing cord and overlapping blank cardboard scraps at right. Mixed weak daylight and warm lamp, mild grain and diagonal framing, uneven shadows and reflections through transparent resin. Keep exact pair design, tint, quantity TWO and original attachments. Do not make fresh jewelry or props into product, no readable text or collage or watermark. Not aesthetic arranged still life.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T02-换商品保持原布景/前置图片/04-杂乱伪实拍.png",
+      "T12-离开后再次使用/前置图片/04-杂乱伪实拍.png"
+    ],
+    "sha256": "b42834420c31b116e054c0c9963b14a56a28c5120e34a06ae3a1fbe72703ad0e",
+    "generator_file_id": "exec-956dedf6-9a42-43a4-85f1-254b639197b5.png",
+    "reference": "T02-换商品保持原布景/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P03",
+    "role": "整体照",
+    "prompt": "Use case: photorealistic-natural. Create ONE square ordinary phone INPUT photo P03, no text or collage or watermark. On a plain pale-grey everyday table lie exactly two matching handmade brushed warm brass geometric drop earrings. Each is a rectangular brass plate 30x14mm with EXACTLY THREE long parallel vertical rounded rectangular OPEN SLOTS, three holes clearly open through each plate, with solid brass bars between them and solid outer border. Each plate attached at its top by one small brass jump ring to one simple brass fishhook; total earring height38mm. Pair side by side near-overhead, entire hooks and plates visible with margins. Soft normal window light, realistic metal patina, clear cutout geometry. No stones, no engravings, no additional slots, no ornate props or studio background.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T03-窗影工作室/前置图片/01-整体照.png",
+      "T11-手改环境要求/前置图片/01-整体照.png"
+    ],
+    "sha256": "08a1b87a4ca2891ec5e10bb5bedf3ceda28bb55816da2e40bf7f4002cea1097b",
+    "generator_file_id": "exec-42a842ee-d3c9-498d-b80f-d8cc602059c0.png",
+    "reference": null
+  },
+  {
+    "product": "P03",
+    "role": "另一角度",
+    "prompt": "Use case: precise-object-edit. Input is P03 exact pair of brass rectangular cutout earrings. Produce ONE new casual phone photo from an oblique front-right angle about 35 degrees from overhead, SAME neutral tabletop. Keep both complete earrings and hooks in frame. Each original brass plate must retain EXACTLY THREE parallel long vertical open slots, unchanged plate geometry and original ring connections. Show slight real thickness of brass and shadow through holes. Keep original patina, no new stones or extra holes, no text, collage, decorative background or props. Change camera only, not product.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T03-窗影工作室/前置图片/02-另一角度.png",
+      "T11-手改环境要求/前置图片/02-另一角度.png"
+    ],
+    "sha256": "bc307f76e628172971742991de5c48b55b47d8375ff9b92dd084c50495ed5c7e",
+    "generator_file_id": "exec-399ef7e7-049e-4be4-9e7d-d055d193744d.png",
+    "reference": "T03-窗影工作室/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P03",
+    "role": "关键细节",
+    "prompt": "Use case: precise-object-edit. Reference P03 exact three-slot brass earring pair. Generate ONE macro phone detail shot of ONE original brass rectangular plate, keep all EXACTLY THREE open vertical slots, all four outer plate edges, top attachment hole and brass jump ring visible. Same brushed aged gold brass, same proportions and rounded rectangular slots. Grey tabletop visible through all three apertures, slight oblique thickness and contact shadow, clear physical detail. Other earring out of frame. No new holes, stones, engravings, props, text, watermark or collage. Camera closer only, not a redesigned object.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T03-窗影工作室/前置图片/03-关键细节.png",
+      "T11-手改环境要求/前置图片/03-关键细节.png"
+    ],
+    "sha256": "794dcccdbc1874708df5eac9e8fc5b8f1a714c6d630e0b5c2c09e7aed6c6126b",
+    "generator_file_id": "exec-daaf41de-94ca-4d23-ab5a-38556d96e425.png",
+    "reference": "T03-窗影工作室/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P03",
+    "role": "杂乱伪实拍",
+    "prompt": "Use case: precise-object-edit. Reference P03 exact pair brass rectangular earrings with exactly THREE long open vertical slots per plate. ONE cluttered amateur phone snapshot on scratched green cutting mat and rumpled blank brown packaging paper. Two original earrings lie loosely separated and slightly rotated, not aligned, all SIX slots visible, same brass fishhooks and original physical joints. Cropped pliers, loose bits of masking tape, an open empty tiny parts container and overlapping offcuts at frame edges, unsorted random workspace not symmetrical props. Uneven harsh window light from one side with a broad soft shadow across one edge, mild tilt and grain; product occupies middle half, clear enough to count holes. No extra earrings or loose metal parts attached to product, no text, labels, collage or watermark.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T03-窗影工作室/前置图片/04-杂乱伪实拍.png",
+      "T11-手改环境要求/前置图片/04-杂乱伪实拍.png"
+    ],
+    "sha256": "1c069f2b92c4cdb3e20a0329f8242e4b2a41c82d5972984d1f1d007e28c60b8d",
+    "generator_file_id": "exec-9e18ca3d-1a4a-4c6f-92f7-de9d8c2b3b37.png",
+    "reference": "T03-窗影工作室/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P04",
+    "role": "整体照",
+    "prompt": "Use case: photorealistic-natural. ONE square ordinary smartphone input photo P04 of a handmade intentionally ASYMMETRIC pair of brushed brass earrings lying on neutral pale grey home tabletop. LEFT earring: a single flat open circular brass ring, outer diameter18mm, connected by a small jump ring to a brass fishhook, total height26mm. RIGHT earring: a single solid narrow brass rectangular bar, 32x7mm, attached by one jump ring to a matching brass fishhook, total height41mm. Exactly TWO earrings of DIFFERENT designs, circle on image left and longer solid bar on image right. Entire items, hooks and attachment connections visible, near-overhead clear focus, soft ordinary window light, no gemstones, no engravings, no text, watermark, props or collage. Keep ring fully open, right bar solid without slots.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T04-非对称作品适配/前置图片/01-整体照.png"
+    ],
+    "sha256": "0c09eaa8d6679b659fa5006acde1dfcc643c80305ce1297cf92161b16ff51d2c",
+    "generator_file_id": "exec-3c175864-bff2-40b4-af1b-35e725d01752.png",
+    "reference": null
+  },
+  {
+    "product": "P04",
+    "role": "另一角度",
+    "prompt": "Use case: precise-object-edit. Reference is exact P04 intentionally asymmetric brass pair. Generate ONE new ordinary phone input photo from a lower oblique front-right angle, same grey home tabletop. Preserve exact items: image-left flat OPEN CIRCULAR brass ring and image-right longer SOLID RECTANGULAR bar, each original brass fishhook and connecting ring, same relative physical dimensions, surface brushing and quantities. Do not make symmetrical earrings, do not add slots to bar, do not fill circle. Both entire earrings with margins. Natural daylight, modest casual realism, no text or collage or props.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T04-非对称作品适配/前置图片/02-另一角度.png"
+    ],
+    "sha256": "90532d6c9c3fd3d04d6f1c0668d9f3a5f8e5f9818cfe5fff3039549917c64dd4",
+    "generator_file_id": "exec-8693d7e1-b426-408f-a441-f0383e4157f0.png",
+    "reference": "T04-非对称作品适配/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P04",
+    "role": "关键细节",
+    "prompt": "Use case: precise-object-edit. Reference exact P04 brass asymmetric pair. Generate ONE close detail phone photograph on same grey tabletop, framing the UPPER PORTIONS of BOTH original earrings side by side: left ring's top arc and attachment, right bar's upper end and attachment. Both brass fishhooks and their small connecting jump rings visible so different round-vs-bar silhouettes and physical joins can be inspected. Preserve exact brushed finish, relative thicknesses and original physical design. Bottom of larger pieces may intentionally leave lower frame in this macro detail. No symmetric redesign, no extra holes or jewelry, no props, text or collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T04-非对称作品适配/前置图片/03-关键细节.png"
+    ],
+    "sha256": "2f6f35d7f1efea3a3ad099332d6db41a74337f8d95568fb71f923bdcdfde492c",
+    "generator_file_id": "exec-4cce42f6-9240-40a2-9b3f-9ae8f7ebc209.png",
+    "reference": "T04-非对称作品适配/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P04",
+    "role": "杂乱伪实拍",
+    "prompt": "Use case: precise-object-edit. Reference exact P04 asymmetric pair, left open brass circle and right long solid brass bar with original hooks. ONE hurried messy phone snapshot of same two earrings casually on a scratched white laminate HOME DESK partly near a laptop keyboard at top, coiled charging cable crossing background right, an open cardboard mailer bottom-left, wrinkled tissue and a cropped black-handled plier at left. No kraft-paper central pedestal or neat prop arrangement. Earrings rotated slightly differently, placed off-center, one circle one solid bar retained, both entire and clearly distinct. Mixed lamp/window light slightly warm, a broad desk shadow, mild phone tilt. Preserve exact product geometry, rings, finish and quantities; no additional jewelry, no readable text or brand, watermark or collage. Background objects may overlap each other, never hide core product features.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T04-非对称作品适配/前置图片/04-杂乱伪实拍.png"
+    ],
+    "sha256": "8447362fe8a0ca150f56fd47708b13af8128024b418b9c5999b078d1ac433bf2",
+    "generator_file_id": "exec-e355c2c5-25f0-45dd-a3d0-eb45ed0327bd.png",
+    "reference": "T04-非对称作品适配/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P05",
+    "role": "整体照",
+    "prompt": "Use case: photorealistic-natural. Generate ONE square casual phone INPUT product photograph P05 on ordinary plain light-grey home tabletop. ONE handmade silver-linked freshwater pearl bracelet arranged in a closed oval, entire bracelet and clasp in frame. EXACTLY NINE individually countable irregular cream-white baroque pearls, each visibly different organic oval/lumpy shape, each pearl mounted on a silver wire link, linked sequentially by small silver rings, with ONE silver lobster clasp closing the loop at top. No extra pearl dangles, no other beads, no extension chain. Bracelet total length17.5cm. Arrange nine pearls clearly separated around oval, no overlapping pearls, natural nacre imperfections. Near-overhead camera, clear focus, everyday window light, no props, labels, text, collage or finished studio room.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T05-天然差异与手作台/前置图片/01-整体照.png",
+      "T10-同房间换取景位置/前置图片/01-整体照.png"
+    ],
+    "sha256": "f82222b7de1186985234e770028875920375fcfd2fc7008423ba3df652b40294",
+    "generator_file_id": "exec-4d6c2e7d-4e15-499a-ad87-1015438dd996.png",
+    "reference": null
+  },
+  {
+    "product": "P05",
+    "role": "另一角度",
+    "prompt": "Use case: precise-object-edit. Reference P05 exact closed nine-pearl bracelet. Generate ONE new ordinary phone photo from an oblique front-right camera, same grey tabletop. Preserve EXACTLY NINE irregular baroque pearls in the SAME ORDER, each pearl's distinctive shape, original silver wire links, connecting rings and single lobster clasp at top. Show complete bracelet oval with margin, all nine pearls separated and countable, not overlapping. Camera angle changes only; keep closed loop, no added pearls, no extension or dangling beads. Natural everyday light, clear focus, no props, text, collage or studio.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T05-天然差异与手作台/前置图片/02-另一角度.png",
+      "T10-同房间换取景位置/前置图片/02-另一角度.png"
+    ],
+    "sha256": "8fa826ae751abe086ced17bb74bb674da1e2603bc76cfeb20d589128c1bcf9d6",
+    "generator_file_id": "exec-01a8037f-d934-4560-88e2-2135b0d464b9.png",
+    "reference": "T05-天然差异与手作台/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P05",
+    "role": "关键细节",
+    "prompt": "Use case: precise-object-edit. Reference exact P05 nine-pearl silver-linked bracelet. Make ONE macro phone detail photo on same grey tabletop of the BOTTOM THREE adjacent original pearls and their connecting silver wire loops and jump rings. Preserve these three distinctive irregular pearl shapes in the same order and their natural cream nacre, visible imperfect surfaces. Rest of bracelet may leave upper sides of frame; this is a close detail, not a new three-pearl bracelet. Clear physically connected rings and wire wrapping, natural light, no extra pearls, no smoother spherical replacements, no text, collage or props.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T05-天然差异与手作台/前置图片/03-关键细节.png",
+      "T10-同房间换取景位置/前置图片/03-关键细节.png"
+    ],
+    "sha256": "93d2fdcaad7ee66c42407855f6d5454f33e2c59e2f9e4a1c484ddf9ff650de47",
+    "generator_file_id": "exec-39dcb76c-d601-4afa-87c2-10b0bc25d307.png",
+    "reference": "T05-天然差异与手作台/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P05",
+    "role": "杂乱伪实拍",
+    "prompt": "Use case: precise-object-edit. Reference exact P05 NINE irregular pearl bracelet with silver links and single lobster clasp. ONE casual messy phone snapshot of same closed bracelet on a wrinkled striped cotton scrap on a worn sewing desk; bracelet lies diagonally, slightly imperfect oval, all NINE original pearls visible and countable in original sequence. Clutter: cropped scissors at upper-right, loose grey sewing thread winding through background, a pin cushion off-frame left, small empty zip bag and torn packaging at lower edge. Irregular overlapping clutter, not neat flat-lay. Uneven afternoon light with warm tint and partial shadow, mild grain, product occupies about half frame. Keep irregular pearl shapes, silver links and clasp, no extra pearls, no round uniform bead replacements, no readable text, collage or watermark.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T05-天然差异与手作台/前置图片/04-杂乱伪实拍.png",
+      "T10-同房间换取景位置/前置图片/04-杂乱伪实拍.png"
+    ],
+    "sha256": "17ba817c40e3f3c6c4408cc94fe87d6ebead64ed52418b62eebf472824316144",
+    "generator_file_id": "exec-bd83f0d5-69fd-4290-9a4b-3212855c8049.png",
+    "reference": "T05-天然差异与手作台/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P06",
+    "role": "整体照",
+    "prompt": "Use case: photorealistic-natural. Generate ONE square ordinary smartphone INPUT photo P06 on plain pale grey everyday tabletop, not an advertisement. Subject ONE handmade adjustable cotton macrame bracelet in TWO COLORS ivory cream and muted ochre yellow. Braided cotton band arranged as a complete closed oval with an adjustable sliding-knot closure and two short knotted drawcord ends at the top. Across FRONT LOWER CENTER of bracelet are EXACTLY THREE separate raised decorative macrame knots, clear countable bigger bumps arranged side-by-side along band, ochre center strands within cream braid. Other braid and rear sliding closure remain simple, so three FRONT decorative knots distinguishable. Fits wrist15-21cm. Cotton fibers and handwoven texture visible. Whole bracelet and cords in frame, near-overhead clear focus, normal daylight, no beads, no metal tags or clasps, no props, text, watermark or collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T06-同工作台竖版展示/前置图片/01-整体照.png"
+    ],
+    "sha256": "31098aa85e967ff8f172445f681f4fd4565480e14e8d30e8f3caedc658229403",
+    "generator_file_id": "exec-4e9f6fea-23c4-4315-87e2-67b1c07910ee.png",
+    "reference": null
+  },
+  {
+    "product": "P06",
+    "role": "另一角度",
+    "prompt": "Use case: precise-object-edit. Supporting reference exact P06 ivory and ochre braided cotton bracelet. Create ONE new phone photo from lower oblique front-right angle, same grey tabletop. Preserve EXACTLY THREE front decorative rounded knots, their ochre center and cream loops, original two-tone braid, rear sliding closure and both knotted drawcord ends. Whole bracelet and cords visible, no cropping ends. Preserve design and proportions, show raised knots and cotton fibers, ordinary daylight clear focus. No beads, metal, extra front knots, props, text or collage. Change camera perspective only.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T06-同工作台竖版展示/前置图片/02-另一角度.png"
+    ],
+    "sha256": "8bf8b82a620e0a049c45b1e94aa807702c93d11ae9191b1437f1a5b30b59c043",
+    "generator_file_id": "exec-55f71040-f521-4363-93e2-ac3fbdf7df00.png",
+    "reference": "T06-同工作台竖版展示/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P06",
+    "role": "关键细节",
+    "prompt": "Use case: precise-object-edit. Reference exact P06 two-tone cotton bracelet. Generate ONE close-up macro phone input image focused on ALL THREE FRONT decorative knots and a little adjacent braid on both sides. Preserve exact three rounded knots, ivory outer loops, ochre yellow centers and original left-to-right arrangement. Fibers clearly visible, same grey tabletop and natural light. Rest of bracelet may leave upper frame, this is a detail not new bracelet. No beads, metal, extra decorative knots, props, text or collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T06-同工作台竖版展示/前置图片/03-关键细节.png"
+    ],
+    "sha256": "434174227b8bdaae1d821d1159b22fcd04979ed023156900297fe229f7740de1",
+    "generator_file_id": "exec-3b77627a-f299-4265-aacb-d3c336ab213c.png",
+    "reference": "T06-同工作台竖版展示/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P06",
+    "role": "杂乱伪实拍",
+    "prompt": "Use case: precise-object-edit. Exact reference P06 ivory-ochre cotton macrame bracelet with THREE raised front knots and rear sliding closure. ONE messy candid phone input photo on a crowded real sewing/craft desk: uneven rumpled faded blue cloth over worn wood, frayed offcut strands around, cropped blunt scissors near top left, loose cotton spool partly visible right, empty clear packaging across bottom corner. Same bracelet casually placed diagonal and off-center, complete band, both drawcords and all three original knots visible, no neat centered oval or staged prop arrangement. Preserve two colors, braided pattern and exact three knots. Uneven warm desk-lamp light and cool window fill, slight grain, ordinary snapshot not polished ad. No beads, metal tags, other finished bracelets, readable text or collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T06-同工作台竖版展示/前置图片/04-杂乱伪实拍.png"
+    ],
+    "sha256": "fcc5c8b628ac4af7d94333fd1b74c40371fcd176b71fd195434b087bfaee785a",
+    "generator_file_id": "exec-35dca264-bba6-43bd-b3b9-2f46252707d1.png",
+    "reference": "T06-同工作台竖版展示/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P07",
+    "role": "整体照",
+    "prompt": "Use case: photorealistic-natural. ONE square casual smartphone INPUT photo P07, near-overhead on plain pale grey home tabletop. Exactly ONE PAIR of matching handmade oval CLEAR COLORLESS transparent resin earrings, silver fishhooks and small silver jump rings, total height35mm, oval resin body about25x16mm. Inside each oval a small recognizable branching cluster of dark green dried moss concentrated in lower half, upper half mostly clear resin. Both bodies genuinely transparent, neutral grey table visible through them, glossy rim, moss embedded INSIDE not sitting on top. Complete pair hooks and bodies visible with margin, clear focus and ordinary window light. No opaque green stones, no flowers, no other jewelry, no text, watermark, collage or decorative studio.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T07-建立标本小屋/前置图片/01-整体照.png"
+    ],
+    "sha256": "e1bb4d664855309e04e7c2c1c6feb24eb6ce4ccb02b8b3f987eab506a8959a37",
+    "generator_file_id": "exec-5a5ad1d0-126a-4fdd-9d2e-c6d0b78f8f1a.png",
+    "reference": null
+  },
+  {
+    "product": "P07",
+    "role": "另一角度",
+    "prompt": "Use case: precise-object-edit. Exact reference P07 clear oval resin moss earrings. ONE new oblique front-right phone photo of SAME PAIR on same grey table, both entire silver hooks and resin bodies visible, show side thickness. Keep each original moss branching layout, clear colorless upper area, oval outline and ring connections, no new plants. Natural light, clear product detail, no props, text or collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T07-建立标本小屋/前置图片/02-另一角度.png"
+    ],
+    "sha256": "9391ad5d0c4710f9df5cffed63118b44d29d525e033015d917d780857a64d99b",
+    "generator_file_id": "exec-bdde42f2-32ea-4579-a572-c0458da9aeec.png",
+    "reference": "T07-建立标本小屋/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P07",
+    "role": "关键细节",
+    "prompt": "Use case: precise-object-edit. Reference exact P07 transparent oval moss earring pair. Make ONE macro phone detail photograph of the LEFT original resin oval, including whole oval clear rim and original small silver jump ring; hook may extend above top edge. Preserve same branching moss cluster layout concentrated below, upper resin mostly colorless and clear, table visible through empty areas. Grey tabletop, ordinary daylight, show embedded depth and resin edge, no extra moss, stones, props, text or collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T07-建立标本小屋/前置图片/03-关键细节.png"
+    ],
+    "sha256": "313b04a5c77fb94b30225a4847f69627aaab4152d9cdea3fd69d55e2d76bf2a6",
+    "generator_file_id": "exec-4c13dc37-7802-40f7-8450-5aa70dd2c5c8.png",
+    "reference": "T07-建立标本小屋/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P07",
+    "role": "杂乱伪实拍",
+    "prompt": "Use case: precise-object-edit. Reference exact P07 pair clear oval resin earrings with embedded branching green moss and silver hooks. ONE cluttered candid merchant phone photo on a messy RESIN CRAFT workbench: creased translucent baking paper over scratched beige laminate, a cropped empty silicone mold at upper left, wooden mixing sticks and sealed unbranded resin bottles partly out of frame at right, crumpled tissue and plastic scraps at lower edge. Same two earrings placed at slightly different rotations off-center; preserve original oval silhouettes, silver ring attachments and each original moss cluster layout. Transparent edges must remain visible but reflections from messy background make outline moderately challenging. Uneven daylight, warm cast, mild grain, tilted camera, not neatly styled, no other jewelry, no extra plants added inside resin, no readable text, watermark or collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T07-建立标本小屋/前置图片/04-杂乱伪实拍.png"
+    ],
+    "sha256": "e106a6db8b6e5ed2493e9b1474724e872fb7e443b997228d02e2a6dcd067bbb5",
+    "generator_file_id": "exec-a86e25e0-2337-484c-80e0-b61ec862ab61.png",
+    "reference": "T07-建立标本小屋/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P08",
+    "role": "整体照",
+    "prompt": "Use case: photorealistic-natural. ONE square ordinary phone INPUT photo P08, ONE handmade oval clear transparent resin brooch 38x27mm on plain pale-grey everyday table. FRONT three-quarter near-overhead view. Inside resin EXACTLY ONE small rust-red dried leaf with a visible central vein, single leaf centered diagonally with short stem, no other plant fragments. Clear convex oval resin rim, grey tabletop visible through clear edges. Thin brass brooch backing and a little hint of brass safety pin at far edge, not a necklace, no chain or earhook. Whole brooch visible with margins, realistic home daylight, clear focus, no hands, no props, no text, watermark or collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T08-同环境局部覆盖/前置图片/01-整体照.png"
+    ],
+    "sha256": "83d15ba5471771a0e04e4f630ba8d574b11d6a965b70a9fa2ee729a962f11b36",
+    "generator_file_id": "exec-23f48c01-881c-4344-a175-fa7ed3f1640e.png",
+    "reference": null
+  },
+  {
+    "product": "P08",
+    "role": "另一角度",
+    "prompt": "Use case: precise-object-edit. Exact reference P08 clear oval resin single-leaf brooch. ONE new phone photo on same grey tabletop, camera moved to a lower front-left three-quarter angle so resin thickness and brass rim are clearer. Preserve exactly ONE rust-red serrated leaf, original central vein and stem, its orientation within oval, same brass backing. Keep whole brooch with margins. Do NOT invent a full unseen back view or new pin mechanism. Natural everyday light, no props or text or collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T08-同环境局部覆盖/前置图片/02-另一角度.png"
+    ],
+    "sha256": "48fe10da6e28160a9086aa85a0fca76b3188baa84840989c5c8b3dbf8766c278",
+    "generator_file_id": "exec-e2da1762-6de0-42f9-82a3-b741cd5cfbdf.png",
+    "reference": "T08-同环境局部覆盖/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P08",
+    "role": "关键细节",
+    "prompt": "Use case: precise-object-edit. Reference exact P08 clear oval single red leaf brooch. Make ONE macro phone detail photograph of the original leaf vein, serrated leaf edge and transparent resin rim with thin brass backing edge visible. Preserve EXACTLY ONE same leaf and its orientation, original rust-red color, no duplicate leaves or flowers. Whole oval may nearly fill frame; no invented back mechanism. Same grey tabletop and plain daylight, clear inspection detail, no props, text or collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T08-同环境局部覆盖/前置图片/03-关键细节.png"
+    ],
+    "sha256": "6889e630e80b9cf17fd49ad201ab0978c16ec97962f223c386303e1b7365e022",
+    "generator_file_id": "exec-c3e2f179-a60a-4588-a829-15226e912186.png",
+    "reference": "T08-同环境局部覆盖/前置图片/01-整体照.png"
+  },
+  {
+    "product": "P08",
+    "role": "杂乱伪实拍",
+    "prompt": "Use case: precise-object-edit. Reference exact P08 oval clear resin brooch with ONE rust-red serrated leaf and brass backing. ONE candid messy merchant phone snapshot on a cluttered packing bench: torn corrugated cardboard edge bottom-left, crumpled translucent tissue underneath part of work area, cropped masking tape upper-right, empty clear bag curled at left, scattered packing cord and blunt scissors partly out of frame top. Brooch off-center rotated diagonally, complete oval visible, exact ONE original red leaf, vein and stem retained, transparent rim and brass edge visible. Uneven warm household light plus cooler window reflection, soft broad shadow and mild grain, imperfect ordinary phone composition, not a luxury still-life or neat prop layout. No other brooches, loose leaves mistaken as product, readable text, logo, watermark or collage.",
+    "tool": "image_gen",
+    "model_version": "不可核实",
+    "date": "2026-11-02",
+    "qc": "已逐张目视核对主体、数量、主要轮廓与连接；细纹及光学外观不保证逐像素一致",
+    "copies": [
+      "T08-同环境局部覆盖/前置图片/04-杂乱伪实拍.png"
+    ],
+    "sha256": "4d9f0ecd23ae56b28796d8b2f53ff0a43695db27ccea586517def8c00c372331",
+    "generator_file_id": "exec-8e04fccb-42ef-4ba4-9422-8f6f16106d84.png",
+    "reference": "T08-同环境局部覆盖/前置图片/01-整体照.png"
+  }
+]
