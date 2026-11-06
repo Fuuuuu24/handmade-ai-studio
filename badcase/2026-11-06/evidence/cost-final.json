@@ -1,0 +1,13 @@
+{
+  "conservativeUSD": 0.49268246270000005,
+  "limitUSD": 0.5,
+  "counts": {
+    "chat": 49,
+    "image": 12
+  },
+  "statuses": {
+    "settled": 48,
+    "reserved": 13
+  },
+  "note": "估算含失败预留，非供应商实扣"
+}

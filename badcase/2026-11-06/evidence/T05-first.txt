@@ -1,0 +1,126 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "T05 晚潮手链" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": T05 晚潮手链
+    - generic: 共创中
+  - generic: 已保存
+  - generic "服务端花费账本，打开页面时读取": 预算余 68.24 / 69 美元
+  - navigation "流程进度":
+    - button "资产 （完成）":
+      - text: 资产
+      - generic: （完成）
+    - button "信息 （当前）":
+      - text: 信息
+      - generic: （当前）
+    - button "共创":
+      - text: 共创
+    - button "方案":
+      - text: 方案
+    - button "出图":
+      - text: 出图
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我想在自己的原木手作台上拍晚潮，后面有架子和线团，能看见前后层次，但珍珠还是主角，九颗不规则的形状要保留。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: 用户想拍的作品：照片里是一条巴洛克珍珠手链/项链，数一下珍珠：1(左上)、2(顶中偏左大颗)、3(右上)、4(右中)、5(右下)、6(底中偏右)、7(底中)、8(左下)、9(左中)。看起来是九颗不规则巴洛克珍珠，用银色小环/缠绕线连接，有一个龙虾扣。
+    - generic: 用户说"晚潮"——这是作品的名字？还是主题/氛围？"我想在自己的原木手作台上拍晚潮"——"晚潮"可能是作品名，也可能是意境。后面有架子和线团，能看见前后层次——这是构图/背景要求：原木手作台场景，背景有架子、线团，有前后景层次，珍珠是主角。九颗不规则形状要保留——不能改的细节。
+    - generic: 资产路线是 B，原图直接作参考图，不需要白底图。所以资产这一步只需要引导用户确认资产即可。用户已经上传了整体照片，路线 B 不需要白底，我可以直接确认资产步骤推进？状态说"资产待确认"。我应该引导用户在画布上确认资产（画布上有确认操作）。我不能代确认。
+    - generic: 先记录用户说的信息：作品名可能叫"晚潮"。品类：照片里看像手链或项链，九颗珍珠，有龙虾扣——长度看不出，需要问是手链还是项链。材料：巴洛克珍珠（淡水珍珠？）+ 银色金属环/扣。用户没明确说材料，照片里看不太出是不是银，建议写"珍珠+银色金属连接环和龙虾扣（照片里看到，待确认）"。
+    - generic: 尺寸未填，可以问。
+    - generic: 用户的话里包含风格意向：背景=原木手作台，有架子和线团，前后层次（浅景深虚化背景？"能看见前后层次"意味着背景可辨认但有层次），主体=珍珠主角。这些是用户明确说的，set_style 可以用 basis=said，quote 照抄片段："原木手作台"、"后面有架子和线团"、"能看见前后层次"、"珍珠还是主角"、"九颗不规则的形状要保留"。
+    - generic: 流程：先确认资产（B路线，让用户在画布确认照片作为参考图），然后问商品信息（品类手链/项链、材料、尺寸），再共创故事（"晚潮"是什么意思？灵感？）。一次问一到两个问题。
+    - generic: 现在第一步：资产待确认。我应该 show_step asset，并说明路线 B 直接在画布确认这张原图即可。同时可以问一两个问题：这是手链还是项链？"晚潮"是这件作品的名字吗？
+    - generic: 另外 suggest_name：作品还叫"未命名作品"，品类已经清楚了吗？品类还没确认（手链/项链不确定）。用户提到"晚潮"，可能就是名字。我可以建议名字"晚潮"？suggest_name 是按品类和造型起名，比如"银杏叶耳坠"。用户自己说了"晚潮"，可能是作品名。我可以建议名为"晚潮"，依据写"你说的"。但品类不清。或许等品类确认后再建议。不过用户明确说了"拍晚潮"，很可能就是作品名。我可以 suggest_name "晚潮"，note"你说的"。这符合"作品还叫未命名作品、品类已经清楚时用"——品类还不太清楚。先不急，等确认手链/项链后再说。其实名字"晚潮"是用户给的，直接建议改名合理。但规则说品类已经清楚时用。我先问品类，下一步再建议名字。
+    - generic: 先调用 show_step asset，引导确认资产。同时问：手链还是项链？"晚潮"是名字还是想拍出的感觉？
+    - generic: 回复要简短。
+    - generic: "Asset step is shown. Now ask 1-2 questions: bracelet or necklace, and whether \"晚潮\" is the name or the mood. Also note the photo shows 9 baroque pearls with lobster clasp."
+    - paragraph: 照片里是一条由九颗不规则珍珠串成的链子，珠子之间用银色小环连着，一头有个龙虾扣，对吧？
+    - paragraph: 先在画布的「资产」这一步点一下确认这张原图，咱们就能往下走。接着想问你两件事：
+    - list:
+      - listitem: 这是手链还是项链？大概多长？
+      - listitem: 「晚潮」是这件作品的名字，还是你想拍出的那种感觉？
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 晚潮是作品名，是手链，全长17.5厘米。材料是9颗不规则淡水珍珠、小银环连接、龙虾扣，售价238元。灵感来自傍晚水面不均匀的光点，希望偏爱天然纹理的顾客觉得温柔、有手工痕迹，不要把珍珠磨成一样大的圆珠。环境要奶油白墙、原木工作台、右侧窗、后方开放木架；架上左侧一卷米白棉线，右侧陶碗，商品在前景，背景有可辨层次。用1:1，不要文字。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - status: 小间正在思考…
+    - button "我不知道，给我推荐" [disabled]
+    - textbox "和小间说" [active]:
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加" [disabled]:
+    - button "对话模型：Qwen 3.8 Flash" [disabled]:
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite" [disabled]:
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "停止回复":
+  - region "画布":
+    - heading "信息" [level=2]
+    - generic: 待补充
+    - text: 品类
+    - emphasis: 需要你补
+    - textbox "品类 需要你补":
+      - /placeholder: 比如 耳饰、项链、手链
+    - checkbox "未知"
+    - text: 未知
+    - text: 材料
+    - emphasis: 需要你补
+    - textbox "材料 需要你补":
+      - /placeholder: 比如 黄铜镀金、淡水珍珠
+    - checkbox "未知"
+    - text: 未知
+    - text: 尺寸
+    - emphasis: 需要你补
+    - textbox "尺寸 需要你补":
+      - /placeholder: 比如 长 4.5cm、宽 2cm
+    - checkbox "未知"
+    - text: 未知
+    - generic: 不能改的细节
+    - textbox "不能改的细节":
+      - /placeholder: 数量、结构、连接方式、纹样、颜色
+    - text: 售价
+    - emphasis: 选填
+    - textbox "售价 选填":
+      - /placeholder: 选填，比如 128 元
+    - text: 目标顾客
+    - emphasis: 选填
+    - textbox "目标顾客 选填":
+      - /placeholder: 选填，比如 送礼的年轻人
+    - paragraph: 改动材料、尺寸或不能改的细节后，已经写好的提示词和批准需要重新确认。
+- button "Open Next.js Dev Tools":
+- alert: 今天想给哪件作品拍主图？

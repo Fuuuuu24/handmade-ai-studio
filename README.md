@@ -63,7 +63,7 @@ npm start
 
 ## 验证与已知限制
 
-`正式代码/` 下运行 `npm test`（149 个单元测试）、`npm run e2e`（4 条 Playwright 全流程，假对话模型＋假生图网关）、`npm run typecheck`、`npm run lint`、`npm run build`，2026-11-01 均通过；主流程在 Chrome 桌面宽度下也用真实对话模型实测过，并在 Chrome 里只用键盘走过一遍。没做 Safari 等其他浏览器、读屏与真实用户测试，生成效果和成本还没在真实饰品上系统测过。
+`正式代码/` 下运行 `npm test`（185 个单元测试）、`npm run e2e`（15 条 Playwright 全流程，含 badcase 回归，假对话模型＋假生图网关）、`npm run typecheck`、`npm run lint`、`npm run build`，2026-11-06 均通过；主流程在 Chrome 桌面宽度下也用真实对话模型实测过，并在 Chrome 里只用键盘走过一遍。没做 Safari 等其他浏览器、读屏与真实用户测试，生成效果和成本还没在真实饰品上系统测过。
 
 `原型-v3/` 下运行 `npm run check` 检查脚本语法。v3 已在 Chrome 桌面宽度下实测示例路径与模版路径、批准失效、各页面和删除确认，未测真实照片上传、导出、窄屏，也未做跨浏览器、触屏与真实用户测试。
 

@@ -1,0 +1,197 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "T08 补充诊断-余晖胸针（未生成）" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": T08 补充诊断-余晖胸针（未生成）
+    - generic: 草稿
+  - generic: 已保存
+  - generic "服务端花费账本，打开页面时读取": 预算余 67.82 / 69 美元
+  - navigation "流程进度":
+    - button "资产 （当前）":
+      - text: 资产
+      - generic: （当前）
+    - button "信息":
+      - text: 信息
+    - button "共创":
+      - text: 共创
+    - button "方案":
+      - text: 方案
+    - button "出图":
+      - text: 出图
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - paragraph: 我想用「诊断-标本小屋（结果未通过）」这套布景
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: The user wants to use the scene "诊断-标本小屋（结果未通过）" (scene_18e9c8f591b14e64). Looking at the current state, it seems this scene is already applied (the style card shows values from this scene, and the "当前布景" field shows this scene). So the scene is already in use.
+    - generic: "Let me check the current state more carefully: - 当前布景：诊断-标本小屋（结果未通过）（scene_18e9c8f591b14e64） - The style card already has values from this scene"
+    - generic: So the scene is already applied. I should let the user know it's already in use, and then guide them to the next step. The current progress is at "资产" step, and there are no photos yet. I need to ask for photos.
+    - generic: Let me guide them forward - they already have this scene applied, so the next step is to upload photos and fill in product info.
+    - paragraph: 这套布景已经在用了，风格卡里的色调、背景、光线这些都是从它来的，不用再套一次。
+    - paragraph: 下一步是补上作品照片——你能拍一张整体照发给我吗？这样我可以帮你确认商品信息，再往下走共创和方案。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - textbox "和小间说":
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加":
+    - button "对话模型：Qwen 3.8 Flash":
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite":
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "发送" [disabled]:
+  - region "画布":
+    - heading "方案" [level=2]
+    - button "回到当前这步"
+    - heading "摄影布景" [level=3]
+    - button "存为布景"
+    - button "更新为我的风格"
+    - button "雨后清晨": 雨后清晨
+    - button "午后书桌": 午后书桌
+    - button "干净陈列": 干净陈列
+    - button "温柔礼物": 温柔礼物
+    - combobox "我存的布景":
+      - generic: 诊断-标本小屋（结果未通过）
+    - generic: 色调
+    - generic: 布景
+    - button "雨后苔绿": 雨后苔绿
+    - button "奶油米白": 奶油米白
+    - button "石灰浅灰": 石灰浅灰
+    - button "干燥玫瑰": 干燥玫瑰
+    - button "深墨对比": 深墨对比
+    - textbox "色调":
+      - /placeholder: 自己描述
+      - text: 米白与浅石色为主，低饱和，清新安静
+    - generic: 背景
+    - generic: 布景
+    - button "手工纸"
+    - button "亚麻布"
+    - button "原木"
+    - button "石材"
+    - button "纯色背景"
+    - textbox "背景":
+      - /placeholder: 自己描述
+      - text: 米白灰泥墙，浅石台面
+    - generic: 光线
+    - generic: 布景
+    - button "柔和自然光"
+    - button "窗边侧光"
+    - button "暖调午后光"
+    - button "清冷晨光"
+    - button "明暗对比光"
+    - textbox "光线":
+      - /placeholder: 自己描述
+      - text: 左侧窗，柔和窗光从左来
+    - generic: 摆放
+    - generic: 布景
+    - button "平铺"
+    - button "悬挂"
+    - button "支架"
+    - textbox "摆放":
+      - /placeholder: 自己描述
+      - text: 耳坠平放石台上，正面朝上，耳钩自然侧放
+    - generic: 道具
+    - generic: 布景
+    - textbox "道具":
+      - /placeholder: 不放道具
+      - text: 后右方木框浅壁龛，内放单个深棕玻璃瓶
+    - generic: 禁止出现
+    - generic: 布景
+    - textbox "禁止出现" [active]:
+      - /placeholder: 比如：花、玻璃器皿
+      - text: 外部花草挡住商品；树脂呈现为绿色不透明石头
+    - generic: 构图
+    - generic: 布景
+    - button "主体居中，留白多"
+    - button "主体偏一侧，留出呼吸感"
+    - button "主体放大，突出细节"
+    - textbox "构图":
+      - /placeholder: 自己描述
+      - text: 商品、台面后缘、墙面、远处壁龛有前后层次；玻璃瓶不全虚化，仍可辨认
+    - generic: 表达
+    - textbox "表达":
+      - /placeholder: 用自己的话描述
+    - heading "比例" [level=3]
+    - radiogroup "主图比例":
+      - radio "1:1" [checked]:
+        - generic: 1:1
+      - radio "3:4":
+        - generic: 3:4
+      - radio "9:16":
+        - generic: 9:16
+    - generic: 淘宝／天猫、微信小店主图必传比例
+    - heading "可读方案" [level=3]
+    - generic: 比例 1:1
+    - generic: ·
+    - generic: Seedream 5.0 Lite
+    - generic: ·
+    - generic: 两张候选
+    - term: 色调
+    - definition: 米白与浅石色为主，低饱和，清新安静
+    - term: 背景
+    - definition: 米白灰泥墙，浅石台面
+    - term: 光线
+    - definition: 左侧窗，柔和窗光从左来
+    - term: 摆放
+    - definition: 耳坠平放石台上，正面朝上，耳钩自然侧放
+    - term: 道具
+    - definition: 后右方木框浅壁龛，内放单个深棕玻璃瓶
+    - term: 禁止
+    - definition: 外部花草挡住商品；树脂呈现为绿色不透明石头
+    - term: 构图
+    - definition: 商品、台面后缘、墙面、远处壁龛有前后层次；玻璃瓶不全虚化，仍可辨认
+    - term: 保真
+    - definition: 按参考图还原颜色、数量、轮廓和连接结构
+    - heading "提示词" [level=3]
+    - generic: 还没写
+    - generic: 由小间撰写，你可以直接改
+    - generic: 完整提示词
+    - textbox "完整提示词":
+      - /placeholder: 风格定好后，小间会在这里写出完整提示词
+    - button "让小间写"
+    - list:
+      - generic: 还缺：还没有作品照片
+      - button "去资产"
+      - generic: 还缺：品类、材料、尺寸还没填（不知道可以标「未知」）
+      - button "去信息"
+      - generic: 还缺：共创总结还没确认
+      - button "去共创"
+      - generic: 还缺：提示词还没写
+    - generic: 滑动批准并生成两张
+    - generic: 没有生成
+    - slider "滑动批准并生成两张（键盘按 End 键）" [disabled]:
+      - text: 已批准
+- button "Open Next.js Dev Tools":
+- alert: 摄影布景

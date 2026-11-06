@@ -1,0 +1,125 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "摄影布景" [level=1]
+  - paragraph: 背景、色调、光线、道具和构图的固定组合，换一件作品也能直接套用。
+  - heading "我存的布景" [level=2]
+  - article:
+    - heading "诊断-标本小屋（结果未通过）" [level=3]
+    - generic: v1
+    - button "删除布景「诊断-标本小屋（结果未通过）」":
+    - term: 色调
+    - definition: 米白与浅石色为主，低饱和，清新安静
+    - term: 背景
+    - definition: 米白灰泥墙，浅石台面
+    - term: 光线
+    - definition: 左侧窗，柔和窗光从左来
+    - term: 摆放
+    - definition: 耳坠平放石台上，正面朝上，耳钩自然侧放
+    - term: 道具
+    - definition: 后右方木框浅壁龛，内放单个深棕玻璃瓶
+    - term: 禁止出现
+    - definition: 外部花草挡住商品；树脂呈现为绿色不透明石头
+    - term: 构图
+    - definition: 商品、台面后缘、墙面、远处壁龛有前后层次；玻璃瓶不全虚化，仍可辨认
+    - paragraph: 1 件作品正在使用 · 更新于 11-06 07:30
+    - button "用这套开始"
+  - heading "布景模版" [level=2]
+  - article:
+    - heading "雨后清晨" [level=3]
+    - term: 色调
+    - definition: 雨后苔绿
+    - term: 背景
+    - definition: 手工纸
+    - term: 光线
+    - definition: 清冷晨光
+    - term: 摆放
+    - definition: 平铺
+    - term: 道具
+    - definition: 一小片苔藓
+    - term: 禁止出现
+    - definition: —
+    - term: 构图
+    - definition: 主体偏一侧，留出呼吸感
+    - paragraph: 暂未被使用
+    - button "用这套开始"
+  - article:
+    - heading "午后书桌" [level=3]
+    - term: 色调
+    - definition: 奶油米白
+    - term: 背景
+    - definition: 亚麻布
+    - term: 光线
+    - definition: 暖调午后光
+    - term: 摆放
+    - definition: 平铺
+    - term: 道具
+    - definition: 一本旧书的一角
+    - term: 禁止出现
+    - definition: —
+    - term: 构图
+    - definition: 主体居中，留白多
+    - paragraph: 暂未被使用
+    - button "用这套开始"
+  - article:
+    - heading "干净陈列" [level=3]
+    - term: 色调
+    - definition: 石灰浅灰
+    - term: 背景
+    - definition: 石材
+    - term: 光线
+    - definition: 柔和自然光
+    - term: 摆放
+    - definition: 支架
+    - term: 道具
+    - definition: 不放道具
+    - term: 禁止出现
+    - definition: —
+    - term: 构图
+    - definition: 主体放大，突出细节
+    - paragraph: 暂未被使用
+    - button "用这套开始"
+  - article:
+    - heading "温柔礼物" [level=3]
+    - term: 色调
+    - definition: 干燥玫瑰
+    - term: 背景
+    - definition: 手工纸
+    - term: 光线
+    - definition: 柔和自然光
+    - term: 摆放
+    - definition: 悬挂
+    - term: 道具
+    - definition: 一段丝带
+    - term: 禁止出现
+    - definition: —
+    - term: 构图
+    - definition: 主体居中，留白多
+    - paragraph: 暂未被使用
+    - button "用这套开始"
+- button "Open Next.js Dev Tools":
+- alert
