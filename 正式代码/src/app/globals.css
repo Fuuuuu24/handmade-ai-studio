@@ -194,7 +194,8 @@
     box-shadow: inset 0 0 0 1px var(--color-line-strong);
     transition: box-shadow 0.15s, color 0.15s;
   }
-  .choice:hover:not(:disabled) {
+  /* 悬停只给没选中的项：这条规则优先级比下面的选中样式高，不排除的话鼠标停在已选中的项上，1.5px 黑描边会被盖掉 */
+  .choice:hover:not(:disabled):not([aria-pressed="true"]) {
     color: var(--color-ink);
     box-shadow: inset 0 0 0 1px var(--color-line-hover);
   }

@@ -1,7 +1,8 @@
+import { maxRefsOf } from '@/config/models';
 import type { StepId } from '@/config/steps';
 import { STYLE_LABELS, STYLE_REQUIRED } from '@/config/style';
 import { styleConflicts } from './conflicts';
-import { infoLabels, infoMissing } from './info';
+import { infoLabels, infoMissing, pendingCore } from './info';
 import { activeUploads, diffBasis, diffSnapshot, styleValuesOf } from './snapshot';
 import type { Approval, Asset, Basis, Snapshot, Work } from './types';
 
@@ -35,6 +36,11 @@ export function approvalBlockers(work: Work, assets: readonly Asset[], current: 
   else if (work.route === 'A' && !current.references.includes(work.whiteChoice ?? '')) {
     out.push({ step: 'asset', text: '还没选定白底图' });
   }
+  // 从某张结果修改时，生成会在商品照片后面带上那张结果作房间参考（BC-006），参考图总数不能超过模型上限
+  const maxRefs = maxRefsOf(current.imageModel);
+  if (work.revision && current.references.length + 1 > maxRefs) {
+    out.push({ step: 'asset', text: `这次要带上被修改的那张结果作房间参考，商品照片最多用 ${maxRefs - 1} 张，请先停用一张` });
+  }
   const missing = infoMissing(work.info);
   if (missing.length) out.push({ step: 'info', text: `${infoLabels(missing)}还没填（不知道可以标「未知」）` });
   if (work.story.summaryState !== 'confirmed') out.push({ step: 'story', text: '共创总结还没确认' });
@@ -52,6 +58,20 @@ export function approvalBlockers(work: Work, assets: readonly Asset[], current: 
 
   if (isGenerating) out.push({ step: 'output', text: '已有任务在生成中' });
   return out;
+}
+
+// 小间写提示词前，核心信息里的建议要先处理完（UX-02，2026-11-06 用户选定）：用户接受建议会改变提示词依据，
+// 先写好的提示词一接受就过期，还得再核对一遍。执行器据此拒绝 draft_prompt，方案页的「让小间写」也要等处理完
+export function promptWriteBlocker(work: Work): Blocker | null {
+  const keys = pendingCore(work.info);
+  return keys.length ? { step: 'info', text: `还有 ${keys.length} 条信息建议没处理：${infoLabels(keys)}` } : null;
+}
+
+// 批准前的提醒，不挡批准（2026-11-06 用户选定）：同样是核心信息里小间的建议还没接受或忽略。
+// 没接受的建议不进提示词，其中可能有保真要求（比如数量、结构），批准前提醒用户看一眼
+export function approvalReminders(work: Work): Blocker[] {
+  const pending = promptWriteBlocker(work);
+  return pending ? [{ ...pending, text: `${pending.text}；没接受的不会用于生成` }] : [];
 }
 
 export type ApprovalStatus = { kind: 'none' } | { kind: 'valid' } | { kind: 'stale'; changed: string[] };

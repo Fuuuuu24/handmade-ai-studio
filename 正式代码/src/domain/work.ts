@@ -159,10 +159,11 @@ const trimSummary = (s: StorySummary): StorySummary => ({
 
 /* ---------- 风格、布景、比例、模型 ---------- */
 
-// 小间推荐时记下依据的共创总结，总结之后改了就能提示风格可能要跟着变（AC-04.6）
-export const setStyle = (w: Work, key: StyleKey, value: string, source: StyleSource, reason?: string) =>
+// 小间推荐时记下依据的共创总结，总结之后改了就能提示风格可能要跟着变（AC-04.6）。
+// quote 只在 said 时有：执行器核对过的用户原话（BC-013）
+export const setStyle = (w: Work, key: StyleKey, value: string, source: StyleSource, reason?: string, quote?: string) =>
   touch(w, {
-    style: { ...w.style, [key]: { value: value.trim(), source, reason } },
+    style: { ...w.style, [key]: { value: value.trim(), source, reason, ...(source === 'said' && quote ? { quote } : {}) } },
     ...(source === 'recommend' ? { styleSummary: w.story.summary } : {}),
   });
 

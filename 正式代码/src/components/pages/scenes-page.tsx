@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRouter } from 'next/navigation';
-import { use, useState } from 'react';
+import { use, useLayoutEffect, useRef, useState } from 'react';
 import { browser } from 'react-dom';
 import { BUILTIN_SCENES } from '@/config/scenes';
 import { NO_PROPS, STYLE_LABELS, toneColors } from '@/config/style';
@@ -112,6 +112,17 @@ export function ScenesPage() {
   const saved = useLiveQuery(() => listScenes(), []);
   const [starting, setStarting] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  // 离开的页面会被 Activity 保留（next.config 开了 cacheComponents）：开始了一件作品再回到布景页，
+  // 「用这套开始」要能接着点，不留上一件的「开始中」（同首页 BC-010）
+  const startedRef = useRef(false);
+  useLayoutEffect(
+    () => () => {
+      if (!startedRef.current) return;
+      startedRef.current = false;
+      setStarting(false);
+    },
+    [],
+  );
   if (!lib || !saved) return <PageLoading />;
 
   const usedBy = (id: string) => lib.works.filter((c) => c.work.sceneId === id).length;
@@ -122,6 +133,7 @@ export function ScenesPage() {
     try {
       const { work, scene } = await createWork(id);
       setFirstMessage(work.id, `我想用「${scene!.name}」这套布景`, []);
+      startedRef.current = true;
       router.push(`/works/${work.id}`);
     } catch (e) {
       setProblem(`没能新建作品：${e instanceof Error ? e.message : String(e)}`);

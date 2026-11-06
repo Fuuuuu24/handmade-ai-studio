@@ -5,7 +5,7 @@ import { loadContext } from '@/client/work-store';
 import { addUpload, getShopStyle, getWork, listResults, listScenes, putTask, saveApproval, saveResult, saveShopStyle, saveWork } from '@/data/repo';
 import type { Result } from '@/domain/types';
 import { newId } from '@/domain/util';
-import { approve, confirmSummary, editPrompt, draftSummary, setStyle, startRound } from '@/domain/work';
+import { acceptSuggestion, approve, confirmSummary, editPrompt, draftSummary, setStyle, startRound } from '@/domain/work';
 import { currentBasis, readyWork, result, task } from '@/test/fixtures';
 import { executeTool } from './executors';
 
@@ -16,7 +16,8 @@ const img = () => ({
   height: 1200,
 });
 
-const deps = { showStep: vi.fn() };
+let userSaid: string[] = [];
+const deps = { showStep: vi.fn(), userTexts: () => userSaid };
 
 // 把 readyWork 存进测试库，素材用真实写入的那张
 async function seed() {
@@ -29,6 +30,7 @@ async function seed() {
 beforeEach(() => {
   useTestDb(newId('test'));
   deps.showStep.mockClear();
+  userSaid = [];
 });
 
 describe('小间的工具：硬规则', () => {
@@ -54,6 +56,36 @@ describe('小间的工具：硬规则', () => {
     const out = await executeTool(w.id, 'set_style', { items: [{ field: 'light', value: '暖调午后光', basis: 'said' }] }, deps);
     expect(out).toEqual({ ok: false, message: '正在生成这一轮候选，方案锁定中；等生成结束后再改' });
     expect((await getWork(w.id))?.style.light.value).toBe('清冷晨光');
+  });
+
+  it('set_style 标「你说的」要能在用户原话里找到片段，卡片记下原话（BC-013）', async () => {
+    const w = await seed();
+    userSaid = ['想要安静的标本小屋，耳环平铺在石台上'];
+    const out = await executeTool(w.id, 'set_style', { items: [{ field: 'placement', value: '一对耳环平铺在浅石台上', basis: 'said', quote: '平铺' }] }, deps);
+    expect(out).toMatchObject({ ok: true, message: '风格卡已更新：摆放「一对耳环平铺在浅石台上」' });
+    expect((await getWork(w.id))?.style.placement).toEqual({ value: '一对耳环平铺在浅石台上', source: 'said', quote: '平铺' });
+  });
+
+  it('set_style 的原话找不到或没附原话：记为「小间推荐」，并说明是建议、不是用户说的（BC-013）', async () => {
+    const w = await seed();
+    userSaid = ['想要安静的标本小屋，不要把耳环丢进植物堆'];
+    const out = await executeTool(
+      w.id,
+      'set_style',
+      {
+        items: [
+          { field: 'tone', value: '低饱和、偏冷灰', basis: 'said', quote: '冷灰' },
+          { field: 'placement', value: '一对耳环单独立在石台上', basis: 'said' },
+        ],
+      },
+      deps,
+    );
+    expect(out.message).toBe(
+      '风格卡已更新：色调「低饱和、偏冷灰」（推荐，待确认）、摆放「一对耳环单独立在石台上」（推荐，待确认）。其中色调（「冷灰」）、摆放（没附原话）在用户的原话里没找到，已记为「小间推荐」，是建议、不是用户说的',
+    );
+    const saved = await getWork(w.id);
+    expect(saved?.style.tone).toEqual({ value: '低饱和、偏冷灰', source: 'recommend', reason: undefined });
+    expect(saved?.style.placement.source).toBe('recommend');
   });
 
   it('没有批准时 start_generation 被拒绝（PRD 4.2 第 1 条）', async () => {
@@ -127,6 +159,33 @@ describe('小间的工具：硬规则', () => {
     const prompt = (await getWork(w.id))?.prompt;
     expect(prompt?.author).toBe('agent');
     expect(prompt?.basis.summary).toBeNull(); // 写的时候总结还是草稿，确认后提示词会被判为过期
+  });
+
+  it('核心信息还有建议没处理时 draft_prompt 被拒绝，不写提示词；处理完再写，接受后不过期（UX-02）', async () => {
+    const w = await seed();
+    // 用户纠正连接方式：小间同一轮先写建议、再写提示词（T03 的顺序）
+    await executeTool(w.id, 'update_info', { items: [{ field: 'keep', value: '耳钩经小圆环连黄铜片', note: '你说的' }] }, deps);
+    const refused = await executeTool(w.id, 'draft_prompt', { prompt: '一对黄铜耳饰，耳钩经小圆环连黄铜片……' }, deps);
+    expect(refused).toEqual({
+      ok: false,
+      message: '没写提示词：还有 1 条信息建议没处理：不能改的细节。请用户先在「信息」里接受或忽略，处理完再写；现在写的话，一接受建议提示词就过期了',
+    });
+    expect((await getWork(w.id))?.prompt).toBeNull();
+
+    await saveWork(acceptSuggestion((await getWork(w.id))!, 'keep'));
+    const out = await executeTool(w.id, 'draft_prompt', { prompt: '一对黄铜耳饰，耳钩经小圆环连黄铜片……' }, deps);
+    expect(out).toEqual({ ok: true, message: '已写好提示词，可以批准了', changes: ['提示词'] });
+    const ctx = await loadContext(w.id);
+    expect(ctx.work.prompt?.basis.info.keep.value).toBe('耳钩经小圆环连黄铜片');
+    expect(ctx.work.prompt?.basis).toEqual(ctx.basis); // 依据就是现在的，不会判为过期
+  });
+
+  it('只有售价、目标顾客的建议没处理时照常写提示词', async () => {
+    const w = await seed();
+    await executeTool(w.id, 'update_info', { items: [{ field: 'price', value: '198 元' }] }, deps);
+    const out = await executeTool(w.id, 'draft_prompt', { prompt: '一件手作耳饰，黄铜镀金，完整入框留边距……' }, deps);
+    expect(out.ok).toBe(true);
+    expect((await getWork(w.id))?.prompt?.author).toBe('agent');
   });
 
   it('show_step 切换画布', async () => {

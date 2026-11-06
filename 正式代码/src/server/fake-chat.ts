@@ -34,11 +34,16 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
       ],
     },
   },
+  // 用户纠正一处细节，只写「不能改的细节」的建议：测建议没处理时小间写不了提示词（UX-02）、写好提示词后再来建议时的提醒
+  纠正细节: { tool: 'update_info', input: { items: [{ field: 'keep', value: '蝴蝶结的两个圈不能变形', note: '测试' }] } },
   起名: { tool: 'suggest_name', input: { name: '蝴蝶结耳坠', note: '测试' } },
   记录: { tool: 'record_story', input: { kind: 'theme', text: '雨后石阶上的蝴蝶结' } },
   总结: { tool: 'draft_summary', input: { express: '雨后蝴蝶结的安静', feel: '安静、想凑近看', avoid: '太花、道具抢戏' } },
   布景: { tool: 'apply_scene', input: { sceneId: 'tpl-moss' } },
   推荐风格: { tool: 'set_style', input: { items: [{ field: 'light', value: '清冷晨光', basis: 'recommend', reason: '测试：贴合雨后的安静' }] } },
+  // 「你说的」要核对原话（BC-013）：用户这句话里带「平铺」时摆放记为你说的；「冷灰」用户没说过，会被记为小间推荐
+  说过平铺: { tool: 'set_style', input: { items: [{ field: 'placement', value: '一对耳饰平铺', basis: 'said', quote: '平铺' }] } },
+  误标你说的: { tool: 'set_style', input: { items: [{ field: 'tone', value: '低饱和、偏冷灰', basis: 'said', quote: '冷灰' }] } },
   提示词: {
     tool: 'draft_prompt',
     input: { prompt: '一对手作 925 银蝴蝶结耳坠，严格按参考图还原颜色、数量、轮廓和连接结构，整件完整入框留边距，苔绿手工纸背景，清冷晨光，画面里不要任何文字。' },

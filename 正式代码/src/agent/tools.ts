@@ -75,7 +75,7 @@ export const agentTools = {
   set_style: tool({
     outputSchema: toolOutput,
     description:
-      '修改风格卡的一项或多项。basis=said 只用于用户原话里明确说过的那一项；从感受、氛围推断出来的都是你的推荐，写 basis=recommend，会显示为「小间推荐」。道具不放时 value 写「不放道具」。',
+      '修改风格卡的一项或多项。basis=said 只用于用户原话里明确说过的那一项，并且必须在 quote 里逐字照抄用户的原话片段；代码会到用户的消息和用户手改的提示词里核对，找不到就记为「小间推荐」。从感受、氛围推断出来的都是你的推荐，写 basis=recommend，会显示为「小间推荐」。道具不放时 value 写「不放道具」。',
     inputSchema: z.object({
       items: z
         .array(
@@ -83,6 +83,7 @@ export const agentTools = {
             field: z.enum(STYLE_KEYS),
             value: z.string().max(120),
             basis: z.enum(['said', 'recommend']),
+            quote: z.string().max(60).optional().describe('basis=said 时必填：用户原话里的那几个字，逐字照抄，比如「平铺」「米白灰泥墙」'),
             reason: z.string().max(120).optional(),
           }),
         )
@@ -102,13 +103,14 @@ export const agentTools = {
   }),
   draft_prompt: tool({
     outputSchema: toolOutput,
-    description: '写最终的生图提示词（中文）。写之前确认商品信息、共创总结和风格都已就绪。',
+    description:
+      '写最终的生图提示词（中文）。写之前确认商品信息、共创总结和风格都已就绪；品类、材料、尺寸、不能改的细节里还有待用户处理的建议时会被拒绝。',
     inputSchema: z.object({ prompt: z.string().min(20).max(2000) }),
   }),
   resolve_prompt_sync: tool({
     outputSchema: toolOutput,
     description:
-      '用户手改提示词后：先把能对应到风格卡的改动用 set_style（basis=said）写回，再调用本工具报告核对结果。没有矛盾传空列表；对不上的逐条写出来，请用户决定。',
+      '用户手改提示词后：先把能对应到风格卡的改动用 set_style（basis=said，quote 抄用户在提示词里新写的字）写回，再调用本工具报告核对结果。没有矛盾传空列表；对不上的逐条写出来，请用户决定。',
     inputSchema: z.object({ conflicts: z.array(z.string().min(1).max(120)).max(6) }),
   }),
   request_approval: tool({

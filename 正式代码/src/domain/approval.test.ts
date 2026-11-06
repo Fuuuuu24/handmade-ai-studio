@@ -1,19 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { current, currentBasis, promptedWork, readyWork, upload } from '@/test/fixtures';
-import { approvalBlockers, approvalStatus, generationBlockers, promptStatus } from './approval';
+import { current, currentBasis, promptedWork, readyWork, result, upload } from '@/test/fixtures';
+import { approvalBlockers, approvalReminders, approvalStatus, generationBlockers, promptStatus, promptWriteBlocker } from './approval';
 import {
+  acceptSuggestion,
   approve,
   confirmAssets,
+  dismissSuggestion,
   editPrompt,
   markPromptChecked,
   markUnknown,
   newWork,
   resolvePromptSync,
+  reviseFrom,
   setInfo,
   setRatio,
   setRoute,
   setStyle,
   startRound,
+  suggestInfo,
+  writePrompt,
 } from './work';
 
 const texts = (bs: { text: string }[]) => bs.map((b) => b.text);
@@ -73,6 +78,85 @@ describe('approvalBlockers', () => {
   it('生成中不能批准', () => {
     const { work, assets } = promptedWork();
     expect(texts(approvalBlockers(work, assets, currentBasis(work, assets), true))).toEqual(['已有任务在生成中']);
+  });
+});
+
+describe('approvalReminders（不挡批准的提醒，2026-11-06）', () => {
+  it('核心信息有小间建议没处理：提醒列出是哪几项，但不挡批准', () => {
+    const { work, assets } = promptedWork();
+    const w = suggestInfo(suggestInfo(work, 'keep', '九颗珍珠，数量不能变'), 'material', '淡水珍珠、925 银');
+    expect(texts(approvalReminders(w))).toEqual(['还有 2 条信息建议没处理：材料、不能改的细节；没接受的不会用于生成']);
+    expect(approvalReminders(w)[0].step).toBe('info');
+    expect(approvalBlockers(w, assets, currentBasis(w, assets), false)).toEqual([]);
+    const r = approve(w, assets, current(w, assets), false);
+    expect(r.ok).toBe(true);
+  });
+
+  it('接受或忽略之后不再提醒；售价、目标顾客这类选填项的建议不提醒', () => {
+    const { work } = promptedWork();
+    const w = suggestInfo(suggestInfo(work, 'keep', '九颗珍珠'), 'material', '淡水珍珠');
+    expect(approvalReminders(dismissSuggestion(acceptSuggestion(w, 'keep'), 'material'))).toEqual([]);
+    expect(approvalReminders(suggestInfo(work, 'price', '198 元'))).toEqual([]);
+  });
+});
+
+describe('promptWriteBlocker（写提示词前先处理核心信息建议，UX-02）', () => {
+  it('核心信息有小间建议没处理：写不了提示词，说明是哪几项', () => {
+    const { work } = readyWork();
+    const w = suggestInfo(suggestInfo(work, 'keep', '耳钩经小圆环连片'), 'material', '黄铜');
+    expect(promptWriteBlocker(w)).toEqual({ step: 'info', text: '还有 2 条信息建议没处理：材料、不能改的细节' });
+  });
+
+  it('接受或忽略之后可以写；售价、目标顾客的建议不挡', () => {
+    const { work } = readyWork();
+    const w = suggestInfo(suggestInfo(work, 'keep', '耳钩经小圆环连片'), 'material', '黄铜');
+    expect(promptWriteBlocker(dismissSuggestion(acceptSuggestion(w, 'keep'), 'material'))).toBeNull();
+    expect(promptWriteBlocker(suggestInfo(suggestInfo(work, 'price', '198 元'), 'audience', '送礼的人'))).toBeNull();
+  });
+
+  it('为什么要挡：建议没处理时写的提示词，一接受就过期', () => {
+    const { work, assets } = readyWork();
+    const w = suggestInfo(work, 'keep', '耳钩经小圆环连片');
+    const written = writePrompt(w, '一对黄铜耳饰……', currentBasis(w, assets));
+    const accepted = acceptSuggestion(written, 'keep');
+    expect(promptStatus(accepted, currentBasis(accepted, assets))).toEqual({ kind: 'stale', changed: ['商品信息'] });
+  });
+});
+
+describe('从结果修改时带上那张结果作房间参考（BC-006）', () => {
+  // 生成第 1 轮，再从候选 1 修改
+  function revising() {
+    const { work, assets } = promptedWork();
+    const a = approve(work, assets, current(work, assets), false);
+    if (!a.ok) throw new Error('应当可以批准');
+    const s = startRound(a.work, a.approval, current(a.work, assets), false);
+    if (!s.ok) throw new Error('应当可以生成');
+    return { work: reviseFrom(s.work, result(work.id, 1, 0), s.approval), assets };
+  }
+  const roomBlocker = (bs: { text: string }[]) => texts(bs).filter((t) => t.includes('房间参考'));
+
+  it('商品照片已经占满参考图上限时挡批准；少一张就可以；不在修改时不挡', () => {
+    const { work, assets } = revising();
+    const three = [...assets, upload(work.id, 'back'), upload(work.id, 'detail')];
+    const four = [...three, upload(work.id, 'detail')];
+    expect(roomBlocker(approvalBlockers(work, three, currentBasis(work, three), false))).toEqual([]);
+    expect(roomBlocker(approvalBlockers(work, four, currentBasis(work, four), false))).toEqual([
+      '这次要带上被修改的那张结果作房间参考，商品照片最多用 3 张，请先停用一张',
+    ]);
+    const { work: plain } = promptedWork();
+    expect(roomBlocker(approvalBlockers(plain, four, currentBasis(plain, four), false))).toEqual([]);
+  });
+
+  it('修改后批准并开始生成：修改状态结束，但这版批准仍然有效（补齐失败的一张要用），并记着房间参考来自哪张', () => {
+    const { work, assets } = revising();
+    const w = writePrompt(work, '前 1 张是商品照片，最后一张只参考房间和机位；只把墙面调浅', currentBasis(work, assets));
+    const a = approve(w, assets, current(w, assets), false);
+    if (!a.ok) throw new Error('应当可以批准');
+    expect(a.approval.parentResultId).toBe(work.revision!.fromResultId);
+    const s = startRound(a.work, a.approval, current(a.work, assets), false);
+    if (!s.ok) throw new Error('应当可以生成');
+    expect(s.work.revision).toBeUndefined();
+    expect(approvalStatus(s.approval, current(s.work, assets))).toEqual({ kind: 'valid' });
   });
 });
 

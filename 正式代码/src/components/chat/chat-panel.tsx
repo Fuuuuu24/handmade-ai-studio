@@ -70,6 +70,8 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   const [userStopped, setUserStopped] = useState(false);
   const [notes, setNotes] = useState<string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
+  // 用户发过的文字，执行器核对「你说的」用（BC-013）；工具在回复中途执行，这时对话还没存进数据库
+  const userTextsRef = useRef<string[]>([]);
 
   const transport = useMemo(
     () => new DefaultChatTransport<AgentUIMessage>({ api: '/api/chat', body: () => chatRequestBody(workId) }),
@@ -100,7 +102,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
       if (toolCall.dynamic) return;
       const name = toolCall.toolName as ToolName;
       try {
-        const output = await executeTool(workId, name, toolCall.input, { showStep: onShowStep });
+        const output = await executeTool(workId, name, toolCall.input, { showStep: onShowStep, userTexts: () => userTextsRef.current });
         void addToolOutput({ tool: name, toolCallId: toolCall.toolCallId, output });
       } catch (e) {
         void addToolOutput({ tool: name, toolCallId: toolCall.toolCallId, state: 'output-error', errorText: errorText(e) });
@@ -118,6 +120,10 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   useEffect(() => {
     onBusyChange(busy);
   }, [busy, onBusyChange]);
+
+  useEffect(() => {
+    userTextsRef.current = messages.filter((m) => m.role === 'user').flatMap((m) => m.parts.flatMap((p) => (p.type === 'text' ? [p.text] : [])));
+  }, [messages]);
 
   // 一轮结束（或出错）时保存对话，含工具调用记录（AC-11.4）；和读出来时一样就不写
   useEffect(() => {

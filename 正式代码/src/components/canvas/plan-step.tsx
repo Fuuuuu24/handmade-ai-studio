@@ -7,7 +7,7 @@ import { BUILTIN_SCENES } from '@/config/scenes';
 import { NO_PROPS, STYLE_KEYS, STYLE_LABELS, STYLE_OPTIONS, TONE_OPTIONS, type StyleKey } from '@/config/style';
 import { mutateWork } from '@/client/work-store';
 import { getShopStyle, listScenes } from '@/data/repo';
-import { approvalStatus, promptStatus } from '@/domain/approval';
+import { approvalStatus, promptStatus, promptWriteBlocker } from '@/domain/approval';
 import { styleConflicts } from '@/domain/conflicts';
 import { styleValuesOf } from '@/domain/snapshot';
 import type { StyleSource } from '@/domain/types';
@@ -98,6 +98,7 @@ function StyleRow({ k, locked }: { k: StyleKey; locked: boolean }) {
           />
         )}
         {v.reason && v.source === 'recommend' && <p className="text-label text-muted">理由：{v.reason}</p>}
+        {v.quote && v.source === 'said' && <p className="text-label text-muted">原话：「{v.quote}」</p>}
       </div>
     </div>
   );
@@ -107,6 +108,8 @@ function PromptSection({ locked }: { locked: boolean }) {
   const { ctx, workId, askAgent, busy } = useWorkspace();
   const prompt = ctx.work.prompt;
   const ps = promptStatus(ctx.work, ctx.basis);
+  // 核心信息的建议没处理完，小间写不了也改不了提示词（UX-02）：说明原因，「让小间写」先灰掉，不白发一次请求
+  const wait = promptWriteBlocker(ctx.work);
 
   const chip = {
     missing: <span className="chip">还没写</span>,
@@ -125,6 +128,11 @@ function PromptSection({ locked }: { locked: boolean }) {
         <span className="ml-auto text-label text-muted">由小间撰写，你可以直接改</span>
       </div>
       {ps.kind === 'stale' && <p className="text-aux text-warn">写完后改了：{ps.changed.join('、')}。需要小间重写，或者你确认后再批准。</p>}
+      {wait && (
+        <p className="text-aux text-ink-2">
+          {wait.text}，处理完小间才能{prompt?.text.trim() ? '改' : '写'}提示词。
+        </p>
+      )}
       {ps.kind === 'unchecked' && <p className="text-aux text-warn">你改过提示词，还没核对它和上面的方案是否一致。</p>}
       {ps.kind === 'conflict' && (
         <ul className="list-disc pl-5 text-aux text-bad">
@@ -147,7 +155,7 @@ function PromptSection({ locked }: { locked: boolean }) {
       />
       <div className="flex flex-wrap gap-2">
         {(ps.kind === 'missing' || ps.kind === 'stale') && (
-          <button type="button" className="btn btn-outline btn-sm" disabled={busy || locked} onClick={() => askAgent(ps.kind === 'missing' ? '请按现在的方案写提示词' : '方案改了，请按现在的方案重写提示词')}>
+          <button type="button" className="btn btn-outline btn-sm" disabled={busy || locked || !!wait} onClick={() => askAgent(ps.kind === 'missing' ? '请按现在的方案写提示词' : '方案改了，请按现在的方案重写提示词')}>
             {ps.kind === 'missing' ? '让小间写' : '让小间重写'}
           </button>
         )}
@@ -186,7 +194,7 @@ function RevisionNote() {
   return (
     <div className="-mt-2 flex items-center gap-3 rounded-lg bg-white px-3.5 py-2.5 text-aux text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line)]">
       <span className="min-w-0 flex-1">
-        正在修改{from ? `第 ${from.round} 轮候选 ${from.slot + 1}` : '一张旧结果'}{rev.reasons.length ? `（不满意：${rev.reasons.join('、')}）` : ''}，已恢复那一版的方案。改好后重新批准，原结果会保留。
+        正在修改{from ? `第 ${from.round} 轮候选 ${from.slot + 1}` : '一张旧结果'}{rev.reasons.length ? `（不满意：${rev.reasons.join('、')}）` : ''}，已恢复那一版的方案。生成时会带上这张图，沿用它的房间和机位；改好后重新批准，原结果会保留。
       </span>
       <button type="button" className="btn btn-quiet btn-sm" disabled={ctx.isGenerating} onClick={() => void mutateWork(workId, (c) => cancelRevision(c.work))}>
         取消修改

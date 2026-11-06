@@ -1,7 +1,7 @@
 import { GENERATION } from '@/config/budget';
 import type { Ratio } from '@/config/ratios';
 import { WHITE } from '@/config/white';
-import { activeTasks, addWhite, getApproval, getAsset, getBlob, getWork, logEvent, putTask, saveApproval, saveResult } from '@/data/repo';
+import { activeTasks, addWhite, getApproval, getAsset, getBlob, getResult, getWork, logEvent, putTask, saveApproval, saveResult } from '@/data/repo';
 import { approvalStatus } from '@/domain/approval';
 import { retryCheck, roundSlots } from '@/domain/generation';
 import type { Approval, Id, Result, Task } from '@/domain/types';
@@ -88,10 +88,22 @@ async function referenceImages(ids: readonly Id[], missing: string): Promise<str
   return out;
 }
 
+// 从某张结果修改时（批准记着 parentResultId），商品照片后面带上那张结果，给模型参考房间和机位（BC-006）。
+// 提示词里各张图的用途由小间写明
+async function roomImage(resultId: Id): Promise<string> {
+  const result = await getResult(resultId);
+  const blob = result && (await getBlob(result.blobId));
+  if (!blob) throw new Error('作为房间参考的那张结果找不到了，没法沿用它的房间');
+  return referenceDataUrl(blob);
+}
+
 const sceneRequest = (approval: Approval): ImageRequest => ({
   prompt: approval.snapshot.prompt,
   ratio: approval.snapshot.ratio,
-  images: () => referenceImages(approval.snapshot.references, '批准时用的参考图找不到了，请重新确认资产后再批准'),
+  images: async () => [
+    ...(await referenceImages(approval.snapshot.references, '批准时用的参考图找不到了，请重新确认资产后再批准')),
+    ...(approval.parentResultId ? [await roomImage(approval.parentResultId)] : []),
+  ],
 });
 
 // 作品已被删除时不再写回任务和结果，免得留下没有作品的记录

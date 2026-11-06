@@ -151,6 +151,7 @@ export function saveResult(task: Task, result: Result, image: Blob, thumb?: Blob
 // 按数据库里的最新记录修改一张结果：验收、问题标签、说明、导出记录各改各的字段，连着点也不会互相覆盖
 export const patchResult = (id: Id, fn: (r: Result) => void) =>
   tracked(`result:${id}`, () => db().results.where('id').equals(id).modify(fn));
+export const getResult = (id: Id) => db().results.get(id);
 export const listResults = (workId: Id) => db().results.where('workId').equals(workId).toArray();
 export const allResults = () => db().results.orderBy('createdAt').reverse().toArray();
 
