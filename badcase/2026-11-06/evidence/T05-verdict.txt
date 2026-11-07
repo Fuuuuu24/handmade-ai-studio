@@ -1,0 +1,203 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "T05 晚潮手链" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": T05 晚潮手链
+    - generic: 待验收
+    - generic "你说的作品名是「晚潮」":
+      - generic: 小间建议
+      - generic: 晚潮手链
+      - button "用这个"
+      - button "不用"
+  - generic: 保存中…
+  - generic "服务端花费账本，打开页面时读取": 预算余 67.91 / 69 美元
+  - navigation "流程进度":
+    - button "资产 （完成）":
+      - text: 资产
+      - generic: （完成）
+    - button "信息 （完成）":
+      - text: 信息
+      - generic: （完成）
+    - button "共创 （完成）":
+      - text: 共创
+      - generic: （完成）
+    - button "方案 （完成）":
+      - text: 方案
+      - generic: （完成）
+    - button "出图 （当前）":
+      - text: 出图
+      - generic: （当前）
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我想在自己的原木手作台上拍晚潮，后面有架子和线团，能看见前后层次，但珍珠还是主角，九颗不规则的形状要保留。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: 用户想拍的作品：照片里是一条巴洛克珍珠手链/项链，数一下珍珠：1(左上)、2(顶中偏左大颗)、3(右上)、4(右中)、5(右下)、6(底中偏右)、7(底中)、8(左下)、9(左中)。看起来是九颗不规则巴洛克珍珠，用银色小环/缠绕线连接，有一个龙虾扣。
+    - generic: 用户说"晚潮"——这是作品的名字？还是主题/氛围？"我想在自己的原木手作台上拍晚潮"——"晚潮"可能是作品名，也可能是意境。后面有架子和线团，能看见前后层次——这是构图/背景要求：原木手作台场景，背景有架子、线团，有前后景层次，珍珠是主角。九颗不规则形状要保留——不能改的细节。
+    - generic: 资产路线是 B，原图直接作参考图，不需要白底图。所以资产这一步只需要引导用户确认资产即可。用户已经上传了整体照片，路线 B 不需要白底，我可以直接确认资产步骤推进？状态说"资产待确认"。我应该引导用户在画布上确认资产（画布上有确认操作）。我不能代确认。
+    - generic: 先记录用户说的信息：作品名可能叫"晚潮"。品类：照片里看像手链或项链，九颗珍珠，有龙虾扣——长度看不出，需要问是手链还是项链。材料：巴洛克珍珠（淡水珍珠？）+ 银色金属环/扣。用户没明确说材料，照片里看不太出是不是银，建议写"珍珠+银色金属连接环和龙虾扣（照片里看到，待确认）"。
+    - generic: 尺寸未填，可以问。
+    - generic: 用户的话里包含风格意向：背景=原木手作台，有架子和线团，前后层次（浅景深虚化背景？"能看见前后层次"意味着背景可辨认但有层次），主体=珍珠主角。这些是用户明确说的，set_style 可以用 basis=said，quote 照抄片段："原木手作台"、"后面有架子和线团"、"能看见前后层次"、"珍珠还是主角"、"九颗不规则的形状要保留"。
+    - generic: 流程：先确认资产（B路线，让用户在画布确认照片作为参考图），然后问商品信息（品类手链/项链、材料、尺寸），再共创故事（"晚潮"是什么意思？灵感？）。一次问一到两个问题。
+    - generic: 现在第一步：资产待确认。我应该 show_step asset，并说明路线 B 直接在画布确认这张原图即可。同时可以问一两个问题：这是手链还是项链？"晚潮"是这件作品的名字吗？
+    - generic: 另外 suggest_name：作品还叫"未命名作品"，品类已经清楚了吗？品类还没确认（手链/项链不确定）。用户提到"晚潮"，可能就是名字。我可以建议名字"晚潮"？suggest_name 是按品类和造型起名，比如"银杏叶耳坠"。用户自己说了"晚潮"，可能是作品名。我可以建议名为"晚潮"，依据写"你说的"。但品类不清。或许等品类确认后再建议。不过用户明确说了"拍晚潮"，很可能就是作品名。我可以 suggest_name "晚潮"，note"你说的"。这符合"作品还叫未命名作品、品类已经清楚时用"——品类还不太清楚。先不急，等确认手链/项链后再说。其实名字"晚潮"是用户给的，直接建议改名合理。但规则说品类已经清楚时用。我先问品类，下一步再建议名字。
+    - generic: 先调用 show_step asset，引导确认资产。同时问：手链还是项链？"晚潮"是名字还是想拍出的感觉？
+    - generic: 回复要简短。
+    - generic: "Asset step is shown. Now ask 1-2 questions: bracelet or necklace, and whether \"晚潮\" is the name or the mood. Also note the photo shows 9 baroque pearls with lobster clasp."
+    - paragraph: 照片里是一条由九颗不规则珍珠串成的链子，珠子之间用银色小环连着，一头有个龙虾扣，对吧？
+    - paragraph: 先在画布的「资产」这一步点一下确认这张原图，咱们就能往下走。接着想问你两件事：
+    - list:
+      - listitem: 这是手链还是项链？大概多长？
+      - listitem: 「晚潮」是这件作品的名字，还是你想拍出的那种感觉？
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 晚潮是作品名，是手链，全长17.5厘米。材料是9颗不规则淡水珍珠、小银环连接、龙虾扣，售价238元。灵感来自傍晚水面不均匀的光点，希望偏爱天然纹理的顾客觉得温柔、有手工痕迹，不要把珍珠磨成一样大的圆珠。环境要奶油白墙、原木工作台、右侧窗、后方开放木架；架上左侧一卷米白棉线，右侧陶碗，商品在前景，背景有可辨层次。用1:1，不要文字。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: 用户提供了非常完整的信息。我需要：
+    - generic: 1. 商品信息 update_info：品类=手链，材料=9颗不规则淡水珍珠、小银环连接、龙虾扣，尺寸=全长17.5厘米，售价=238元，目标顾客=偏爱天然纹理的顾客，keep=不能改的细节：9颗不规则珍珠的形状大小各不相同（不要磨成一样大的圆珠）。 2. suggest_name：作品名是"晚潮"，用户明确说了。品类清楚了。建议名字"晚潮"。 3. record_story：灵感=傍晚水面不均匀的光点；主题/情绪=温柔、有手工痕迹；避免=不要把珍珠磨成一样大的圆珠。 4. draft_summary：三项总结。 5. set_style：用户明确说了背景=奶油白墙、原木工作台、右侧窗、后方开放木架、架上左侧米白棉线卷、右侧陶碗；摆放=商品在前景，背景有可辨层次；光线=右侧窗（自然光）；色调？用户没直接说色调，但奶油白+原木偏暖，可推荐。构图=前景商品+背景层次，1:1。禁止=不要文字、不要磨成一样大的圆珠。表达=温柔、有手工痕迹。
+    - generic: basis=said 的要用 quote 逐字照抄用户原话片段。
+    - generic: 先记录故事，写商品信息。这些是并行的。
+    - generic: "注意：update_info 最多6项。items: category, material, size, price, audience, keep = 6项。正好。"
+    - generic: "record_story 一次只能一条？参数是单条。可以调用多次。灵感一条，情绪一条，避免一条（kind=theme? 避免算 other 或 theme）。kind 枚举：inspiration, theme, emotion, other。 - inspiration: 灵感来自傍晚水面不均匀的光点 - emotion: 希望顾客觉得温柔、有手工痕迹 - other: 明确不要：把珍珠磨成一样大的圆珠（这更像避免项，放 other 或 theme）"
+    - generic: draft_summary 需要等 record_story 之后？可以同批调用吗？draft_summary 基于用户说过的内容，可以直接起草。但规则说"新作品要先深入共创"——用户已经主动把灵感、主题、感受、避免都说了，不需要再追问。信息已经充分。
+    - generic: 不过共创流程：先 record_story，再 draft_summary 请用户确认。我可以在同一批调用吗？draft_summary 依赖故事内容，但内容来自用户原话，可以直接写。为稳妥，先 update_info + record_story（3条）+ suggest_name 一批，然后 draft_summary + set_style 一批。其实 draft_summary 和 set_style 也可以一起。但风格卡建议先确认总结？流程是"总结确认后按总结推荐风格"。用户已经把风格说得很细了，可以直接写风格卡。我分两批：第一批信息+故事+名字；第二批总结草稿+风格。
+    - generic: "set_style items 最多8项： - background: said \"奶油白墙、原木工作台、右侧窗、后方开放木架；架上左侧一卷米白棉线，右侧陶碗\" — 太长？value maxLength 120，OK。quote 必填，maxLength 60。quote 要逐字照抄片段，比如\"奶油白墙、原木工作台、右侧窗、后方开放木架\"（24字）OK。 - props: said \"架上左侧一卷米白棉线，右侧陶碗\" - light: said \"右侧窗\" — 光线是右侧窗的自然光。quote\"右侧窗\"。value 写\"右侧窗进来的自然光\"。嗯，basis=said 要求用户原话明确说过那一项。用户说\"右侧窗\"是环境描述，归到光线有点推断。可以 light basis=said quote=\"右侧窗\"，value=\"光从右侧窗进来\"。或者把右侧窗放 background，light 用 recommend\"柔和的午后侧窗自然光\"。我觉得用户说\"右侧窗\"作为环境元素，光线方向明确是右侧窗，算 said 合理。但代码会核对 quote 在用户消息里——\"右侧窗\"确实在原话里。value 是我表述。OK。 - placement: said \"商品在前景，背景有可辨层次\" - composition: said \"前景商品清晰、背景木架线团陶碗有层次\" quote 用\"背景有可辨层次\" - banned: said \"不要文字\" + 珍珠磨圆？banned 是画面禁止项。\"不要把珍珠磨成一样大的圆珠\"属于保真/keep，放 keep。banned: \"画面不出现任何文字、水印\" quote\"不要文字\"。 - tone: recommend \"奶油白与原木的暖调，安静温柔\" basis=recommend reason。 - expression: said \"温柔、有手工痕迹\" quote\"温柔、有手工痕迹\"。value\"温柔、有手工痕迹的安静氛围\"。"
+    - generic: 8项正好：tone, background, light, placement, props, banned, composition, expression。
+    - generic: 比例 1:1 已是默认，不用 set_ratio。
+    - generic: 然后下一步：写提示词 draft_prompt，再 request_approval。但 draft_summary 要用户确认，风格卡里推荐项用户也要看。可以先放总结草稿和风格，然后告诉用户去确认，再写提示词。规则说提示词写之前确认商品信息、共创总结和风格都已就绪。总结还没确认。所以这一轮：update_info、record_story、suggest_name、draft_summary、set_style，然后提示用户去画布确认信息和总结，确认后我写提示词。
+    - generic: 其实可以这一轮就把这些做完，回复里说下一步。
+    - generic: 数珍珠：照片里我数一下：顶部一颗大椭圆、右上、右中、右下、底中偏右、底中、左下、左中、左上偏中——共9颗，与用户说的一致。好。
+    - generic: 开始调用。第一批：update_info + record_story×3 + suggest_name。这些互相独立。
+    - generic: 现在起草总结并设置风格。
+    - generic: Background was recorded as recommended because the quote "奶油白墙、原木工作台、后方开放木架" didn't match the user's original text verbatim (the user wrote "奶油白墙、原木工作台、右侧窗、后方开放木架" — with "右侧窗" in between). So my quote wasn't a verbatim fragment. I should honestly say the background is my recommendation. Actually the user did say those words, just in a different order. To be honest, I should say "背景按你说的环境整理成了……" — but the tool recorded it as 推荐. I should tell the user it's shown as my suggestion and they can confirm/edit on canvas.
+    - generic: "Now: guide user to confirm info (canvas 信息页), confirm summary (共创页), then I write prompt. Show step story? Let me switch to story step for summary confirmation. Actually the flow: 信息 → 共创 → 方案. I'll tell user to accept info suggestions and confirm the summary, then I'll write the prompt."
+    - generic: Keep reply short.
+    - paragraph: 信息很全，我这就把你说的都记下来。
+    - paragraph:
+      - generic: 已写成待确认建议：品类「手链」、材料「9颗不规则淡水珍珠、小银环连接、龙虾扣」、尺寸「全长17.5厘米」、售价「238元」、目标顾客「偏爱天然纹理的顾客」、不能改的细节「9颗珍珠大小形状各不相同的不规则感，不能磨成一样大的圆珠；小银环连接和龙虾扣保留」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 已记下：灵感来自傍晚水面不均匀的光点。
+    - paragraph:
+      - generic: 已记下：希望偏爱天然纹理的顾客觉得温柔、有手工痕迹。
+    - paragraph:
+      - generic: 已记下：明确不要：把珍珠磨成一样大的圆珠。
+    - paragraph:
+      - generic: 已写成名字建议「晚潮手链」，用户在顶栏接受后才改名
+    - paragraph:
+      - generic: 已起草共创总结，在画布上确认或修改后生效
+    - paragraph:
+      - generic: 风格卡已更新：色调「奶油白与原木的暖调，安静温柔」（推荐，待确认）、背景「奶油白墙＋原木工作台，后方开放木架」（推荐，待确认）、光线「光从右侧窗进来，柔和自然光」、摆放「手链在前景，完整入框；背景木架、线团、陶碗有可辨层次」、道具「后方木架左侧一卷米白棉线，右侧一只陶碗」、构图「前景商品清晰为主角，背景层次可辨但不抢主体」、禁止出现「画面里不出现任何文字、水印」、表达「温柔、有手工痕迹」。其中背景（「奶油白墙、原木工作台、后方开放木架」）在用户的原话里没找到，已记为「小间推荐」，是建议、不是用户说的
+    - paragraph: 都记下了。有一处要说明：背景那项因为和你原话顺序不完全一致，系统把它记成了「小间推荐」——其实就是照你说的奶油白墙、原木台、后方木架整理的，你在画布上确认或改一下就行。
+    - paragraph: 现在请你在画布上点两处：
+    - list:
+      - listitem: 「信息」页：把我列的六条建议接受掉（品类、材料、尺寸、售价、顾客、不能改的细节）。
+      - listitem: 「共创」页：确认那份总结草稿，不合适可以直接改。
+    - paragraph: 这两处确认好，我就写出生图的提示词给你过目。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 商品信息六项已逐条接受，共创总结已经确认。背景就是我说的那套，光线色调建议也可以，请写提示词给我审核，九颗不规则珍珠和小银环、龙虾扣清楚，原木台、右侧窗和木架上的棉线、陶碗有前后层次。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: 用户已确认信息和总结，风格卡也都认可。现在写提示词。
+    - generic: 检查风格卡状态：色调、背景显示"待用户确认"，但用户现在说"背景就是我说的那套，光线色调建议也可以"——这是口头确认，但状态里可能还是"待用户确认"标记。不过用户明确认可了，我可以继续。实际上画布上用户可能已经确认，状态会在下次更新。用户说"请写提示词"，说明就绪。
+    - generic: 提示词按顺序： 1. 主体：手作淡水珍珠手链，9颗不规则巴洛克淡水珍珠，小银环连接，龙虾扣，表面天然纹理、温润光泽。 2. 保真：严格按参考图还原——9颗珍珠大小形状各不相同的不规则感，不能磨成一样大的圆珠；每颗的凹凸纹理、珠光偏奶油白带淡粉晕彩按图；小银环连接结构和龙虾扣保留，位置数量不改；不添加扣头、不延长链条、闭合环保持闭合。 3. 构图：整条手链完整入框，四周留边距，不裁切；1:1；主体居中偏前景，占画面主要位置，珍珠是主角。 4. 场景：奶油白墙＋原木工作台，右侧窗进来的柔和自然光；后方开放木架，架左侧一卷米白棉线，右侧一只陶碗；商品在前景清晰，背景木架、线团、陶碗有可辨前后层次但不抢主体；画面不出现任何文字、水印。 5. 氛围：像傍晚水面不均匀的光点，温柔、安静、有手工痕迹；避免把珍珠拍成一样大的圆珠、避免过度抛光塑料感。 6. 输出：电商商品主图，画面无文字水印边框，比例1:1。
+    - generic: 资产路线 B，参考图就是商品照片，不需要"前N张是商品照片"的特殊说明？规则里"从某张结果修改时"才写那句。普通情况不用。
+    - generic: 写完后告诉用户可在画布查看修改，然后 request_approval。
+    - generic: draft_prompt 和 request_approval 有依赖（先写词再请求批准），但可以同批？request_approval 会检查提示词是否就绪，如果 draft_prompt 先执行应该没问题。工具调用顺序在同一批里是顺序执行的吗？规则说有依赖要等前一个。保险起见先 draft_prompt，拿到结果再 request_approval。
+    - generic: 先 draft_prompt。
+    - generic: The user has already confirmed the background, lighting, and color tone in their message ("the background is exactly what I said, the lighting and color tone suggestions are also fine"), so there's no need to call set_style again. The prompt has already been created. Next, I'll ask for approval.
+    - generic: The approval card has already been issued, and I'm waiting for the user to confirm. The reply is already complete—there's no need to add anything more.
+    - paragraph: 好，提示词我按你确认过的信息、总结和风格写好了，先写进去。
+    - paragraph:
+      - generic: 已写好提示词，可以批准了
+    - paragraph: 提示词写好了，你可以在画布「方案」这一步展开查看和修改。要点是：9颗珍珠大小形状各不相同的不规则感、小银环连接和龙虾扣都按参考图保留；奶油白墙＋原木台、右侧窗柔光、后方木架上左棉线右陶碗，背景有前后层次但珍珠是主角；1:1，画面无任何文字。
+    - generic: 已批准第 1 版方案，已用于第 1 轮生成
+    - button "看结果"
+    - paragraph: 批准卡片已经放出来了，你在卡片上确认一下，我就开始生成两张候选图。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - textbox "和小间说":
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加":
+    - button "对话模型：Qwen 3.8 Flash":
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite":
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "发送" [disabled]:
+  - region "画布":
+    - heading "出图" [level=2]
+    - paragraph: 两项都满意才算完成、才能导出。验收只代表你满意，不代表和实物完全一致，也不代表符合平台规则。
+    - heading "第 1 轮" [level=3]
+    - generic: 第 1 版方案 · 1:1 · Seedream 5.0 Lite · 路线 B
+    - generic "这一轮的方案"
+    - link "查看候选 1 大图":
+      - /url: blob:http://localhost:3000/2aa9a77e-8178-43cc-81f4-7661c904a65f
+      - img "候选 1"
+    - strong: 像实物
+    - button "像"
+    - button "不像"
+    - button "对照原图"
+    - strong: 风格
+    - button "对"
+    - button "不对"
+    - button "从这一版修改"
+    - button "加入对比"
+    - link "查看候选 2 大图":
+      - /url: blob:http://localhost:3000/4300b98c-81ab-46de-90b2-a1b10414b097
+      - img "候选 2":
+        - status: 生成好了
+    - strong: 像实物
+    - button "像"
+    - button "不像"
+    - button "对照原图"
+    - strong: 风格
+    - button "对"
+    - button "不对" [pressed]
+    - button "背景"
+    - button "光线"
+    - button "道具"
+    - button "构图"
+    - textbox "具体哪里不对":
+      - /placeholder: 具体哪里不对？比如：链子变长了
+    - button "告诉小间哪里不对" [active]
+    - button "从这一版修改"
+    - button "加入对比"
+- button "Open Next.js Dev Tools":
+- alert

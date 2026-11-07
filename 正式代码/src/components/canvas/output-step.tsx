@@ -5,6 +5,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { imageModel } from '@/config/models';
 import type { Ratio } from '@/config/ratios';
 import { NO_PROPS, STYLE_LABELS } from '@/config/style';
+import { ASSET_KINDS } from '@/config/upload';
 import { ISSUES, VERDICT_SHORT } from '@/config/verdict';
 import { useBlobFailed, useBlobUrl } from '@/client/hooks';
 import { retrySlot } from '@/client/generation';
@@ -15,7 +16,7 @@ import { exportResult } from '@/client/export';
 import { approvalStatus } from '@/domain/approval';
 import { passed, roundSlots, slotState } from '@/domain/generation';
 import { activeUploads, diffSnapshot } from '@/domain/snapshot';
-import type { Approval, Result, Verdict } from '@/domain/types';
+import type { Approval, Asset, Result, Verdict } from '@/domain/types';
 import { reviseFrom } from '@/domain/work';
 import { useWorkspace } from '@/components/workspace/context';
 import { Modal } from '@/components/ui/dialog';
@@ -48,17 +49,41 @@ function VerdictRow({ label, value, okText, badText, onPick, extra }: { label: s
   );
 }
 
-// 对照原图（AC-09.1）：生成时用的参考图和候选并排看
+// 对照时能看的商品照片：这一轮生成时用的参考图在前（按当时的顺序），作品现在的其他原图在后；同类有几张时编号，比如「细节 2」
+function comparePhotos(assets: readonly Asset[], workId: string, refs: readonly string[]) {
+  const used = refs.map((id) => assets.find((a) => a.id === id)).filter((a): a is Asset => !!a);
+  const all = [...used, ...activeUploads(assets, workId).filter((a) => !refs.includes(a.id))];
+  const kind = (a: Asset) => (a.origin === 'white' ? '白底图' : ASSET_KINDS[a.kind]);
+  return all.map((a) => {
+    const same = all.filter((b) => kind(b) === kind(a));
+    return { asset: a, name: same.length > 1 ? `${kind(a)} ${same.indexOf(a) + 1}` : kind(a), used: refs.includes(a.id) };
+  });
+}
+
+const linkClass = 'text-aux text-muted underline decoration-line-hover underline-offset-2 hover:text-ink';
+
+// 对照原图（AC-09.1）：生成时用的参考图和候选并排看。商品照片可以切换（整体、背面、细节），
+// 两边都能在新标签页打开原尺寸，看细链、开孔、透明边缘这类细节（UX-05）
 function CompareModal({ open, onClose, result, approval }: { open: boolean; onClose: () => void; result: Result; approval: Approval | undefined }) {
   const { ctx } = useWorkspace();
-  const refId = approval?.snapshot.references[0];
-  const ref = ctx.assets.find((a) => a.id === refId) ?? activeUploads(ctx.assets, ctx.work.id)[0];
-  const refUrl = useBlobUrl(open ? ref?.blobId : null);
+  const photos = comparePhotos(ctx.assets, ctx.work.id, approval?.snapshot.references ?? []);
+  const [pick, setPick] = useState<string | null>(null);
+  const ref = photos.find((p) => p.asset.id === pick) ?? photos[0];
+  const refUrl = useBlobUrl(open ? ref?.asset.blobId : null);
   const url = useBlobUrl(open ? result.blobId : null);
   // 行列写成 minmax(0,1fr)（grid-*-1）：默认的 auto 行会按图片原高撑开，框比图矮时下沿被裁掉，看不全商品（BC-012）
   const frame = 'grid h-[min(64vh,640px)] grid-cols-1 grid-rows-1 place-items-center overflow-hidden rounded-lg bg-soft';
   return (
     <Modal open={open} onClose={onClose} wide title={`对照原图：第 ${result.round} 轮候选 ${result.slot + 1}`} sub="看颜色、数量、轮廓、连接结构、纹样和材质有没有走样">
+      {photos.length > 1 && (
+        <div role="group" aria-label="对照哪张商品照片" className="mb-2.5 flex flex-wrap gap-1">
+          {photos.map((p) => (
+            <button key={p.asset.id} type="button" className="choice !h-6 !px-2.5 !text-aux" aria-pressed={p === ref} onClick={() => setPick(p.asset.id)}>
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-4">
         <figure className="m-0 flex flex-col gap-1.5">
           <div className={frame}>
@@ -67,7 +92,18 @@ function CompareModal({ open, onClose, result, approval }: { open: boolean; onCl
               <img src={refUrl} alt="原图" className="size-full object-contain" />
             )}
           </div>
-          <figcaption className="text-aux text-muted">{approval?.snapshot.references[0] === ref?.id ? '生成时用的参考图' : '原图'}</figcaption>
+          <figcaption className="flex items-center gap-2 text-aux text-muted">
+            {ref && (
+              <span className="min-w-0 flex-1">
+                {ref.used ? '生成时用的参考图' : '原图，这一轮没用'}：{ref.name}
+              </span>
+            )}
+            {ref && refUrl && (
+              <a href={refUrl} target="_blank" rel="noreferrer" className={linkClass} aria-label={`看原尺寸：原图${ref.name}，${ref.asset.width}×${ref.asset.height}`}>
+                看原尺寸 {ref.asset.width}×{ref.asset.height}
+              </a>
+            )}
+          </figcaption>
         </figure>
         <figure className="m-0 flex flex-col gap-1.5">
           <div className={frame}>
@@ -76,7 +112,14 @@ function CompareModal({ open, onClose, result, approval }: { open: boolean; onCl
               <img src={url} alt={`候选 ${result.slot + 1}`} className="size-full object-contain" />
             )}
           </div>
-          <figcaption className="text-aux text-muted">候选 {result.slot + 1}</figcaption>
+          <figcaption className="flex items-center gap-2 text-aux text-muted">
+            <span className="min-w-0 flex-1">候选 {result.slot + 1}</span>
+            {url && (
+              <a href={url} target="_blank" rel="noreferrer" className={linkClass} aria-label={`看原尺寸：候选 ${result.slot + 1}，${result.width}×${result.height}`}>
+                看原尺寸 {result.width}×{result.height}
+              </a>
+            )}
+          </figcaption>
         </figure>
       </div>
     </Modal>
@@ -157,7 +200,7 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
           badText="不像"
           onPick={(v) => pick('real', v)}
           extra={
-            <button type="button" className="ml-auto text-aux text-muted underline decoration-line-hover underline-offset-2 hover:text-ink" onClick={() => setComparing(true)}>
+            <button type="button" className={`ml-auto ${linkClass}`} onClick={() => setComparing(true)}>
               对照原图
             </button>
           }

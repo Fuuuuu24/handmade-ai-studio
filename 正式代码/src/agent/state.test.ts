@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_SCENES } from '@/config/scenes';
 import { CHAT_MODELS } from '@/config/models';
-import { current, currentBasis, promptedWork, readyWork, task } from '@/test/fixtures';
-import { approve, confirmSummary, draftSummary, editSummary, setRatio, startRound, suggestInfo } from '@/domain/work';
+import { current, currentBasis, promptedWork, readyWork, result, task } from '@/test/fixtures';
+import { approve, confirmSummary, draftSummary, editSummary, reviseFrom, setRatio, startRound, suggestInfo } from '@/domain/work';
 import type { Work, Asset } from '@/domain/types';
 import { stateSummary } from './state';
 
@@ -29,6 +29,33 @@ describe('stateSummary', () => {
     const text = summarize(suggestInfo(work, 'keep', '叶脉纹不能改'), assets);
     expect(text).toContain('- 材料：黄铜镀金（已确认）');
     expect(text).toContain('- 不能改的细节：未填；你的建议「叶脉纹不能改」待用户确认');
+  });
+
+  it('核心信息建议没处理：写成批准前提醒，不算批准缺项', () => {
+    const { work, assets } = promptedWork();
+    const text = summarize(suggestInfo(work, 'keep', '叶脉纹不能改'), assets);
+    expect(text).toContain('批准前还缺：无，可以请用户批准');
+    expect(text).toContain('批准前提醒（不挡批准）：还有 1 条信息建议没处理：不能改的细节；没接受的不会用于生成；请用户在信息页接受或忽略');
+  });
+
+  it('核心信息建议没处理：写明现在写不了提示词；只有选填项的建议时不写（UX-02）', () => {
+    const { work, assets } = readyWork();
+    expect(summarize(suggestInfo(work, 'keep', '叶脉纹不能改'), assets)).toContain(
+      '写提示词前：还有 1 条信息建议没处理：不能改的细节，要等用户在信息页接受或忽略；现在用 draft_prompt 会被拒绝',
+    );
+    expect(summarize(suggestInfo(work, 'price', '198 元'), assets)).not.toContain('写提示词前');
+  });
+
+  it('从某张结果修改时：写明生成会带上那张结果作房间参考，以及参考图的顺序（BC-006）', () => {
+    const { work, assets } = promptedWork();
+    const a = approve(work, assets, current(work, assets), false);
+    if (!a.ok) throw new Error('应当可以批准');
+    const s = startRound(a.work, a.approval, current(a.work, assets), false);
+    if (!s.ok) throw new Error('应当可以生成');
+    const text = summarize(reviseFrom(s.work, result(work.id, 1, 1), s.approval), assets);
+    expect(text).toContain(
+      '房间参考图：生成时参考图依次是前 1 张商品图，最后一张（第 2 张）是这张结果，只用来参考房间、机位、光线和摆放位置；重写提示词时按规则写明各张图的用途',
+    );
   });
 
   it('写明提示词过期的原因和批准前还缺什么', () => {

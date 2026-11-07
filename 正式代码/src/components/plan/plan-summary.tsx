@@ -2,7 +2,7 @@
 
 import { imageModel } from '@/config/models';
 import { NO_PROPS, toneColors } from '@/config/style';
-import { approvalBlockers } from '@/domain/approval';
+import { approvalBlockers, approvalReminders } from '@/domain/approval';
 import { STEPS } from '@/config/steps';
 import { useWorkspace } from '@/components/workspace/context';
 
@@ -22,6 +22,8 @@ export function PlanSummary({ compact = false }: { compact?: boolean }) {
   const { work } = ctx;
   const colors = toneColors(work.style.tone.value);
   const keep = work.info.keep.value;
+  // 从某张结果修改时，生成会带上那张图作房间参考（BC-006），批准前写明
+  const room = work.revision && ctx.results.find((r) => r.id === work.revision!.fromResultId);
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2 text-aux text-ink-2">
@@ -38,6 +40,11 @@ export function PlanSummary({ compact = false }: { compact?: boolean }) {
         <span className="text-faint">·</span>
         <span>两张候选</span>
       </div>
+      {room && (
+        <p className="text-aux text-ink-2">
+          沿用第 {room.round} 轮候选 {room.slot + 1} 的房间和机位
+        </p>
+      )}
       <dl className="flex flex-col">
         {ROWS.filter(([k]) => !compact || work.style[k].value || k === 'props').map(([k, label]) => {
           const v = work.style[k];
@@ -61,17 +68,22 @@ export function PlanSummary({ compact = false }: { compact?: boolean }) {
   );
 }
 
+// 批准前还缺的（挡批准）和提醒（不挡批准）
 export function BlockerList() {
   const { ctx, setViewing, viewing } = useWorkspace();
   const blockers = approvalBlockers(ctx.work, ctx.assets, ctx.basis, ctx.isGenerating);
-  if (!blockers.length) return null;
+  const reminders = approvalReminders(ctx.work);
+  if (!blockers.length && !reminders.length) return null;
+  const rows = [...blockers.map((b) => ({ ...b, lead: '还缺', tone: 'text-warn' })), ...reminders.map((b) => ({ ...b, lead: '提醒', tone: 'text-ink-2' }))];
   return (
-    <ul className="flex flex-col gap-1 text-aux text-warn">
-      {blockers.map((b) => (
-        <li key={b.text} className="flex items-center gap-2">
-          <span>还缺：{b.text}</span>
+    <ul className="flex flex-col gap-1 text-aux">
+      {rows.map((b) => (
+        <li key={b.text} className={`flex items-center gap-2 ${b.tone}`}>
+          <span>
+            {b.lead}：{b.text}
+          </span>
           {b.step !== viewing && (
-            <button type="button" className="text-ink-2 underline decoration-line-hover underline-offset-2 hover:text-ink" onClick={() => setViewing(b.step)}>
+            <button type="button" className="shrink-0 text-ink-2 underline decoration-line-hover underline-offset-2 hover:text-ink" onClick={() => setViewing(b.step)}>
               去{STEPS.find((s) => s.id === b.step)?.name}
             </button>
           )}

@@ -1,0 +1,92 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "未命名作品" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": 未命名作品
+    - generic: 资产待确认
+  - generic: 已保存
+  - generic "服务端花费账本，打开页面时读取": 预算余 68.25 / 69 美元
+  - navigation "流程进度":
+    - button "资产 （当前）":
+      - text: 资产
+      - generic: （当前）
+    - button "信息":
+      - text: 信息
+    - button "共创":
+      - text: 共创
+    - button "方案":
+      - text: 方案
+    - button "出图":
+      - text: 出图
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我在做潮汐间的第一张商品主图，想有一个自己的靠窗小工作台，后面能看见墙和壁龛，像真的在工作室拍。海边的感觉安静一点，不要贝壳。
+    - button [expanded]:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 小间在思考…
+    - generic: 用户是做手作饰品的商家，上传了一张照片：一条银色链条项链，吊坠是一个不规则的水滴/卵石形状，浅海绿色（
+    - generic: 由 Qwen 3.8 Flash 回复
+    - status: 小间正在思考…
+    - textbox "和小间说":
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加" [disabled]:
+    - button "对话模型：Qwen 3.8 Flash" [disabled]:
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite" [disabled]:
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "停止回复":
+  - region "画布":
+    - generic: 资产路线（试用操作员）
+    - group "资产路线":
+      - button "A 白底"
+      - button "B 原图" [pressed]
+    - heading "资产" [level=2]
+    - generic: 待确认
+    - paragraph: 对照检查：颜色、形状、细链、镂空、透明部分和数量都拍清楚了吗？看不清的部分小间不会去猜，建议补拍。
+    - figure "1254×1254 替换这张照片 不再使用这张照片":
+      - img "整体照片"
+      - combobox "照片类型":
+        - generic: 整体
+      - generic: 1254×1254
+      - button "替换这张照片":
+      - button "不再使用这张照片":
+    - button "再加一张":
+      - text: 再加一张
+    - button "确认资产"
+    - generic: 原图路线：确认后用这些照片作参考图
+- button "Open Next.js Dev Tools":
+- alert: 今天想给哪件作品拍主图？

@@ -1,0 +1,331 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "T07 青苔耳饰" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": T07 青苔耳饰
+    - generic: 方案待确认
+  - generic: 已保存
+  - generic "服务端花费账本，打开页面时读取": 预算余 68.24 / 69 美元
+  - navigation "流程进度":
+    - button "资产 （完成）":
+      - text: 资产
+      - generic: （完成）
+    - button "信息 （完成）":
+      - text: 信息
+      - generic: （完成）
+    - button "共创 （完成）":
+      - text: 共创
+      - generic: （完成）
+    - button "方案 （当前）" [active]:
+      - text: 方案
+      - generic: （当前）
+    - button "出图":
+      - text: 出图
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我想有个安静的标本小屋，石台、灰泥墙，旁边来一点窗光，远处壁龛放一个棕瓶子。不要把耳环丢在一堆植物里。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: "The user has uploaded a photo showing a pair of resin earrings with moss preserved inside them (with silver hooks). The user has stated their vision: \"A quiet specimen cottage, with a stone platform, gray plaster wall, window light coming in from the side, and a brown bottle placed in a niche in the distance. Don't bury the earrings in a pile of plants.\""
+    - generic: "This is a very clear description of the style/atmosphere. What I should do: 1. Record the story/theme (the inspiration and mood the user described). 2. Suggest a name (since the work is still \"Untitled Work\" and the category is clear, I can suggest a name like \"Moss Specimen Earrings\"). 3. Update the product information based on what I can see: category = earrings (pair), material = resin + preserved moss + silver-colored ear hooks (the photo shows what looks like resin and moss, but I need to be careful about the material—the photo looks like resin with moss inside, and the ear hooks look silver-colored. I can write it as a suggestion with a note saying \"confirmed from photo, needs verification\"). Size is unknown—don't guess. Price is unknown. Target customer is unknown. 4. Style: the user has clearly stated tone/background/lighting/props. I can set the style card with basis=said and use quotes from the user's words: \"quiet specimen cottage,\" \"stone platform, gray plaster wall,\" \"window light coming in from the side,\" \"brown bottle placed in a niche in the distance,\" \"don't bury the earrings in a pile of plants\" (do-not-show: pile of plants / cluttered plants). Composition: the user hasn't explicitly stated it, but \"don't bury in a pile of plants\" is a prohibition. The placement might be inferred as a recommendation."
+    - generic: "Let me think about which fields to set: - Tone: quiet specimen-cottage feel → from the user's \"quiet specimen cottage\"—this is an atmosphere, and the tone I infer is my recommendation. Actually, the user said \"I want a quiet specimen cottage\"—that's the overall scene concept. I could set the tone as a recommendation (low saturation, cool-leaning neutral tones) with reason attached. Or basis=said with quote \"quiet specimen cottage\"? The rule says: basis=said is only for items the user explicitly stated in their original words, and the code verifies against the user's message. \"Quiet specimen cottage\" is in the message, but the tone field itself... the tone I'm writing is my interpretation. The rule says \"things inferred from feelings or atmosphere are your recommendation.\" So tone = recommend. - Background: \"stone platform, gray plaster wall\"—the user explicitly said this. basis=said, quote \"stone platform, gray plaster wall.\" Value: stone platform in the foreground, gray plaster wall in the background. - Lighting: \"a bit of window light from the side\"—basis=said, quote \"a bit of window light from the side.\" Value: soft window light from the side. - Props: \"brown bottle placed in a niche in the distance\"—basis=said, quote \"brown bottle.\" Value: one brown bottle placed in a distant niche. - Do-not-show: \"don't bury the earrings in a pile of plants\"—basis=said, quote \"don't bury the earrings in a pile of plants.\" Value: pile of plants, cluttered surrounding plants. - Placement: not stated by user. Recommend: earrings laid flat/placed on the stone platform? The photo shows earrings. I'll recommend hanging or laying flat on the stone platform. Recommend with reason. - Composition: not stated. Recommend: earrings as the main subject fully in frame, niche and brown bottle in the distance as background. Recommend. - Expression: the user's \"quiet specimen cottage\"—that's the mood. Expression field could be \"quiet specimen-cottage feel.\" Hmm, expression = the emotion to be conveyed. The user said \"I want a quiet specimen cottage.\" I could set expression as recommend or said. \"Quiet specimen cottage\" is the user's own words about the scene they want. I think it's safer to treat the expression as recommend inferred from that, or said with quote \"quiet specimen cottage.\" The code checks whether the quote appears in the user's message—it does appear. But the rule says said is only for items the user explicitly stated in their original words. The user said \"I want a quiet specimen cottage\"—that's an explicit statement of the desired atmosphere. I think it's acceptable to use said with quote \"quiet specimen cottage\" for expression. Hmm, but tone is also inferred from that... Let me put expression as said (quote \"quiet specimen cottage\"), tone as recommend."
+    - generic: "Also record_story: theme/inspiration—the user described the desired scene: \"quiet specimen cottage, stone platform, gray plaster wall, window light, brown bottle in a distant niche; don't bury earrings in a pile of plants.\" Kind: theme. Use the user's own meaning."
+    - generic: "Product info via update_info: - Category: earrings (pair)—confirmed from photo. - Material: resin + preserved moss + silver-colored ear hooks—confirmed from photo, needs verification. Note \"confirmed from photo, needs verification.\" - Size: cannot be determined—leave blank or ask. Don't guess. I could ask the user for size and price later. Rule: if it can't be determined or the user hasn't said it, ask or leave blank. I'll ask about size/material verification in one or two questions. - Details that must not change: pair (2), oval resin pendants, moss inside, silver ear hooks + small rings for connection—confirmed from photo, needs verification. This is useful. I'll add it as a suggestion."
+    - generic: "Name suggestion: \"Moss Specimen Earrings\"—fits the category and form, and matches the user's \"specimen cottage\" concept. Use suggest_name."
+    - generic: "Next step: co-creation—the user has already given a clear theme/mood. I should ask a few questions to complete the story: for example, the inspiration (where did the moss come from? Did they pick up moss after the rain?)—but I must not fabricate. I can ask: what they want the customer to feel at first glance (though \"quiet\" is implied), and whether there's a story behind it. Actually, the user's message already covers the mood and what to avoid. What's missing: inspiration. I'll ask one light question about inspiration/material verification."
+    - generic: "Also, the current step is \"awaiting asset verification\"—route B means the original photo is directly the reference image, and the user needs to verify the asset on the canvas. I should guide the user to verify the asset on the canvas (Step 1 Asset). Route B: no white background needed; the user just verifies the asset. I should tell them to verify the photo as the asset on the canvas."
+    - generic: "Let me make the tool calls. Independent calls: suggest_name, record_story, update_info, set_style—all can be executed in one block."
+    - generic: "For set_style items (max 8): 1. background: said, quote \"stone platform, gray plaster wall,\" value \"stone platform in foreground, gray plaster wall in background\" 2. light: said, quote \"a bit of window light from the side,\" value \"soft window light from the side, leaving a faint shadow on the stone platform\" 3. props: said, quote \"brown bottle,\" value \"one brown bottle placed in a niche in the distance\" 4. banned: said, quote \"don't bury the earrings in a pile of plants,\" value \"pile of plants, cluttered surrounding plants\" 5. tone: recommend, value \"low-saturation cool-leaning neutral tones, grayish white and stone gray as main colors,\" reason \"inferred from the quiet specimen-cottage feel you wanted\" 6. placement: recommend, value \"earrings placed flat on the stone platform, pendants facing up, hooks naturally laid to the side,\" reason \"you didn't specify the placement; laying flat is stable and lets the moss pattern inside the resin show clearly\" 7. composition: recommend, value \"earrings as the main subject fully in frame, placed slightly toward the foreground; niche and brown bottle blurred in the distance to create depth,\" reason \"echoes the 'distant niche' you mentioned\" 8. expression: said, quote \"quiet specimen cottage,\" value \"quiet specimen-cottage feel\"—hmm, is this said? The user explicitly said \"I want a quiet specimen cottage.\" The expression field is about what the work expresses / the mood. I think it's okay to use said with quote \"quiet specimen cottage.\" But there's a risk the code will match it... the quote appears verbatim in the message. No problem."
+    - generic: "Wait, \"a bit of window light from the side\"—the user wrote \"旁边来一点窗光.\" The quote must be verbatim: \"旁边来一点窗光.\" Good."
+    - generic: "update_info items: - category: \"earring (pair)\" note \"confirmed from photo: two oval resin pendants with silver-colored ear hooks\" - material: \"transparent resin + preserved moss, silver-colored metal ear hooks\" note \"confirmed from photo, needs verification\" - keep: \"pair (2); oval resin pendants; moss inside the resin concentrated in the lower half, branches fine and feathery; ear hooks connected to pendants via small rings, hooks have coil winding\" note \"confirmed from photo, needs verification\""
+    - generic: "Size: cannot be determined—ask the user."
+    - generic: "record_story: kind=theme, text: \"The author wants to create a 'quiet specimen cottage' atmosphere: stone platform and gray plaster wall, soft window light from the side, a brown bottle placed in a distant niche; explicitly stated not to bury the earrings in a pile of plants.\""
+    - generic: "suggest_name: \"Moss Specimen Earrings\" note \"named from the category and the 'specimen' image you mentioned.\""
+    - generic: "Then in the reply: summarize, ask about material/size verification and inspiration (one or two questions), and guide them to verify the asset on the canvas."
+    - generic: Reply concisely, warmly, and colloquially.
+    - generic: Next, I'll set the style card with the user's statements and my inferred content.
+    - generic: "I've updated the style card. Next, I'll reply: summarize what's been completed, ask 1-2 questions (confirming the material, size, and whether there's a backstory or inspiration), and guide them to check the assets on the canvas."
+    - generic: "Current progress: awaiting asset confirmation → the user needs to confirm the photo as an asset on the canvas (Route B, no white background needed). After that, information confirmation, co-creation summary, plan."
+    - generic: "Questions to ask: 1. Is the material okay as \"transparent resin + preserved moss\"? What's the size? (1-2 questions) 2. Is there a story behind the inspiration? Or should I put out a few directional cards? The user has already given a very clear scene description, so maybe the inspiration question isn't necessary. The co-creation summary needs three items: what to express / what they want the customer to feel / what to avoid. The user has basically stated all of these. I can draft the summary first, then have the user confirm it."
+    - generic: Actually, the user's description covers expression (specimen cottage, quiet), feeling (quiet), and avoidance (a pile of plants). I can draft the summary right now. But the material/size are still unconfirmed, and the asset is also unconfirmed. The draft of the summary doesn't depend on those. Let me draft the summary now and ask the user to confirm it on the card.
+    - generic: "Draft summary: - express: Preserving moss inside a transparent resin oval pendant, like a single corner of nature quietly kept inside a specimen bottle; the scene is a quiet specimen cottage. - feel: At first glance, a sense of quietness and restraint—as if placed on a stone shelf by a window, with soft window light, the moss vivid and clear. - avoid: Don't bury the earrings in a pile of plants, don't make it cluttered or flashy."
+    - generic: "Use the user's intent, don't embellish. \"Like a single corner of nature quietly kept inside a specimen bottle\"—this is my inference, and the user said \"specimen cottage.\" Keep it close to the user's words. express: \"Preserving moss inside a transparent resin pendant, presenting it within a quiet 'specimen cottage' scene.\" That works."
+    - generic: Then ask about material + size in the reply. Also guide them to confirm the asset on the canvas (Step 1).
+    - generic: "Reply: Summarize the situation, ask questions about the material and size, and guide them to confirm the assets. Keep it short, warm, and conversational in tone."
+    - paragraph:
+      - generic: 已写成名字建议「苔藓标本耳坠」，用户在顶栏接受后才改名
+    - paragraph:
+      - generic: 已记下：作者想要一个「安静的标本小屋」氛围：石台、灰泥墙，旁边一点窗光，远处壁龛放一个棕瓶子；并明确不要把耳环丢在一堆植物里。
+    - paragraph:
+      - generic: 已写成待确认建议：品类「耳坠（一对）」、材料「透明树脂＋保真苔藓，银色金属耳钩」、不能改的细节「一对2只；椭圆透明吊坠；苔藓集中在下半部、枝状细密；耳钩经小圆环连吊坠，钩体带缠绕线圈」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 风格卡已更新：背景「前景石台，背景灰泥墙」、光线「侧面柔和窗光，石台上留淡淡影子」、道具「远处壁龛放一个棕瓶子」、禁止出现「一堆植物、杂乱环绕的绿植」、色调「低饱和冷调中性色，灰白与石色为主」（推荐，待确认）、摆放「耳坠平放石台上，正面朝上，耳钩自然侧放」（推荐，待确认）、构图「耳坠主体完整入框略靠前，壁龛与棕瓶子在远处虚化出纵深」（推荐，待确认）、表达「安静的标本小屋感」
+    - paragraph:
+      - generic: 已起草共创总结，在画布上确认或修改后生效
+    - paragraph: 你描述的画面我都记下来了，风格卡按你说的填好：石台＋灰泥墙、侧面窗光、远处壁龛一只棕瓶子，「一堆植物」写进了禁止出现；色调、摆放和构图是我按「安静标本小屋」的感觉补的建议，画布上可以改。名字也起了个建议「苔藓标本耳坠」，看你喜欢不喜欢。
+    - paragraph: 照片里看起来是一对透明树脂椭圆吊坠，里面封着枝状苔藓，银色耳钩经小圆环连着吊坠——材料我按「树脂＋保真苔藓」写了建议，对吗？另外吊坠大概多大？尺寸写清楚，生成时比例不容易失真。
+    - paragraph: 还有个小步骤：右侧画布第一步「资产」里，请确认这张照片作为商品参考图，确认了咱们就能往下走共创和方案。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 作品叫青苔，是无色透明树脂里嵌深绿干燥苔藓，不是其他保真处理苔藓；银耳钩，一对，总长35毫米、宽16毫米，158元。灵感是雨后石阶的苔藓，想表达安静的植物意象，希望喜欢植物手作的顾客感到清新、自然；不要变成绿色不透明石头，不要外部花草挡住商品。环境要米白灰泥墙、浅石台面、左侧窗、后右方木框浅壁龛，内放单个深棕玻璃瓶；商品、台面后缘、墙面和远处壁龛要有前后层次，玻璃瓶别全虚化。1:1。资产已确认。
+    - button [expanded]:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 小间在思考…
+    - generic: "The user provided a lot of information. Let me organize it:"
+    - generic: "1. Work name: User says \"the work is called 青苔 (moss)\" — the work name is \"青苔\". I proposed \"苔藓标本耳坠 (moss specimen earrings)\" but the user rejected/changed it themselves. Rule: if the user rejects or changes the name themselves, don't bring it up again. The user said \"the work is called 青苔\" — this is the user naming it themselves. Is there a tool to change the name? suggest_name is only for proposals. The user can change the name themselves in the top bar. I should note that the user can change the name in the top bar, or… actually, the user said \"the work is called 青苔\" — I should tell them they can change the name in the top bar, or maybe the system handles it. There's no tool to directly set the name. suggest_name is the only name tool, and the rule says \"if the user rejects or changes the name themselves, don't bring it up again.\" The user is stating the name — I should guide them to change it themselves in the top bar. Hmm, but that's awkward. Let me think: the user said \"the work is called 青苔.\" There's no tool to set the name. I'll tell them to type it in the top bar. Actually wait — I shouldn't suggest \"苔藓标本耳坠\" again. I'll just mention that they can change the name to \"青苔\" in the top bar."
+    - generic: "2. Product information (user's own words — update_info): - Material: colorless transparent resin with deep green dried moss embedded inside (not other preservation-processed moss); silver ear hooks - Quantity: one pair - Size: total length 35mm, width 16mm - Price: 158 yuan - Target customer: customers who like botanical handcraft - Category: earrings (pair) — the user confirmed \"one pair of silver ear hooks,\" implicitly confirming the category. The previous proposal was \"earrings (pair).\" The user said \"one pair, total length 35mm\" — the category is implicitly confirmed. I can update the category as said? The user didn't explicitly say \"earrings\"… they said \"silver ear hooks.\" The category \"earrings (pair)\" was my proposal awaiting confirmation; the user's message confirms the pair and ear hooks. I think it's reasonable to update the category with basis as the user's words \"silver ear hooks, one pair.\" Actually update_info doesn't have a basis field — just field/value/note. The note can say \"what you said.\""
+    - generic: "3. Story (record_story): - Inspiration: moss on stone steps after rain (inspiration) - Theme: quiet botanical image (theme) - Emotion/what to convey: want customers who like botanical handcraft to feel freshness and nature - Avoid: don't turn it into opaque green stones; don't let external flowers or grasses block the product"
+    - generic: "4. Style (set_style): - Background: off-white plaster wall, light stone surface — user's words \"off-white plaster wall, light stone surface\" → basis=said - Light: window on the left — user's words \"window on the left\" → light from left window; basis=said. The previous light was \"soft window light from the side\" said \"a bit of window light from the side.\" Now the user is specifying \"window on the left.\" Update light: soft window light from the left. Quote \"window on the left.\" - Props: a single deep brown glass bottle placed in a shallow wooden-framed niche at the back-right — user's words → props said. Quote \"place a single deep brown glass bottle in it\" or \"shallow wooden-framed niche at the back-right.\" Value: \"shallow wooden-framed niche at the back-right, with a single deep brown glass bottle inside.\" - Composition: the product, the back edge of the surface, the wall, and the distant niche need to have front-back layering, and the glass bottle shouldn't be completely blurred — user's words → composition said. Quote \"need to have front-back layering\" / \"glass bottle shouldn't be completely blurred.\" Value: \"the product, back edge of surface, wall, and distant niche have front-back layering; the glass bottle shouldn't be completely blurred, still discernible.\" - Prohibited: don't turn into opaque green stones (this is about the product itself — more like a \"detail that must not change\" / product fidelity note); don't let external flowers or grasses block the product → banned said. Update banned: \"flowers or grasses blocking the product; the resin appearing as opaque green stones.\" Hmm, \"opaque green stones\" is about the product rendering — it can go in both banned and the \"detail that must not change.\" I'll put \"external flowers or grasses blocking the product\" in banned (said, quote \"don't let external flowers or grasses block the product\"), and add \"resin must be colorless transparent, not opaque green stones\" to the keep details. - Tone: the user said off-white plaster wall, light stone surface — the tone can be updated to a brighter warm-leaning off-white? The previous tone recommendation was \"low-saturation cool-leaning neutral colors.\" Now the user specified off-white plaster wall, light stone surface — that's a brighter warm neutral. I can update the tone as recommend: \"low-saturation off-white, light stone colors, fresh and quiet\" — reason: the user specified off-white plaster wall and light stone surface, and wants freshness and nature. basis=recommend (inferred). Or leave it. I'll update to align: tone value \"off-white and light stone colors as the main tones, low saturation, fresh and quiet,\" basis=recommend. - Placement: previously recommended \"lay the earrings flat on the stone surface, front facing up, ear hooks naturally to the side\" — the user didn't object. Keep. - Expression: quiet botanical image — the user said \"want to express a quiet botanical image\" → said, quote \"quiet botanical image.\" Update expression value to \"quiet botanical image.\""
+    - generic: "5. Ratio: 1:1 — already 1:1. No need to call set_ratio? The current ratio is 1:1. The user confirmed 1:1. No call needed."
+    - generic: 6. Assets confirmed — the user said "assets are confirmed." The status previously showed awaiting asset confirmation, but the user says it's confirmed. The status should be updated. Trust the user.
+    - generic: "7. Name: \"青苔\" — the user renamed it themselves? The status in the next turn will tell. I'll mention it."
+    - generic: "Now, the summary draft also needs updating — the previous draft_summary was awaiting confirmation, and its content mentioned \"specimen cottage\" and \"brown bottle in the distant niche.\" The user has now refined the environment: off-white plaster wall, light stone surface, left window, back-right wooden-framed niche with a deep brown glass bottle. The story is now: inspiration from moss on stone steps after rain, quiet botanical image, freshness and nature. I should re-draft the summary to reflect the user's latest words:"
+    - generic: "- express: \"Colorless transparent resin with deep green dried moss embedded inside, expressing a quiet botanical image; the inspiration comes from moss on stone steps after rain.\" - feel: \"Customers who like botanical handcraft should feel freshness and nature: off-white plaster wall, light stone surface, soft window light from the left, a deep brown glass bottle in the back-right niche, with front-back layering.\" - avoid: \"Don't turn the resin into opaque green stones; don't let external flowers or grasses block the product.\""
+    - generic: This is based on what the user said. Good.
+    - generic: "Tool call order — all independent: update_info, record_story (multiple), set_style, draft_summary. Can be bundled into one block."
+    - generic: "update_info items (max 6): 1. category: \"earrings (pair)\" note \"what you said 'silver ear hooks, one pair'\" 2. material: \"colorless transparent resin with deep green dried moss embedded inside (not preservation-processed moss); silver ear hooks\" note \"what you said\" — max 200 chars, no problem. 3. size: \"total length 35mm × width 16mm\" note \"what you said\" 4. price: \"158 yuan\" note \"what you said\" 5. audience: \"customers who like botanical handcraft\" note \"what you said\" 6. keep: \"one pair, 2 pieces; oval transparent pendant; resin must be colorless transparent, not opaque green stones; deep green dried moss embedded inside; ear hooks connected to pendant via small rings\" note \"what you said + confirmed from photo\" — hmm, keep details: the user said \"don't turn into opaque green stones\" is a fidelity note. The previous proposal included \"moss concentrated in the lower half, branch-like and fine; hook body has coil winding\" from the photo. The user hasn't confirmed those photo details. I'll write keep as: \"resin colorless transparent, not opaque green stones; deep green dried moss embedded inside; one pair, 2 pieces; oval pendant; ear hooks connected to pendant via small rings\" note \"what you said; small rings and hook body details confirmed from photo.\" Max 6 items — exactly 6. Good."
+    - generic: "record_story: 1. inspiration: \"The inspiration comes from moss on stone steps after rain.\" 2. theme: \"Want to express a quiet botanical image; want customers who like botanical handcraft to feel freshness and nature.\" kind=theme. Emotion can also be included. kind=theme is fine. 3. Avoid notes: \"Don't turn the resin into opaque green stones; don't let external flowers or grasses block the product.\" kind=other? These are also reflected in banned/keep. Two record_story calls might be enough; the avoid is already in the style. I'll record inspiration + theme. Actually the emotion part \"want customers to feel freshness and nature\" — could be kind=emotion. I'll do: inspiration (rain on stone steps), theme (quiet botanical image), emotion (want customers who like botanical handcraft to feel freshness and nature). Three calls."
+    - generic: "set_style items (max 8): 1. background: said, quote \"off-white plaster wall, light stone surface,\" value \"off-white plaster wall, light stone surface\" 2. light: said, quote \"window on the left,\" value \"soft window light from the left\" — the user said \"window on the left\" as environment. The light quality \"soft\" is inferred, but combined: value \"window on the left, soft light from the left.\" Quote \"window on the left\" appears verbatim. OK. 3. props: said, quote \"shallow wooden-framed niche at the back-right\" (also \"place a single deep brown glass bottle inside\"), value \"shallow wooden-framed niche at the back-right, with a single deep brown glass bottle inside.\" Quote must be a verbatim fragment: \"shallow wooden-framed niche at the back-right\" — the user wrote \"back-right wooden-framed shallow niche, place a single deep brown glass bottle inside.\" Verbatim fragment: \"wooden-framed shallow niche\" hmm, the user's word order is \"back-right wooden-framed shallow niche.\" Quote: \"back-right wooden-framed shallow niche, place a single deep brown glass bottle inside\" — within 60 chars, verbatim. Good. 4. composition: said, quote \"need to have front-back layering, glass bottle shouldn't be completely blurred,\" value \"the product, back edge of surface, wall, and distant niche have front-back layering; the glass bottle shouldn't be completely blurred, still discernible.\" Quote verbatim: \"need to have front-back layering, glass bottle shouldn't be completely blurred\" — the user wrote \"the product, back edge of surface, wall, and distant niche need to have front-back layering, glass bottle shouldn't be completely blurred.\" Yes, verbatim fragment. 5. banned: said, quote \"don't let external flowers or grasses block the product,\" value \"external flowers or grasses blocking the product; opaque green stones.\" Hmm, \"opaque green stones\" is about the product itself; the user said \"don't turn into opaque green stones.\" I can include both with quotes… one quote field per item. Value \"external flowers or grasses blocking the product; resin appearing as opaque green stones,\" quote \"don't turn into opaque green stones, don't let external flowers or grasses block the product\" — verbatim fragment: the user wrote \"don't turn into opaque green stones, don't let external flowers or grasses block the product.\" Yes! Verbatim. 6. tone: recommend, value \"off-white and light stone colors as the main tones, low saturation, fresh and quiet,\" reason \"adjusted to match the off-white plaster wall, light stone surface you specified and the freshness you want.\" 7. expression: said, quote \"quiet botanical image,\" value \"quiet botanical image, fresh and natural.\" Hmm, the user said \"want to express a quiet botanical image, want customers who like botanical handcraft to feel freshness and nature.\" Quote \"quiet botanical image\" is verbatim. Value \"quiet botanical image.\" 8. placement: keep the previous recommendation (user didn't object). Don't touch it."
+    - generic: That's 7 items. Good.
+    - generic: "draft_summary: re-draft as above."
+    - generic: "Name: no tool. In the reply, tell the user: the name can be changed to \"青苔\" in the top bar. Actually wait — the user said \"the work is called 青苔\" — maybe they already renamed it in the UI? The status will show. The current status at the start of this turn is still \"Untitled Work\" (the status was provided before the message). The status is provided with each conversation turn; it shows Untitled Work. The user's message says the work is called 青苔. I can't set the name; suggest_name is only for proposals, and the user has effectively named it themselves. Rule: \"if the user rejects or changes the name themselves, don't bring it up again\" — the user has stated the name. I'll ask them to fill it in the top bar (or maybe they already did). Briefly: \"Got it, the name '青苔' — please change it directly in the top bar.\""
+    - generic: Ratio 1:1 is already set — no call needed.
+    - generic: "Next steps: after this, the summary needs user confirmation, then write the prompt and request approval. The flow: the user has provided everything needed for the plan. After the tool calls, I should tell them: please confirm the summary on the card, and I can write the prompt. Actually, can I write the prompt now? The summary is a draft awaiting confirmation; the prompt needs the confirmed summary. I'll wait for the user to confirm the summary, then draft the prompt and request approval. So in the reply: I've updated the info, story, and style; please confirm the summary and info proposals on the canvas; once confirmed, I'll write the prompt and show the approval card."
+    - generic: Let me make the calls. All independent — one block.
+    - generic: "All done. Next, reply: summarize the updates, touch"
+    - paragraph:
+      - generic: 已写成待确认建议：品类「耳坠（一对）」、材料「无色透明树脂内嵌深绿干燥苔藓（非其他保真处理苔藓）；银色金属耳钩」、尺寸「总长35毫米，宽16毫米」、售价「158元」、目标顾客「喜欢植物手作的顾客」、不能改的细节「一对2只；椭圆吊坠；树脂必须无色透明，不能变成绿色不透明石头；内嵌深绿干燥苔藓；耳钩经小圆环连吊坠（照片里看到，待确认）」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 已记下：灵感来自雨后石阶上的苔藓。
+    - paragraph:
+      - generic: 已记下：想表达安静的植物意象。
+    - paragraph:
+      - generic: 已记下：希望喜欢植物手作的顾客感到清新、自然。
+    - paragraph:
+      - generic: 风格卡已更新：背景「米白灰泥墙，浅石台面」、光线「左侧窗，柔和窗光从左来」、道具「后右方木框浅壁龛，内放单个深棕玻璃瓶」、构图「商品、台面后缘、墙面、远处壁龛有前后层次；玻璃瓶不全虚化，仍可辨认」、禁止出现「外部花草挡住商品；树脂呈现为绿色不透明石头」、色调「米白与浅石色为主，低饱和，清新安静」（推荐，待确认）、表达「安静的植物意象，清新自然」
+    - paragraph:
+      - generic: 已起草共创总结，在画布上确认或修改后生效
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 刚才虽然超时了，我看信息和总结已经保留下来，六项信息已接受，总结也确认了。请继续写提示词给我审核，不用再重做前面的记录；透明树脂和苔藓要清楚，房间结构可辨，左窗和右后壁龛、棕瓶的位置别丢。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: "The user has confirmed that all 6 items of product information and the summary have been approved. The style card is also mostly set. The current status shows \"awaiting plan confirmation; what should be done now: plan.\" The prompt hasn't been written yet. The user has requested that I write the prompt for review."
+    - generic: "Key requirements from the user's message: - Transparent resin and moss should be clear - The room structure should be discernible - Don't lose the positions of the left window and the right-rear alcove with the brown bottle"
+    - generic: "The status indicates \"note: after you recommended the style, the co-creation summary was revised; check the style card against the new summary, adjust with set_style if needed and explain the reasoning.\" Looking at the current state: the style card already matches the new summary (background, lighting, props, composition, banned items are all from the user's words). The tone is \"awaiting user confirmation\" — but that's fine, it's already been recommended. The placement recommendation \"lay the earrings flat on the stone surface, front side up, ear hooks naturally to the side\" — the summary states that the glass bottle in the alcove should not be completely blurred. The style card seems consistent with the new summary. No changes needed."
+    - generic: "Now, writing the prompt following the 6-part structure:"
+    - generic: "1. Subject: A pair of handmade earrings, oval pendants made of colorless transparent resin with deep green dried moss embedded inside, silver metal ear hooks. Size is total length 35mm, width 16mm. 2. Fidelity: Strictly reproduce the colors, quantity, contours, connection structure, and patterns according to the reference image: a pair of 2; oval pendants; the resin must be colorless transparent, must not become a green opaque stone; the deep green dried moss embedded inside is clearly visible; the ear hooks are connected to the pendants via small rings. Do not add clasps, do not extend the chain, closed rings remain closed. 3. Composition: The entire earrings fit completely within the frame, with margins on all four sides, not cut off; the product is placed slightly toward the foreground, with depth layers between the product, the rear edge of the stone surface, the plaster wall, and the distant alcove. 4. Scene: Off-white plaster wall, light-colored stone surface; soft window light from the left window; a shallow wooden-framed alcove at the rear right, with a single dark brown glass bottle placed inside, the glass bottle should not be completely blurred, still discernible; the earrings lie flat on the stone surface, front side up, ear hooks naturally to the side; no green plants or flowers blocking the product, no cluttered surrounding greenery. 5. Mood: Quiet plant imagery, fresh and natural, like moss on stone steps after rain; low-saturation off-white and light stone colors. 6. Output: E-commerce product main image, no text, watermarks, or borders whatsoever, aspect ratio 1:1."
+    - generic: "The user emphasized: transparent resin and moss should be clear, room structure should be discernible, positions of the left window and right-rear alcove with the brown bottle should not be lost. Weave these in."
+    - generic: After that, request_approval.
+    - generic: "Note: The user said \"don't redo the previous records\" — so no need to re-record the story or re-update information."
+    - generic: "Should I call show_step to plan? The status says \"what should be done now: plan.\" The canvas probably already displays it. Calling show_step(plan) might be helpful. It's optional, but since the user needs to review the prompt on the canvas, it's reasonable."
+    - generic: Let me write the prompt within 2000 characters, in Chinese.
+    - generic: "Draft:"
+    - generic: "\"Subject: A pair of handmade earrings, oval pendants made of colorless transparent resin with deep green dried moss embedded inside, silver metal ear hooks; the earrings have a total length of about 35mm and width of about 16mm, materials and surface texture follow the reference image. Fidelity: Strictly reproduce the colors, quantity, contours, connection structure, and patterns of the earrings according to the reference image, details that must not be changed: a pair of 2; oval transparent pendants; the resin must be colorless transparent with glass-like transparency, the deep green dried moss embedded inside clearly visible, must not become a green opaque stone; the ear hooks connect to the pendants via small rings, closed rings remain closed, do not add clasps, do not extend the chain, do not supplement unseen parts. Composition: The entire earrings fit completely within the frame, with margins on all four sides, not cut off; the earrings are placed slightly toward the foreground on the stone surface, with depth layers between the product, the rear edge of the stone surface, the plaster wall, and the distant alcove. Scene: Low-saturation off-white and light stone color tones; background is an off-white plaster wall, foreground is a light-colored stone surface; soft window light from the left window illuminates the earrings and the surface; at the rear right there is a shallow wooden-framed alcove, with a single dark brown glass bottle placed inside, the glass bottle should not be completely blurred, the room structure is discernible; the earrings lie flat on the stone surface, front side up, ear hooks naturally to the side; no green plants or flowers blocking the product, no cluttered surrounding greenery. Mood: Quiet plant imagery, like moss on stone steps after rain being quietly preserved, fresh and natural. Output: E-commerce product main image, no text, watermarks, or borders in the frame, aspect ratio 1:1.\""
+    - generic: Good. Then request_approval with a note.
+    - generic: Also, the user said "don't lose the positions of the left window and the right-rear alcove with the brown bottle" — included. "Transparent resin and moss should be clear" — included. "Room structure should be discernible" — included.
+    - generic: First call draft_prompt, then request_approval (sequential since there's a dependency). show_step can be in the same block as draft_prompt.
+    - generic: "The prompt is complete. Next, I'll request approval. Note: the user's requirements (transparency of the resin and moss, discernibility of the room structure, and the positions of the left window and the brown bottle in the right rear alcove) are all included in the prompt. I'll mention that the style card has already been checked against the new summary and no changes are needed."
+    - generic: The approval card has been issued. Please reply concisely.
+    - paragraph:
+      - generic: 已写好提示词，可以批准了
+    - strong: 确认这版方案
+    - button "完整方案和提示词"
+    - generic: 比例 1:1
+    - generic: ·
+    - generic: Seedream 5.0 Lite
+    - generic: ·
+    - generic: 两张候选
+    - term: 色调
+    - definition: 米白与浅石色为主，低饱和，清新安静小间推荐
+    - term: 背景
+    - definition: 米白灰泥墙，浅石台面
+    - term: 光线
+    - definition: 左侧窗，柔和窗光从左来
+    - term: 摆放
+    - definition: 耳坠平放石台上，正面朝上，耳钩自然侧放小间推荐
+    - term: 道具
+    - definition: 后右方木框浅壁龛，内放单个深棕玻璃瓶
+    - term: 禁止
+    - definition: 外部花草挡住商品；树脂呈现为绿色不透明石头
+    - term: 构图
+    - definition: 商品、台面后缘、墙面、远处壁龛有前后层次；玻璃瓶不全虚化，仍可辨认
+    - term: 保真
+    - definition: 按参考图还原颜色、数量、轮廓和连接结构；特别注意：一对2只；椭圆吊坠；树脂必须无色透明，不能变成绿色不透明石头；内嵌深绿干燥苔藓；耳钩经小圆环连吊坠（照片里看到，待确认）
+    - generic: 滑动批准并生成两张
+    - generic: 没有生成
+    - slider "滑动批准并生成两张（键盘按 End 键）":
+      - text: 已批准
+    - paragraph: 批准后按这版方案和提示词生成两张；之后再改任何内容，需要重新批准。
+    - paragraph: 提示词写好了，你要的几点都落在里面：树脂必须无色透明、苔藓清晰可辨；左侧窗光、后右方木框壁龛和深棕玻璃瓶的位置写死在场景里，还加了「房间结构清楚可辨、玻璃瓶不全虚化」；商品、台面后缘、墙面、壁龛的前后层次写在构图里。风格卡我对照新总结核过一遍，没有需要改的。
+    - paragraph: 画布「方案」这一步可以展开查看和修改提示词。确认没问题，请在批准卡片上点一下批准，我就生成两张候选图。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - textbox "和小间说":
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加":
+    - button "对话模型：Qwen 3.8 Flash":
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite":
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "发送" [disabled]:
+  - region "画布":
+    - heading "方案" [level=2]
+    - generic: 共创总结改过了，小间之前按旧总结推荐的风格可能要跟着变。
+    - button "让小间按新总结调整"
+    - button "不用改"
+    - heading "摄影布景" [level=3]
+    - button "存为布景"
+    - button "更新为我的风格"
+    - button "雨后清晨": 雨后清晨
+    - button "午后书桌": 午后书桌
+    - button "干净陈列": 干净陈列
+    - button "温柔礼物": 温柔礼物
+    - generic: 色调
+    - generic "按你指定的米白灰泥墙、浅石台面和你要的清新自然调整": 小间推荐
+    - button "雨后苔绿": 雨后苔绿
+    - button "奶油米白": 奶油米白
+    - button "石灰浅灰": 石灰浅灰
+    - button "干燥玫瑰": 干燥玫瑰
+    - button "深墨对比": 深墨对比
+    - textbox "色调":
+      - /placeholder: 自己描述
+      - text: 米白与浅石色为主，低饱和，清新安静
+    - paragraph: 理由：按你指定的米白灰泥墙、浅石台面和你要的清新自然调整
+    - generic: 背景
+    - generic: 你说的
+    - button "手工纸"
+    - button "亚麻布"
+    - button "原木"
+    - button "石材"
+    - button "纯色背景"
+    - textbox "背景":
+      - /placeholder: 自己描述
+      - text: 米白灰泥墙，浅石台面
+    - paragraph: 原话：「米白灰泥墙、浅石台面」
+    - generic: 光线
+    - generic: 你说的
+    - button "柔和自然光"
+    - button "窗边侧光"
+    - button "暖调午后光"
+    - button "清冷晨光"
+    - button "明暗对比光"
+    - textbox "光线":
+      - /placeholder: 自己描述
+      - text: 左侧窗，柔和窗光从左来
+    - paragraph: 原话：「左侧窗」
+    - generic: 摆放
+    - generic "你没指定摆放；平铺稳妥，树脂里苔藓纹理看得清楚": 小间推荐
+    - button "平铺"
+    - button "悬挂"
+    - button "支架"
+    - textbox "摆放":
+      - /placeholder: 自己描述
+      - text: 耳坠平放石台上，正面朝上，耳钩自然侧放
+    - paragraph: 理由：你没指定摆放；平铺稳妥，树脂里苔藓纹理看得清楚
+    - generic: 道具
+    - generic: 你说的
+    - textbox "道具":
+      - /placeholder: 不放道具
+      - text: 后右方木框浅壁龛，内放单个深棕玻璃瓶
+    - paragraph: 原话：「后右方木框浅壁龛，内放单个深棕玻璃瓶」
+    - generic: 禁止出现
+    - generic: 你说的
+    - textbox "禁止出现":
+      - /placeholder: 比如：花、玻璃器皿
+      - text: 外部花草挡住商品；树脂呈现为绿色不透明石头
+    - paragraph: 原话：「不要变成绿色不透明石头，不要外部花草挡住商品」
+    - generic: 构图
+    - generic: 你说的
+    - button "主体居中，留白多"
+    - button "主体偏一侧，留出呼吸感"
+    - button "主体放大，突出细节"
+    - textbox "构图":
+      - /placeholder: 自己描述
+      - text: 商品、台面后缘、墙面、远处壁龛有前后层次；玻璃瓶不全虚化，仍可辨认
+    - paragraph: 原话：「要有前后层次，玻璃瓶别全虚化」
+    - generic: 表达
+    - generic: 你说的
+    - textbox "表达":
+      - /placeholder: 用自己的话描述
+      - text: 安静的植物意象，清新自然
+    - paragraph: 原话：「安静的植物意象」
+    - heading "比例" [level=3]
+    - radiogroup "主图比例":
+      - radio "1:1" [checked]:
+        - generic: 1:1
+      - radio "3:4":
+        - generic: 3:4
+      - radio "9:16":
+        - generic: 9:16
+    - generic: 淘宝／天猫、微信小店主图必传比例
+    - heading "可读方案" [level=3]
+    - generic: 比例 1:1
+    - generic: ·
+    - generic: Seedream 5.0 Lite
+    - generic: ·
+    - generic: 两张候选
+    - term: 色调
+    - definition: 米白与浅石色为主，低饱和，清新安静小间推荐
+    - term: 背景
+    - definition: 米白灰泥墙，浅石台面
+    - term: 光线
+    - definition: 左侧窗，柔和窗光从左来
+    - term: 摆放
+    - definition: 耳坠平放石台上，正面朝上，耳钩自然侧放小间推荐
+    - term: 道具
+    - definition: 后右方木框浅壁龛，内放单个深棕玻璃瓶
+    - term: 禁止
+    - definition: 外部花草挡住商品；树脂呈现为绿色不透明石头
+    - term: 构图
+    - definition: 商品、台面后缘、墙面、远处壁龛有前后层次；玻璃瓶不全虚化，仍可辨认
+    - term: 保真
+    - definition: 按参考图还原颜色、数量、轮廓和连接结构；特别注意：一对2只；椭圆吊坠；树脂必须无色透明，不能变成绿色不透明石头；内嵌深绿干燥苔藓；耳钩经小圆环连吊坠（照片里看到，待确认）
+    - heading "提示词" [level=3]
+    - generic: 有效
+    - generic: 由小间撰写，你可以直接改
+    - generic: 完整提示词
+    - textbox "完整提示词":
+      - /placeholder: 风格定好后，小间会在这里写出完整提示词
+      - text: 主体：一对手作耳坠，无色透明树脂浇成的椭圆吊坠，内嵌深绿干燥苔藓，配银色金属耳钩；耳坠总长约35毫米、宽约16毫米，材料与表面质感以参考图为准。 保真：严格按参考图还原耳坠的颜色、数量、轮廓、连接结构和纹样，不能改的细节——一对2只；椭圆透明吊坠；树脂必须无色透明、有玻璃般的通透感，内嵌的深绿干燥苔藓清晰可辨，不能变成绿色不透明石头；耳钩经小圆环连接吊坠，闭合的环保持闭合，不添加扣头、不延长链条、不补出照片看不到的部分。 构图：整对耳坠完整入框，四周留出边距，不被裁切；耳坠位于画面前景略靠前，商品、石台面后缘、灰泥墙、远处壁龛形成清楚的前后层次。 场景：米白与浅石色为主，低饱和；背景是米白灰泥墙，前景是浅石台面；左侧窗，柔和窗光从左边照在耳坠和台面上；后右方一只木框浅壁龛，内放单个深棕玻璃瓶，玻璃瓶不全虚化、仍可辨认，房间结构清楚可辨；耳坠平放石台上，正面朝上，耳钩自然侧放；没有外部花草挡住商品，没有杂乱环绕的绿植。 氛围：安静的植物意象，像雨后石阶上的一小片苔藓被安静地收留，清新、自然。 输出：电商商品主图，画面里不要任何文字、水印或边框，比例1:1。
+    - generic: 滑动批准并生成两张
+    - generic: 没有生成
+    - slider "滑动批准并生成两张（键盘按 End 键）":
+      - text: 已批准
+- button "Open Next.js Dev Tools":
+- alert: 今天想给哪件作品拍主图？

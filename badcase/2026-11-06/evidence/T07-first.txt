@@ -1,0 +1,101 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "未命名作品" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": 未命名作品
+    - generic: 资产待确认
+  - generic: 已保存
+  - generic "服务端花费账本，打开页面时读取": 预算余 68.24 / 69 美元
+  - navigation "流程进度":
+    - button "资产 （当前）":
+      - text: 资产
+      - generic: （当前）
+    - button "信息":
+      - text: 信息
+    - button "共创":
+      - text: 共创
+    - button "方案":
+      - text: 方案
+    - button "出图":
+      - text: 出图
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我想有个安静的标本小屋，石台、灰泥墙，旁边来一点窗光，远处壁龛放一个棕瓶子。不要把耳环丢在一堆植物里。
+    - button [expanded]:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 小间在思考…
+    - generic: "The user has uploaded a photo showing a pair of resin earrings with moss preserved inside them (with silver hooks). The user has stated their vision: \"A quiet specimen cottage, with a stone platform, gray plaster wall, window light coming in from the side, and a brown bottle placed in a niche in the distance. Don't bury the earrings in a pile of plants.\""
+    - generic: "This is a very clear description of the style/atmosphere. What I should do: 1. Record the story/theme (the inspiration and mood the user described). 2. Suggest a name (since the work is still \"Untitled Work\" and the category is clear, I can suggest a name like \"Moss Specimen Earrings\"). 3. Update the product information based on what I can see: category = earrings (pair), material = resin + preserved moss + silver-colored ear hooks (the photo shows what looks like resin and moss, but I need to be careful about the material—the photo looks like resin with moss inside, and the ear hooks look silver-colored. I can write it as a suggestion with a note saying \"confirmed from photo, needs verification\"). Size is unknown—don't guess. Price is unknown. Target customer is unknown. 4. Style: the user has clearly stated tone/background/lighting/props. I can set the style card with basis=said and use quotes from the user's words: \"quiet specimen cottage,\" \"stone platform, gray plaster wall,\" \"window light coming in from the side,\" \"brown bottle placed in a niche in the distance,\" \"don't bury the earrings in a pile of plants\" (do-not-show: pile of plants / cluttered plants). Composition: the user hasn't explicitly stated it, but \"don't bury in a pile of plants\" is a prohibition. The placement might be inferred as a recommendation."
+    - generic: "Let me think about which fields to set: - Tone: quiet specimen-cottage feel → from the user's \"quiet specimen cottage\"—this is an atmosphere, and the tone I infer is my recommendation. Actually, the user said \"I want a quiet specimen cottage\"—that's the overall scene concept. I could set the tone as a recommendation (low saturation, cool-leaning neutral tones) with reason attached. Or basis=said with quote \"quiet specimen cottage\"? The rule says: basis=said is only for items the user explicitly stated in their original words, and the code verifies against the user's message. \"Quiet specimen cottage\" is in the message, but the tone field itself... the tone I'm writing is my interpretation. The rule says \"things inferred from feelings or atmosphere are your recommendation.\" So tone = recommend. - Background: \"stone platform, gray plaster wall\"—the user explicitly said this. basis=said, quote \"stone platform, gray plaster wall.\" Value: stone platform in the foreground, gray plaster wall in the background. - Lighting: \"a bit of window light from the side\"—basis=said, quote \"a bit of window light from the side.\" Value: soft window light from the side. - Props: \"brown bottle placed in a niche in the distance\"—basis=said, quote \"brown bottle.\" Value: one brown bottle placed in a distant niche. - Do-not-show: \"don't bury the earrings in a pile of plants\"—basis=said, quote \"don't bury the earrings in a pile of plants.\" Value: pile of plants, cluttered surrounding plants. - Placement: not stated by user. Recommend: earrings laid flat/placed on the stone platform? The photo shows earrings. I'll recommend hanging or laying flat on the stone platform. Recommend with reason. - Composition: not stated. Recommend: earrings as the main subject fully in frame, niche and brown bottle in the distance as background. Recommend. - Expression: the user's \"quiet specimen cottage\"—that's the mood. Expression field could be \"quiet specimen-cottage feel.\" Hmm, expression = the emotion to be conveyed. The user said \"I want a quiet specimen cottage.\" I could set expression as recommend or said. \"Quiet specimen cottage\" is the user's own words about the scene they want. I think it's safer to treat the expression as recommend inferred from that, or said with quote \"quiet specimen cottage.\" The code checks whether the quote appears in the user's message—it does appear. But the rule says said is only for items the user explicitly stated in their original words. The user said \"I want a quiet specimen cottage\"—that's an explicit statement of the desired atmosphere. I think it's acceptable to use said with quote \"quiet specimen cottage\" for expression. Hmm, but tone is also inferred from that... Let me put expression as said (quote \"quiet specimen cottage\"), tone as recommend."
+    - generic: "Also record_story: theme/inspiration—the user described the desired scene: \"quiet specimen cottage, stone platform, gray plaster wall, window light, brown bottle in a distant niche; don't bury earrings in a pile of plants.\" Kind: theme. Use the user's own meaning."
+    - generic: "Product info via update_info: - Category: earrings (pair)—confirmed from photo. - Material: resin + preserved moss + silver-colored ear hooks—confirmed from photo, needs verification. Note \"confirmed from photo, needs verification.\" - Size: cannot be determined—leave blank or ask. Don't guess. I could ask the user for size and price later. Rule: if it can't be determined or the user hasn't said it, ask or leave blank. I'll ask about size/material verification in one or two questions. - Details that must not change: pair (2), oval resin pendants, moss inside, silver ear hooks + small rings for connection—confirmed from photo, needs verification. This is useful. I'll add it as a suggestion."
+    - generic: "Name suggestion: \"Moss Specimen Earrings\"—fits the category and form, and matches the user's \"specimen cottage\" concept. Use suggest_name."
+    - generic: "Next step: co-creation—the user has already given a clear theme/mood. I should ask a few questions to complete the story: for example, the inspiration (where did the moss come from? Did they pick up moss after the rain?)—but I must not fabricate. I can ask: what they want the customer to feel at first glance (though \"quiet\" is implied), and whether there's a story behind it. Actually, the user's message already covers the mood and what to avoid. What's missing: inspiration. I'll ask one light question about inspiration/material verification."
+    - generic: "Also, the current step is \"awaiting asset verification\"—route B means the original photo is directly the reference image, and the user needs to verify the asset on the canvas. I should guide the user to verify the asset on the canvas (Step 1 Asset). Route B: no white background needed; the user just verifies the asset. I should tell them to verify the photo as the asset on the canvas."
+    - generic: "Let me make the tool calls. Independent calls: suggest_name, record_story, update_info, set_style—all can be executed in one block."
+    - generic: "For set_style items (max 8): 1. background: said, quote \"stone platform, gray plaster wall,\" value \"stone platform in foreground, gray plaster wall in background\" 2. light: said, quote \"a bit of window light from the side,\" value \"soft window light from the side, leaving a faint shadow on the stone platform\" 3. props: said, quote \"brown bottle,\" value \"one brown bottle placed in a niche in the distance\" 4. banned: said, quote \"don't bury the earrings in a pile of plants,\" value \"pile of plants, cluttered surrounding plants\" 5. tone: recommend, value \"low-saturation cool-leaning neutral tones, grayish white and stone gray as main colors,\" reason \"inferred from the quiet specimen-cottage feel you wanted\" 6. placement: recommend, value \"earrings placed flat on the stone platform, pendants facing up, hooks naturally laid to the side,\" reason \"you didn"
+    - generic: 由 Qwen 3.8 Flash 回复
+    - status: 小间正在思考…
+    - textbox "和小间说":
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加" [disabled]:
+    - button "对话模型：Qwen 3.8 Flash" [disabled]:
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite" [disabled]:
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "停止回复":
+  - region "画布":
+    - generic: 资产路线（试用操作员）
+    - group "资产路线":
+      - button "A 白底"
+      - button "B 原图" [pressed]
+    - heading "资产" [level=2]
+    - generic: 待确认
+    - paragraph: 对照检查：颜色、形状、细链、镂空、透明部分和数量都拍清楚了吗？看不清的部分小间不会去猜，建议补拍。
+    - figure "1254×1254 替换这张照片 不再使用这张照片":
+      - img "整体照片"
+      - combobox "照片类型":
+        - generic: 整体
+      - generic: 1254×1254
+      - button "替换这张照片":
+      - button "不再使用这张照片":
+    - button "再加一张":
+      - text: 再加一张
+    - button "确认资产"
+    - generic: 原图路线：确认后用这些照片作参考图
+- button "Open Next.js Dev Tools":
+- alert: 今天想给哪件作品拍主图？

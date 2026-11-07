@@ -1,0 +1,184 @@
+- complementary "侧边栏":
+  - link "一间，回到首页":
+    - /url: /
+    - generic: 间
+    - generic: 一间
+  - link "新建作品":
+    - /url: /
+    - generic: 新建作品
+  - navigation "主导航":
+    - link "首页":
+      - /url: /
+      - generic: 首页
+    - link "作品":
+      - /url: /works
+      - generic: 作品
+    - link "我的风格":
+      - /url: /style
+      - generic: 我的风格
+    - link "摄影布景":
+      - /url: /scenes
+      - generic: 摄影布景
+    - link "历史结果":
+      - /url: /history
+      - generic: 历史结果
+  - button "使用说明":
+    - generic: 使用说明
+- main:
+  - heading "T03 窗影耳饰" [level=1]
+  - navigation "位置":
+    - link "作品":
+      - /url: /works
+    - generic: /
+    - textbox "作品名称": T03 窗影耳饰
+    - generic: 总结待确认
+  - generic: 已保存
+  - generic "服务端花费账本，打开页面时读取": 预算余 68.24 / 69 美元
+  - navigation "流程进度":
+    - button "资产 （完成）":
+      - text: 资产
+      - generic: （完成）
+    - button "信息 （当前）":
+      - text: 信息
+      - generic: （当前）
+    - button "共创":
+      - text: 共创
+    - button "方案":
+      - text: 方案
+    - button "出图":
+      - text: 出图
+  - button "删除作品":
+  - region "和小间对话":
+    - strong: 小间
+    - generic: AI 助手
+    - img "上传的作品照片"
+    - paragraph: 我想给窗影耳饰找一间有高窗、混凝土台面的小工作室，能看见台面和后墙的转折，别拍成只有桌面。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: 用户上传了一张照片：一对黄铜耳饰，长方形片状，带三条镂空竖槽，像窗格/光影的感觉，挂钩式耳钩（带小圆珠）。用户说想给"窗影耳饰"找一间有高窗、混凝土台面的小工作室，能看见台面和后墙的转折，别拍成只有桌面。
+    - generic: 首先，资产路线是B（原图直接作参考图），不需要白底图。但资产还没确认。用户已经给了作品名"窗影耳饰"，所以不需要 suggest_name（用户自己命名了）。
+    - generic: 我需要先确认资产，然后推进商品信息、共创、风格。
+    - generic: 用户的话里包含了很多场景意图：高窗、混凝土台面、能看到台面和后墙的转折（即墙角/台面与墙交接的透视关系），不要只拍桌面俯拍。这是明确的场景要求，属于风格卡里的背景、构图、摆放、光线等。
+    - generic: 现在第一步是"资产待确认"。资产路线B，原图直接作参考图，不需要白底图。所以我应该引导用户在画布上确认资产？状态说"资产还没确认"。我需要推进资产确认。但工具里没有"确认资产"的工具——资产确认应该是用户在画布上操作的。我可以 show_step 切到 asset 步骤，提示用户确认。
+    - generic: 不过用户现在提的是场景需求，我先把能做的做了：把场景意图记录到风格卡（basis=said，因为用户原话明确说了"高窗""混凝土台面""能看见台面和后墙的转折""别拍成只有桌面"）。但规则说 basis=said 只用于用户原话里明确说过的那一项，quote 逐字照抄。
+    - generic: 让我先回应并梳理。当前该做资产，但用户直接讲了场景愿景。我应该： 1. 先确认照片里看到的东西，推进资产（路线B，引导用户在画布确认资产）。 2. 同时把商品信息补一些（品类=耳饰，材料=黄铜，从照片看）。但材料我不能编造，照片里是黄铜色金属，看起来像黄铜/铜。我应写成建议"材料以照片为准，看起来像黄铜"，依据"照片里看到，待确认"。
+    - generic: 实际上规则3：商品信息只能写成待确认建议 update_info。我可以填品类=耳饰（照片明显），材料=黄铜（照片里看，待确认），尺寸=未填（看不清，留空或问）。
+    - generic: 先做几件事：show_step 到 asset 让用户确认资产；update_info 填品类、材料建议。然后回应场景需求，说明这是方案步骤的事，并把它记进风格卡。
+    - generic: 但一次调用要聚焦。我可以并行调用 update_info 和 show_step（独立）。然后回复里问尺寸、并说明场景需求会放到风格/方案里。
+    - generic: 关于风格卡：用户说的"高窗、混凝土台面、能看到台面和后墙的转折、不要只拍桌面"是明确原话，可以 set_style basis=said 写背景、构图、光线等。但风格微调一般在共创总结确认后做。不过现在先记下用户的场景意图也无妨，避免丢失。我倾向于先推进资产+信息，把场景意图在回复里复述确认，等共创后再落到风格卡。但用户可能希望我直接记下来。
+    - generic: 我决定：这一轮先确认资产（show_step asset）+ 填品类/材料建议（update_info），并在回复里复述我看到的耳饰结构（镂空窗格长方形片+耳钩带圆珠，一对两只）请用户核对，同时确认尺寸。场景需求我记下，告诉用户会在"方案"那一步落到风格里。
+    - generic: 不重复问已说过的。用户没提尺寸、售价、顾客。
+    - generic: "让我写 update_info： - category: 耳饰（一对，长方形镂空窗格片+挂钩耳钩） - material: 黄铜色金属，照片里看像黄铜（待确认） - size: 这个我不知道，先不填，问用户。"
+    - generic: 所以 update_info 填 category 和 material 两项。
+    - generic: 回复要简短口语。
+    - generic: 我先调用 show_step 和 update_info（并行，独立）。
+    - generic: 照片里我看到：一对黄铜耳饰，长方形片状带三条镂空竖槽（像窗格），耳钩是挂钩式带一个小圆珠装饰。用户说"窗影耳饰"，正好呼应镂空像窗影。
+    - generic: 现在资产路线B，需要用户在画布上确认资产。我已切到资产步骤。我复述看到的结构请用户核对，并问尺寸。场景需求（高窗、混凝土台面、台面后墙转折、不要只拍桌面）我记下，会在方案步骤落到风格卡。
+    - generic: 回复简短。
+    - paragraph:
+      - generic: 已写成待确认建议：品类「耳饰（一对，长方形镂空窗格片 + 挂钩式耳钩）」、材料「黄铜色金属，看起来像黄铜（待确认）」（在画布上接受后才生效）
+    - paragraph: 照片里是一对黄铜耳饰：长方形片，中间三条镂空竖槽，像一扇小窗；上面是挂钩式耳钩，钩下带一颗小圆珠。名字「窗影耳饰」很贴这个镂空感。
+    - paragraph: 我在「信息」里先填了品类和材料两条建议，你在画布上点接受才生效。材料照片里是黄铜色，我按黄铜写，如果其实是别的金属（比如紫铜、镀金）你告诉我。
+    - paragraph: 两件事想跟你确认：
+    - list:
+      - listitem: 这一对大概多长（含耳钩）？不知道也没关系，我标「未知」。
+      - listitem: 你说的场景我记下了：高窗、混凝土台面、要能看到台面和后墙的转折，不拍成只有桌面。这个我会放到「方案」那一步的布景和构图里，等共创完就落进去。
+    - paragraph: 现在请先在画布上把资产这一步确认掉（路线用原图直接当参考图，不用做白底），确认后我们进「信息」和「共创」。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - paragraph: 是一对黄铜镂空耳饰，每片都是3个竖向开孔，总长38毫米、宽14毫米，售价198元；不能加宝石、不能堵住镂空。灵感来自午后窗框投影，想表达建筑线条的利落，希望喜欢利落穿搭的顾客觉得有秩序、轻盈；不要太硬太戏剧化的影子。房间是暖灰墙、混凝土台面、左侧高窗、后墙右侧竖向凹槽；斜前方取景，台面到墙面的转折和窗影方向可辨，商品是主角。用1:1无字商品图。
+    - button:
+      - generic: 小间在思考…
+      - generic: 思考过程
+      - status: 思考过程
+    - generic: 用户给了大量信息，我需要梳理并写入：
+    - generic: 商品信息（update_info）： - 品类：耳饰（一对，长方形镂空窗格片+挂钩耳钩）——之前建议已写，用户确认"一对黄铜镂空耳饰"。 - 材料：黄铜——用户说"黄铜镂空耳饰"，确认。 - 尺寸：总长38毫米、宽14毫米。 - 售价：198元。 - 不能改的细节：每片3个竖向开孔；不能加宝石、不能堵住镂空。 - 目标顾客：喜欢利落穿搭的顾客。
+    - generic: 共创（record_story）： - 灵感：午后窗框投影。 - 主题：建筑线条的利落。 - 希望顾客感受：有秩序、轻盈。 - 避免：太硬太戏剧化的影子。
+    - generic: 风格卡（set_style）： - 背景：暖灰墙、混凝土台面、后墙右侧竖向凹槽。basis=said。 - 光线：左侧高窗（自然光方向）。basis=said。 - 构图：斜前方取景，台面到墙面的转折和窗影方向可辨，商品是主角。basis=said。 - 摆放：？用户没明确说摆放方式（平铺/悬挂/支架）。斜前方取景说明不是俯拍平铺，可能是立着或悬挂。这个我可以推荐或问。 - 色调：暖灰，用户说暖灰墙，但色调整体我可推荐暖灰低饱和。 - 禁止出现：太硬太戏剧化的影子；不要文字（1:1无字）。宝石也算禁止——但那是商品信息"不能加宝石"。 - 表达：建筑线条利落、秩序、轻盈。
+    - generic: 比例：1:1——用户说1:1，当前已是1:1，不用改。
+    - generic: 先处理信息。update_info 一次最多6项。我要填：品类、材料、尺寸、售价、目标顾客、不能改的细节 = 6项。正好。
+    - generic: 品类之前是建议，用户现在确认了"一对黄铜镂空耳饰"。我重写品类确认。材料黄铜。尺寸38×14mm。售价198。目标顾客：喜欢利落穿搭的人。不能改的细节：每片3个竖向开孔，不能加宝石、不能堵住镂空。
+    - generic: "record_story：灵感、主题、感受、避免。可以分几条调用。kind: inspiration（午后窗框投影）、theme（建筑线条利落）、emotion（希望顾客觉得有秩序轻盈）、other/avoid（不要太硬太戏剧化的影子）。draft_summary 需要三项：express、feel、avoid。"
+    - generic: 我并行调用：update_info、record_story（多条）、set_style（多项）。但 record_story 一次只记一条。我可以多次调用 record_story 并行。set_style 一次可多项。
+    - generic: 然后 draft_summary 要基于 story，等 story 记录后再写？draft_summary 只是草稿，我可以并行写，因为内容都来自用户原话。但为稳妥，draft_summary 依赖共创记录已存在？工具应该不强制。我可以同一批调用。不过 draft_summary 是"总结草稿"，最好先把 record_story 写了再 draft_summary。但都是基于用户原话，我直接一起调用也行。我分两批：第一批 update_info + record_story×4 + set_style；第二批 draft_summary。或者干脆一起。
+    - generic: 考虑效率，我把 update_info、record_story（4条）、set_style 一起并行，然后 draft_summary 也一起（内容确定）。但 draft_summary 若依赖 story 存在可能失败。我先做第一批，再做 draft_summary。
+    - generic: set_style 字段枚举：tone, background, light, placement, props, banned, composition, expression。
+    - generic: "- background: \"暖灰色墙面 + 混凝土台面，后墙右侧有一道竖向凹槽\" basis=said quote=\"暖灰墙、混凝土台面、后墙右侧竖向凹槽\" - light: \"左侧高窗进来的自然光，窗影方向可辨\" basis=said quote=\"左侧高窗\" - composition: \"斜前方取景，能看到台面到墙面的转折，商品居中作主角\" basis=said quote=\"斜前方取景，台面到墙面的转折和窗影方向可辨，商品是主角\" - tone: \"暖灰、低饱和\" basis=recommend 理由：从暖灰墙和利落轻盈氛围推断 - banned: \"不要文字水印；不要过硬、戏剧化的浓重阴影\" basis=said quote=\"不要太硬太戏剧化的影子\" + 无字。但 banned 里\"无字\"是输出要求。我写 banned=\"不要浓重戏剧化的硬影；画面不要任何文字、水印、边框\" quote=\"不要太硬太戏剧化的影子\"。无字属于输出，提示词里写。 - expression: \"建筑线条的利落、秩序与轻盈\" basis=said quote=\"建筑线条的利落\" - placement: 用户没明确说耳饰怎么放。斜前方取景、混凝土台面，可能是耳饰立在台面上或悬挂。我不确定，先不写 placement，或推荐。我倾向问用户或推荐\"耳饰垂挂/斜立在台面靠墙处\"。但规则说看不出别猜结构。摆放是拍摄方式，我可以推荐 basis=recommend。我写 placement 推荐：\"两只耳饰一前一后斜立在混凝土台面上，靠近墙根，让窗影落在台面与墙面\" basis=recommend。嗯，但用户说商品是主角、斜前方取景。悬挂还是平铺？用户没定。我可以给推荐并说明可调。"
+    - generic: "props: 用户没提道具，场景就是墙+台面+窗影，应该\"不放道具\"。basis=said? 用户没说\"不放道具\"。我推断场景纯净无道具，写 recommend 或 said？用户描述房间只有墙、台面、凹槽、窗，没提任何道具。我写 props=\"不放道具，只留墙面、台面和窗影\" basis=recommend 理由：你描述的场景里没有多余物件。"
+    - generic: 好，set_style 一次最多8项，我写 background, light, composition, tone, banned, expression, props, placement = 8项。placement 我犹豫，但先给推荐让用户可改。
+    - generic: 其实 placement 我不确定用户想悬挂还是立放，给推荐合理。
+    - generic: 现在调用。先 update_info + record_story×4 + set_style 并行。draft_summary 放第二批。
+    - generic: "record_story 4条： 1. inspiration: \"灵感来自午后窗框的投影\" 2. theme: \"想表达建筑线条的利落\" 3. emotion: \"希望喜欢利落穿搭的顾客觉得有秩序、轻盈\" 4. other: \"明确不想要太硬、太戏剧化的影子\" kind 用 theme? 避免属于情绪/主题？我用 kind=\"theme\" 或 \"other\"。用 other 记录避免项也行。draft_summary 的 avoid 会用到。"
+    - generic: 好执行。
+    - generic: 背景那条 quote 没匹配上，因为用户原话是"暖灰墙、混凝土台面、左侧高窗、后墙右侧竖向凹槽"——我 quote 里写的是"暖灰墙、混凝土台面、后墙右侧竖向凹槽"，代码核对可能因为标点或片段问题没找到。其实用户原话确实有这些词。不过系统判定为推荐。没关系，我回复里把背景说成我的建议即可，或重新用正确 quote 设一次。用户原话片段："暖灰墙、混凝土台面、左侧高窗、后墙右侧竖向凹槽"。我可以把 quote 改成逐字片段"暖灰墙"。重新 set_style background basis=said quote="暖灰墙"。
+    - generic: 我重设 background 为 said，quote 用"暖灰墙"。
+    - generic: 然后 draft_summary 三项。
+    - generic: 现在背景已改回 said。总结草稿已起草。信息、共创、风格都齐了。下一步：请用户在画布上确认信息建议和共创总结，然后我写提示词、请批准。
+    - generic: 我切到 story 步骤让用户确认总结。然后回复说明。
+    - generic: 其实我可以切到 story。然后告诉用户确认。等确认后再 draft_prompt。
+    - generic: 我 show_step story。回复简短。
+    - generic: I've finished documenting all the information, co-creation, and style details, and I've drafted the summary. Now I need the user to confirm the summary and accept the information recommendations on the canvas, then I'll write the prompt and request approval.
+    - paragraph:
+      - generic: 已写成待确认建议：品类「耳饰（一对，长方形镂空窗格片 + 挂钩式耳钩）」、材料「黄铜」、尺寸「总长38毫米，宽14毫米」、售价「198元」、目标顾客「喜欢利落穿搭的顾客」、不能改的细节「每片3个竖向开孔不能堵；不能加宝石」（在画布上接受后才生效）
+    - paragraph:
+      - generic: 已记下：灵感来自午后窗框的投影。
+    - paragraph:
+      - generic: 已记下：想表达建筑线条的利落。
+    - paragraph:
+      - generic: 已记下：希望喜欢利落穿搭的顾客觉得有秩序、轻盈。
+    - paragraph:
+      - generic: 已记下：明确不想要太硬、太戏剧化的影子。
+    - paragraph:
+      - generic: 风格卡已更新：背景「暖灰色墙面 + 混凝土台面，后墙右侧有一道竖向凹槽」（推荐，待确认）、光线「左侧高窗进来的自然光，窗影方向可辨」、构图「斜前方取景，能看到台面到墙面的转折，商品居中作主角」、表达「建筑线条的利落、秩序与轻盈」、禁止出现「不要浓重、戏剧化的硬影；画面不要任何文字、水印、边框」、色调「暖灰低饱和，干净克制」（推荐，待确认）、道具「不放道具，只留墙面、台面和窗影」（推荐，待确认）、摆放「两只耳饰一前一后靠近墙根摆放，窗影落在台面与墙面」（推荐，待确认）。其中背景（「暖灰墙、混凝土台面、后墙右侧竖向凹槽」）在用户的原话里没找到，已记为「小间推荐」，是建议、不是用户说的
+    - paragraph:
+      - generic: 风格卡已更新：背景「暖灰色墙面 + 混凝土台面，后墙右侧有一道竖向凹槽」
+    - paragraph:
+      - generic: 已起草共创总结，在画布上确认或修改后生效
+    - paragraph: 都整理好了。现在「共创」这一步有一份总结草稿，请你看看、确认或改：
+    - list:
+      - listitem: 想表达：用午后窗框投影的灵感，表达建筑线条的利落。
+      - listitem: 希望顾客感受到：有秩序、轻盈。
+      - listitem: 明确避免：太硬太戏剧化的影子；不加宝石、不堵住镂空；画面无文字。
+    - paragraph: 另外「信息」那一步还有品类、材料、尺寸、售价、顾客、不能改的细节几条建议，麻烦你在画布上点接受，没接受的不会进生成。
+    - paragraph: 这两处你确认后，我就按「暖灰墙+混凝土台面、左侧高窗、斜前方看到台面到墙面转折、商品居中、不放道具」写最终提示词，再请你批准出图。
+    - generic: 由 Qwen 3.8 Flash 回复
+    - button "我不知道，给我推荐"
+    - textbox "和小间说" [active]:
+      - /placeholder: 说说你的作品，或者想怎么改…（输入 / 看快捷命令）
+    - button "添加":
+    - button "对话模型：Qwen 3.8 Flash":
+      - generic: 对话
+      - generic: Qwen 3.8 Flash
+    - button "生图模型：Seedream 5.0 Lite":
+      - generic: 生图
+      - generic: Seedream 5.0 Lite
+    - button "发送" [disabled]:
+  - region "画布":
+    - heading "共创" [level=2]
+    - generic: 草稿，待确认
+    - button "回到当前这步"
+    - heading "共创记录" [level=3]
+    - list:
+      - listitem: 灵感灵感来自午后窗框的投影。
+      - listitem: 主题想表达建筑线条的利落。
+      - listitem: 情绪希望喜欢利落穿搭的顾客觉得有秩序、轻盈。
+      - listitem: 其他明确不想要太硬、太戏剧化的影子。
+    - checkbox "暂无明确故事（把重点放在造型和材质上）"
+    - text: 暂无明确故事（把重点放在造型和材质上）
+    - generic: 作品想表达什么
+    - textbox "作品想表达什么":
+      - /placeholder: 比如：雨后石阶上的一小片青苔，安静、湿润的绿
+      - text: 用午后窗框投影的灵感，表达建筑线条的利落。
+    - generic: 希望顾客感受到什么
+    - textbox "希望顾客感受到什么":
+      - /placeholder: 比如：安静、自然，想凑近看细节
+      - text: 让喜欢利落穿搭的顾客第一眼觉得有秩序、轻盈。
+    - generic: 明确避免什么
+    - textbox "明确避免什么":
+      - /placeholder: 比如：太亮太花，道具抢了耳环
+      - text: 不要太硬、太戏剧化的影子；不要加宝石、不要堵住镂空；画面不要文字水印。
+    - button "确认总结"
+    - button "让小间重新整理"
+- button "Open Next.js Dev Tools":
+- alert: 今天想给哪件作品拍主图？

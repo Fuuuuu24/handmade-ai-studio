@@ -19,6 +19,9 @@ export const STYLE_REQUIRED = ['tone', 'background', 'light', 'placement', 'comp
 // 道具留空时显示的说法
 export const NO_PROPS = '不放道具';
 
+// 小间标「你说的」时附的原话片段，去掉空格和标点后至少几个字才核对（BC-013），太短的片段到处都能对上
+export const SAID_QUOTE_MIN = 2;
+
 export const TONE_OPTIONS = [
   { name: '雨后苔绿', desc: '低饱和绿，偏冷', colors: ['#dfe4d5', '#b9c4a6', '#7e8f6c'] },
   { name: '奶油米白', desc: '暖白，柔和', colors: ['#f3ede2', '#e6dac6', '#c9b79a'] },

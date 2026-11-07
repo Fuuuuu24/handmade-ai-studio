@@ -4,7 +4,7 @@ import { STEPS } from '@/config/steps';
 import { NO_PROPS, STYLE_KEYS, STYLE_LABELS } from '@/config/style';
 import { ASSET_KINDS } from '@/config/upload';
 import { VERDICT_TEXT } from '@/config/verdict';
-import { approvalBlockers, approvalStatus, approvedPhase, promptStatus } from '@/domain/approval';
+import { approvalBlockers, approvalReminders, approvalStatus, approvedPhase, promptStatus, promptWriteBlocker } from '@/domain/approval';
 import { roundResults, roundSlots, slotState } from '@/domain/generation';
 import { activeUploads } from '@/domain/snapshot';
 import { currentStep, stepStates, workStatus } from '@/domain/status';
@@ -91,7 +91,8 @@ export function stateSummary(i: SummaryInput): string {
   for (const k of STYLE_KEYS) {
     const v = work.style[k];
     const shown = v.value || (k === 'props' && v.source !== 'user' && work.sceneId ? NO_PROPS : '');
-    lines.push(`- ${STYLE_LABELS[k]}：${shown ? `${shown}（${SOURCE_TEXT[v.source]}）` : '未定'}`);
+    const source = v.source === 'said' && v.quote ? `用户说的「${v.quote}」` : SOURCE_TEXT[v.source];
+    lines.push(`- ${STYLE_LABELS[k]}：${shown ? `${shown}（${source}）` : '未定'}`);
   }
   const scene = i.scenes.find((s) => s.id === work.sceneId);
   lines.push(`当前布景：${scene ? `${scene.name}（${scene.id}）` : '没有'}`);
@@ -107,6 +108,9 @@ export function stateSummary(i: SummaryInput): string {
     ok: '有效',
   }[ps.kind];
   lines.push(`提示词：${psText}`);
+  // 核心信息的建议没处理完不能写提示词（UX-02）：先写进状态，免得小间调用了才被拒
+  const wait = promptWriteBlocker(work);
+  if (wait) lines.push(`写提示词前：${wait.text}，要等用户在信息页接受或忽略；现在用 draft_prompt 会被拒绝`);
   if (work.prompt?.text) lines.push(`提示词原文：${work.prompt.text}`);
 
   const ap = approvalStatus(i.approval, i.current);
@@ -124,12 +128,17 @@ export function stateSummary(i: SummaryInput): string {
     const from = i.results.find((r) => r.id === work.revision!.fromResultId);
     const reasons = work.revision.reasons.length ? `（用户指出的问题：${work.revision.reasons.join('、')}）` : '';
     lines.push(`正在从${from ? `第 ${from.round} 轮候选 ${from.slot + 1}` : '一张旧结果'}修改${reasons}：方案已恢复成那一版，改好后请用户重新批准`);
+    // 生成时商品照片后面会带上这张结果（BC-006）：提示词要写明各张图的用途
+    const n = i.basis.references.length;
+    lines.push(`房间参考图：生成时参考图依次是前 ${n} 张商品图，最后一张（第 ${n + 1} 张）是这张结果，只用来参考房间、机位、光线和摆放位置；重写提示词时按规则写明各张图的用途`);
   }
 
   // 当前方案已批准、还没生成或正在生成时，没有「批准前还缺」可说（「已有任务在生成中」不是要再批准的理由）
   if (phase !== 'generating' && phase !== 'unused') {
     const blockers = approvalBlockers(work, i.assets, i.basis, i.isGenerating);
     lines.push(`批准前还缺：${blockers.length ? blockers.map((b) => b.text).join('；') : '无，可以请用户批准'}`);
+    const reminders = approvalReminders(work);
+    if (reminders.length) lines.push(`批准前提醒（不挡批准）：${reminders.map((b) => b.text).join('；')}；请用户在信息页接受或忽略`);
   }
 
   if (work.round > 0) {

@@ -2,9 +2,10 @@ import { INFO_FIELDS } from '@/config/info';
 import { imageModel } from '@/config/models';
 import type { StepId } from '@/config/steps';
 import { STYLE_LABELS } from '@/config/style';
-import { approvalBlockers, approvedPhase } from '@/domain/approval';
+import { approvalBlockers, approvalReminders, approvedPhase, promptWriteBlocker } from '@/domain/approval';
 import { passed } from '@/domain/generation';
 import { sceneParamsOf, sceneSaveProblem, shopDiff, shopItemsOf } from '@/domain/library';
+import { saidQuoteFound } from '@/domain/said';
 import { activeUploads } from '@/domain/snapshot';
 import {
   addFollowup,
@@ -35,6 +36,7 @@ type Input<N extends ToolName> = InferToolInput<AgentTools[N]>;
 
 export interface ExecDeps {
   showStep: (step: StepId) => void;
+  userTexts: () => readonly string[]; // 用户在对话里发过的文字，核对「你说的」用（BC-013）
 }
 
 const refuse = (message: string): ToolOutput => ({ ok: false, message });
@@ -106,11 +108,21 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
     }
     case 'set_style': {
       const { items } = rawInput as Input<'set_style'>;
+      // 「你说的」要能在用户原话里找到小间附的片段，找不到就记为「小间推荐」（BC-013）
+      const texts = deps.userTexts();
+      const checked = items.map((it) => {
+        const said = it.basis === 'said' && saidQuoteFound(it.quote, texts, ctx.work.prompt);
+        return { ...it, said, downgraded: it.basis === 'said' && !said };
+      });
       await change(workId, (c) =>
-        items.reduce((w, it) => setStyle(w, it.field, it.value, it.basis === 'said' ? 'said' : 'recommend', it.reason), c.work),
+        checked.reduce((w, it) => setStyle(w, it.field, it.value, it.said ? 'said' : 'recommend', it.reason, it.said ? it.quote?.trim() : undefined), c.work),
       );
-      const list = items.map((it) => `${STYLE_LABELS[it.field]}「${it.value || '（清空）'}」${it.basis === 'recommend' ? '（推荐，待确认）' : ''}`);
-      return done(`风格卡已更新：${list.join('、')}`, list);
+      const list = checked.map((it) => `${STYLE_LABELS[it.field]}「${it.value || '（清空）'}」${it.said ? '' : '（推荐，待确认）'}`);
+      const down = checked.filter((it) => it.downgraded);
+      const note = down.length
+        ? `。其中${down.map((it) => `${STYLE_LABELS[it.field]}${it.quote?.trim() ? `（「${it.quote.trim()}」）` : '（没附原话）'}`).join('、')}在用户的原话里没找到，已记为「小间推荐」，是建议、不是用户说的`
+        : '';
+      return done(`风格卡已更新：${list.join('、')}${note}`, list);
     }
     case 'apply_scene': {
       const { sceneId } = rawInput as Input<'apply_scene'>;
@@ -127,6 +139,9 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
     }
     case 'draft_prompt': {
       const { prompt } = rawInput as Input<'draft_prompt'>;
+      // 核心信息的建议没处理时不写（UX-02）：同一轮里先写建议再写提示词，用户一接受，提示词就过期
+      const wait = promptWriteBlocker(ctx.work);
+      if (wait) return refuse(`没写提示词：${wait.text}。请用户先在「信息」里接受或忽略，处理完再写；现在写的话，一接受建议提示词就过期了`);
       const after = await mutateWork(workId, (c) => writePrompt(c.work, prompt, c.basis));
       const fresh = await loadContext(workId);
       const left = approvalBlockers(after, fresh.assets, fresh.basis, fresh.isGenerating).filter((b) => !b.text.startsWith('提示词'));
@@ -150,8 +165,10 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
       if (phase === 'used') return done(`当前方案已经批准过（第 ${v} 版）并生成了第 ${r} 轮；要按同一方案再生成一轮，需要用户在画布「方案」里再批准一次`);
       if (phase === 'unused') return done(`当前方案已经批准（第 ${v} 版），还没生成；用户要生成时用 start_generation，不需要再批准`);
       const blockers = approvalBlockers(ctx.work, ctx.assets, ctx.basis, ctx.isGenerating);
+      const reminders = approvalReminders(ctx.work);
+      const remind = reminders.length ? `。卡片上同时提醒（不挡批准）：${reminders.map((b) => b.text).join('；')}` : '';
       return done(
-        blockers.length ? `批准卡片已放出，但还缺：${blockers.map((b) => b.text).join('；')}` : '批准卡片已放出，等待确认',
+        (blockers.length ? `批准卡片已放出，但还缺：${blockers.map((b) => b.text).join('；')}` : '批准卡片已放出，等待确认') + remind,
       );
     }
     case 'start_generation': {

@@ -3,19 +3,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // 浏览器里的图片处理在 Node 里没有，换成固定值
 vi.mock('./images', () => ({
-  referenceDataUrl: vi.fn(async () => 'data:image/jpeg;base64,AAAA'),
+  // 按文件大小区分是哪张图：商品照片 100 字节，生成结果 3 字节
+  referenceDataUrl: vi.fn(async (blob: Blob) => `data:image/jpeg;base64,${blob.size}`),
   imageSize: vi.fn(async () => ({ width: 1024, height: 1024 })),
   prepareDerived: vi.fn(async (blob: Blob) => ({ blob, thumb: blob, width: 1024, height: 1024 })),
 }));
 
 import { GENERATION } from '@/config/budget';
-import { useTestDb } from '@/data/db';
-import { addUpload, getWork, listAssets, listResults, listTasks, saveWork } from '@/data/repo';
+import { db, useTestDb } from '@/data/db';
+import { addUpload, getApproval, getWork, listAssets, listResults, listTasks, saveWork } from '@/data/repo';
 import { newId } from '@/domain/util';
-import { setRoute, writePrompt } from '@/domain/work';
+import { reviseFrom, setRoute, writePrompt } from '@/domain/work';
 import { readyWork } from '@/test/fixtures';
 import { approveAndGenerate, makeWhiteByGeneration } from './generation';
-import { loadContext } from './work-store';
+import { loadContext, mutateWork } from './work-store';
 
 const img = () => ({
   blob: new Blob([new Uint8Array(100)], { type: 'image/jpeg' }),
@@ -112,6 +113,67 @@ describe('生成：取回图片（图片已生成、已扣费）', () => {
     const tasks = await settle(workId);
     expect(tasks.every((t) => t.status === 'failed')).toBe(true);
     expect(calls.content).toBe(2);
+  });
+});
+
+describe('从某张结果修改：带上那张结果作房间参考（BC-006）', () => {
+  // 记下每次提交的参考图；提交即完成，取回的图片是 3 字节的 JPEG
+  function recordBodies() {
+    const bodies: { images: string[] }[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init?: RequestInit) => {
+        if (input === '/api/images' && init?.method === 'POST') {
+          bodies.push(JSON.parse(String(init.body)));
+          return Response.json({ gatewayId: `g${bodies.length}`, status: 'pending', estUSD: 0.03, ledgerId: `led${bodies.length}` });
+        }
+        if (/\/content\?/.test(input)) return jpeg();
+        if (input.startsWith('/api/images/')) return Response.json({ status: 'completed', outputs: 1 });
+        throw new Error(`没有模拟这个请求：${input}`);
+      }),
+    );
+    return bodies;
+  }
+
+  // 生成第 1 轮，再从第 1 轮候选 1 修改、重写提示词
+  async function reviseFirst(workId: string) {
+    await approveAndGenerate(workId);
+    await settle(workId);
+    const first = (await listResults(workId)).find((r) => r.slot === 0)!;
+    const approval = (await getApproval(first.approvalId))!;
+    await mutateWork(workId, (c) => reviseFrom(c.work, first, approval));
+    await mutateWork(workId, (c) => writePrompt(c.work, '前 1 张是商品照片，最后一张只参考房间和机位；只把墙面调浅', c.basis));
+    return first;
+  }
+
+  it('第 2 轮的参考图是商品照片加被修改的那张结果，新结果记为它的子版本；第 1 轮只有商品照片', async () => {
+    const bodies = recordBodies();
+    const workId = await seedReady();
+    const first = await reviseFirst(workId);
+    expect(await approveAndGenerate(workId)).toEqual({ ok: true, round: 2 });
+    await settle(workId);
+    expect(bodies.map((b) => b.images)).toEqual([
+      ['data:image/jpeg;base64,100'],
+      ['data:image/jpeg;base64,100'],
+      ['data:image/jpeg;base64,100', 'data:image/jpeg;base64,3'],
+      ['data:image/jpeg;base64,100', 'data:image/jpeg;base64,3'],
+    ]);
+    const second = (await listResults(workId)).filter((r) => r.round === 2);
+    expect(second.map((r) => r.parentId)).toEqual([first.id, first.id]);
+  });
+
+  it('被修改的那张结果图找不到时，这一轮如实失败，不悄悄只带商品照片', async () => {
+    const bodies = recordBodies();
+    const workId = await seedReady();
+    const first = await reviseFirst(workId);
+    await db().blobs.delete(first.blobId);
+    await approveAndGenerate(workId);
+    const tasks = (await settle(workId)).filter((t) => t.round === 2);
+    expect(tasks.map((t) => [t.status, t.error])).toEqual([
+      ['failed', '作为房间参考的那张结果找不到了，没法沿用它的房间'],
+      ['failed', '作为房间参考的那张结果找不到了，没法沿用它的房间'],
+    ]);
+    expect(bodies).toHaveLength(2); // 只有第 1 轮提交过
   });
 });
 

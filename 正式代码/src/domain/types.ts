@@ -54,6 +54,7 @@ export interface StyleValue {
   value: string;
   source: StyleSource;
   reason?: string;
+  quote?: string; // source 为 said 时：用户原话片段，代码核对过确实是用户写的（BC-013）
 }
 
 export type Style = Record<StyleKey, StyleValue>;
