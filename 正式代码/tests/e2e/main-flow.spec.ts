@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 /* 全流程（技术写法第 9 节、13.11）：假对话模型按「【测试：xxx】」标记调用工具，假生图网关按任务类型出测试图
    （TEST VIEW／TEST BACKDROP／TEST IMAGE），不调用模型、不花钱。v0.6 两套流程：
@@ -34,6 +34,13 @@ const canvas = (page: Page) => page.getByRole('region', { name: '画布' });
 const step = (page: Page, name: string) => page.getByRole('navigation', { name: '流程进度' }).getByRole('button', { name: new RegExp(`^${name}`) });
 const ANGLES = ['正面', '侧面', '背面'] as const;
 const angle = (page: Page, name: string) => canvas(page).getByRole('group', { name });
+
+// 批准是滑动确认（Slide Commit），只认真实指针；测试走键盘：聚焦后按 End
+async function approveBy(slider: Locator) {
+  await expect(slider).not.toHaveAttribute('aria-disabled', 'true');
+  await slider.focus();
+  await slider.press('End');
+}
 
 async function say(page: Page, text: string) {
   const box = chat(page).getByRole('textbox', { name: '和小间说' });
@@ -143,5 +150,102 @@ test.describe('商品：正面、侧面、背面和三视图（PRD FR-02、4.3�
     await page.getByRole('option', { name: '正面' }).click();
     await expect(canvas(page).getByRole('img', { name: '未分类照片' })).toBeVisible();
     await expect(angle(page, '正面').getByRole('img', { name: '正面照片' })).toBeVisible();
+  });
+});
+
+// 小间写的信息建议逐条接受（品类、材料、尺寸）
+async function acceptInfo(page: Page) {
+  await say(page, '是 925 银的耳饰，长 3 厘米【测试：信息】');
+  await step(page, '信息').click();
+  for (let i = 0; i < 3; i++) await canvas(page).getByRole('button', { name: '接受' }).first().click();
+  await expect(step(page, '信息')).toHaveAccessibleName(/完成/);
+}
+
+// 自己生成背景：共创、背景风格、背景提示词、批准，生成两张后选第 1 张
+async function generateBackdrop(page: Page) {
+  await step(page, '背景').click();
+  await canvas(page).getByRole('button', { name: '自己生成' }).click();
+  await say(page, '灵感是雨后的石阶【测试：记录】【测试：总结】');
+  await step(page, '背景').click();
+  await expect(canvas(page).getByText('草稿，待确认')).toBeVisible();
+  await canvas(page).getByRole('button', { name: '确认总结' }).click();
+  await say(page, '就按你推荐的来【测试：背景风格】【测试：背景提示词】【测试：批准背景】');
+  // 对话里的背景批准卡片：批准只能由用户滑
+  const card = chat(page).getByText('确认这版背景方案').locator('xpath=ancestor::div[contains(@class,"rounded-[14px]")]');
+  await approveBy(card.getByRole('slider', { name: /滑动批准并生成两张背景/ }));
+  await step(page, '背景').click();
+  await expect(canvas(page).getByRole('heading', { name: '第 1 轮背景' })).toBeVisible();
+  const pick = canvas(page).getByRole('button', { name: '用这张' }).first();
+  await expect(pick).toBeVisible({ timeout: 60_000 });
+  await expect(canvas(page).getByRole('button', { name: '用这张' })).toHaveCount(2, { timeout: 60_000 });
+  await pick.click();
+  await expect(canvas(page).getByRole('button', { name: '已选定' })).toBeVisible();
+}
+
+test.describe('背景与模板库（PRD FR-04、FR-06，技术写法 13.4）', () => {
+  test('自己生成背景：共创 → 背景风格 → 批准 → 两张选一张 → 沉淀进模板库；模板库里改名、删除，删掉后已经用了它的作品照常可用', async ({ page }, info) => {
+    await startHome(page);
+    await acceptInfo(page);
+    // 硬规则：背景没批准时小间不能生成（PRD 4.2 第 1 条）
+    await step(page, '背景').click();
+    await canvas(page).getByRole('button', { name: '自己生成' }).click();
+    await say(page, '直接生成背景吧【测试：生成背景】');
+    await expect(chat(page).getByText('不能生成背景：背景方案还没批准')).toBeVisible();
+
+    await generateBackdrop(page);
+    await expect(canvas(page).getByRole('heading', { name: '背景', level: 2 })).toBeVisible();
+    await expect(step(page, '背景')).toHaveAccessibleName(/完成/);
+    // 选定后背景风格只读，以背景图为准；可以重新设计
+    await expect(canvas(page).getByText('以选定的背景图为准；想改就重新设计背景')).toBeVisible();
+    await expect(canvas(page).getByRole('button', { name: '重新设计背景' })).toBeVisible();
+    await canvas(page).getByRole('textbox', { name: '背景图的名字' }).fill('苔绿晨光');
+    await canvas(page).getByRole('button', { name: '沉淀进模板库' }).click();
+    await expect(canvas(page).getByText('已沉淀进模板库「苔绿晨光」')).toBeVisible();
+    await page.screenshot({ path: info.outputPath('backdrop-picked.png') });
+    const workUrl = page.url();
+
+    // 模板库：沉淀的背景图带参数、来源，可以改名、删除（AC-06.1、AC-06.4）
+    await page.goto('/templates');
+    const name = page.getByRole('textbox', { name: '背景图的名字' });
+    await expect(name).toHaveValue('苔绿晨光');
+    await expect(page.getByText('出自「未命名作品」')).toBeVisible();
+    await expect(page.getByText('清冷晨光')).toBeVisible();
+    await name.fill('苔绿晨光 2');
+    await name.press('Enter');
+    await expect(name).toHaveValue('苔绿晨光 2');
+    await page.screenshot({ path: info.outputPath('templates.png') });
+    await page.getByRole('button', { name: '删除背景图「苔绿晨光 2」' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: '删除' }).click();
+    await expect(page.getByRole('heading', { name: '我沉淀的' })).toHaveCount(0);
+
+    await page.goto(workUrl);
+    await step(page, '背景').click();
+    await expect(canvas(page).getByText('已从模板库删除')).toBeVisible();
+    await expect(step(page, '背景')).toHaveAccessibleName(/完成/);
+  });
+
+  test('套用模板进来是流程二；改成自己生成背景时切到流程一，选的模板清掉', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: '套用「雨后清晨」' }).click();
+    await page.waitForURL(/\/works\/work_/);
+    const order = page.getByRole('navigation', { name: '流程进度' }).getByRole('button');
+    await expect(order.first()).toHaveAccessibleName(/^背景/);
+    await expect(step(page, '背景')).toHaveAccessibleName(/完成/);
+    await step(page, '背景').click();
+    await canvas(page).getByRole('button', { name: '自己生成' }).click();
+    const dialog = page.getByRole('dialog', { name: '改成自己生成背景？' });
+    await dialog.getByRole('button', { name: '改成自己生成' }).click();
+    await expect(order.first()).toHaveAccessibleName(/^商品/);
+    await expect(step(page, '背景')).not.toHaveAccessibleName(/完成/);
+    await expect(canvas(page).getByRole('heading', { name: '背景共创' })).toBeVisible();
+  });
+
+  test('小间只能选模板库里的背景图（use_backdrop）', async ({ page }) => {
+    await startHome(page);
+    await say(page, '用雨后那张背景吧【测试：用模板】');
+    await expect(chat(page).getByText('已选用模板库里的背景图「雨后清晨」（内置模板，暂无参数）')).toBeVisible();
+    await step(page, '背景').click();
+    await expect(canvas(page).getByRole('button', { name: '用模板库里的' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(canvas(page).getByText('示意模板，无参数').first()).toBeVisible();
   });
 });
