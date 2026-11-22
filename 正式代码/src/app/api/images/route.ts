@@ -10,6 +10,7 @@ import { submitFake } from '@/server/fake-images';
 import { attachRef, refund, reserve } from '@/server/ledger';
 
 const Body = z.object({
+  kind: z.enum(['view', 'backdrop', 'scene']).default('scene'), // 只给假生图网关用（按类型出测试图），真实网关不看
   model: z.string(),
   prompt: z.string().min(1).max(4000),
   ratio: z.enum(RATIOS),
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     if (!cap.ok) return Response.json({ error: { code: 'over_image_cap', message: cap.reason } }, { status: 400 });
 
     if (fakeGateway()) {
-      const fake = submitFake(input.prompt, input.ratio);
+      const fake = submitFake(input.prompt, input.ratio, input.kind);
       return Response.json({ gatewayId: fake.id, status: fake.status, estUSD: 0, ledgerId: '' });
     }
 

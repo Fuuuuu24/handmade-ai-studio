@@ -1,85 +1,100 @@
+import { BACKDROP } from '@/config/backdrops';
 import { CANDIDATES_PER_ROUND } from '@/config/budget';
-import { STYLE_KEYS, STYLE_LABELS, type StyleKey } from '@/config/style';
-import { coreInfoOf } from './info';
-import type { Asset, Basis, Id, Snapshot, Work } from './types';
+import { BACKDROP_KEYS, SCENE_KEYS, STYLE_KEYS, STYLE_LABELS, type StyleKey } from '@/config/style';
+import { viewRefs } from './assets';
+import { backdropInfoOf, coreInfoOf } from './info';
+import type { Asset, BackdropBasis, BackdropParams, BackdropSnapshot, SceneBasis, SceneParams, SceneSnapshot, StorySummary, Work } from './types';
 import { same } from './util';
 
-const KIND_ORDER = { overall: 0, back: 1, detail: 2 } as const;
-
-export const activeUploads = (assets: readonly Asset[], workId: Id) =>
-  assets
-    .filter((a) => a.workId === workId && a.origin === 'upload' && !a.removed)
-    .sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.createdAt - b.createdAt);
-
-// 参考图：A 路线用选定的白底图加细节图，B 路线用全部原图；超过模型上限时按整体、背面、细节的顺序截断
-export function referencesOf(work: Work, assets: readonly Asset[], maxRefs: number): Id[] {
-  const uploads = activeUploads(assets, work.id);
-  let refs: Id[];
-  if (work.route === 'A') {
-    // 原图停用后，从它做出的白底图也不再用
-    const white = assets.find((a) => a.id === work.whiteChoice && !a.removed && uploads.some((u) => u.id === a.parentId));
-    refs = [...(white ? [white.id] : []), ...uploads.filter((a) => a.kind === 'detail').map((a) => a.id)];
-  } else {
-    refs = uploads.map((a) => a.id);
-  }
-  return refs.slice(0, Math.max(1, maxRefs));
-}
+/* 两种批准的依据和快照（PRD AC-07.3，技术写法 13.4、13.5）。提示词由这些内容决定：依据变了提示词就可能过期，
+   快照变了批准就失效。背景比例固定，不进快照；合成快照不含背景五项，只记用的是哪张背景图。 */
 
 export const styleValuesOf = (work: Work) =>
   Object.fromEntries(STYLE_KEYS.map((k) => [k, work.style[k].value.trim()])) as Record<StyleKey, string>;
 
-export function basisOf(work: Work, assets: readonly Asset[], maxRefs: number): Basis {
-  return {
-    references: referencesOf(work, assets, maxRefs),
-    route: work.route,
-    info: coreInfoOf(work.info),
-    summary: work.story.summaryState === 'confirmed' ? work.story.summary : null,
-    style: styleValuesOf(work),
-    sceneId: work.sceneId,
-    ratio: work.ratio,
-    imageModel: work.imageModel,
-  };
-}
+export const backdropStyleOf = (work: Work): BackdropParams =>
+  Object.fromEntries(BACKDROP_KEYS.map((k) => [k, work.style[k].value.trim()])) as BackdropParams;
 
-export const snapshotOf = (work: Work, assets: readonly Asset[], maxRefs: number): Snapshot => ({
-  ...basisOf(work, assets, maxRefs),
+export const sceneStyleOf = (work: Work): SceneParams =>
+  Object.fromEntries(SCENE_KEYS.map((k) => [k, work.style[k].value.trim()])) as SceneParams;
+
+// 只有确认过的总结进依据；草稿不算
+const confirmedSummary = (work: Work): StorySummary | null => (work.story.summaryState === 'confirmed' ? work.story.summary : null);
+
+export const backdropBasisOf = (work: Work): BackdropBasis => ({
+  style: backdropStyleOf(work),
+  summary: confirmedSummary(work),
+  info: backdropInfoOf(work.info),
+  imageModel: work.imageModel,
+});
+
+export const backdropSnapshotOf = (work: Work): BackdropSnapshot => ({
+  ...backdropBasisOf(work),
+  prompt: work.backdropPrompt?.text ?? '',
+  count: BACKDROP.count,
+});
+
+export const sceneBasisOf = (work: Work, assets: readonly Asset[]): SceneBasis => ({
+  references: viewRefs(assets, work.id),
+  info: coreInfoOf(work.info),
+  summary: confirmedSummary(work),
+  backdropId: work.backdropId,
+  style: sceneStyleOf(work),
+  ratio: work.ratio,
+  imageModel: work.imageModel,
+});
+
+export const sceneSnapshotOf = (work: Work, assets: readonly Asset[]): SceneSnapshot => ({
+  ...sceneBasisOf(work, assets),
   prompt: work.prompt?.text ?? '',
   count: CANDIDATES_PER_ROUND,
 });
 
-// 快照里属于提示词依据的部分（去掉提示词原文和候选数量）
-export function basisOfSnapshot(s: Snapshot): Basis {
-  const { references, route, info, summary, style, sceneId, ratio, imageModel } = s;
-  return { references, route, info, summary, style, sceneId, ratio, imageModel };
+// 快照里属于提示词依据的部分（去掉提示词原文和张数）
+export function basisOfBackdropSnapshot(s: BackdropSnapshot): BackdropBasis {
+  const { style, summary, info, imageModel } = s;
+  return { style, summary, info, imageModel };
 }
 
-const BASIS_PARTS: [keyof Basis, string][] = [
-  ['references', '参考图'],
-  ['route', '资产路线'],
+export function basisOfSceneSnapshot(s: SceneSnapshot): SceneBasis {
+  const { references, info, summary, backdropId, style, ratio, imageModel } = s;
+  return { references, info, summary, backdropId, style, ratio, imageModel };
+}
+
+/* ---------- 改了什么：返回给用户看的名称 ---------- */
+
+const BACKDROP_PARTS: [keyof BackdropBasis, string][] = [
+  ['info', '品类和尺寸'],
+  ['summary', '共创总结'],
+  ['imageModel', '生图模型'],
+];
+
+const SCENE_PARTS: [keyof SceneBasis, string][] = [
+  ['references', '三视图'],
   ['info', '商品信息'],
   ['summary', '共创总结'],
-  ['sceneId', '布景'],
+  ['backdropId', '背景图'],
   ['ratio', '比例'],
   ['imageModel', '生图模型'],
 ];
 
-// 依据里哪些内容变了，返回给用户看的名称
-export function diffBasis(a: Basis, b: Basis): string[] {
-  const changed: string[] = [];
-  for (const [key, label] of BASIS_PARTS) {
-    if (key === 'sceneId') continue;
-    if (!same(a[key], b[key])) changed.push(label);
-  }
-  for (const k of STYLE_KEYS) if (a.style[k] !== b.style[k]) changed.push(STYLE_LABELS[k]);
-  // 只换了布景、风格值没变时才报「布景」，避免和具体风格项重复
-  if (!changed.length && a.sceneId !== b.sceneId) changed.push('布景');
+function diffParts<B extends { style: Record<string, string> }>(a: B, b: B, parts: [keyof B, string][], keys: readonly StyleKey[]): string[] {
+  const changed = parts.filter(([key]) => !same(a[key], b[key])).map(([, label]) => label);
+  for (const k of keys) if ((a.style[k] ?? '') !== (b.style[k] ?? '')) changed.push(STYLE_LABELS[k]);
   return changed;
 }
 
+export const diffBackdropBasis = (a: BackdropBasis, b: BackdropBasis) => diffParts(a, b, BACKDROP_PARTS, BACKDROP_KEYS);
+
+export const diffSceneBasis = (a: SceneBasis, b: SceneBasis) => diffParts(a, b, SCENE_PARTS, SCENE_KEYS);
+
 // 提示词由其他内容决定：其他内容变了就报那些；只有提示词本身被改时才报「提示词」
-export function diffSnapshot(a: Snapshot, b: Snapshot): string[] {
-  const changed = diffBasis(a, b);
-  if (a.count !== b.count) changed.push('候选数量');
+function withPrompt(changed: string[], a: { prompt: string; count: number }, b: { prompt: string; count: number }, countLabel: string) {
+  if (a.count !== b.count) changed.push(countLabel);
   if (!changed.length && a.prompt !== b.prompt) changed.push('提示词');
   return changed;
 }
+
+export const diffBackdropSnapshot = (a: BackdropSnapshot, b: BackdropSnapshot) => withPrompt(diffBackdropBasis(a, b), a, b, '背景张数');
+
+export const diffSceneSnapshot = (a: SceneSnapshot, b: SceneSnapshot) => withPrompt(diffSceneBasis(a, b), a, b, '候选数量');

@@ -39,16 +39,46 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
   起名: { tool: 'suggest_name', input: { name: '蝴蝶结耳坠', note: '测试' } },
   记录: { tool: 'record_story', input: { kind: 'theme', text: '雨后石阶上的蝴蝶结' } },
   总结: { tool: 'draft_summary', input: { express: '雨后蝴蝶结的安静', feel: '安静、想凑近看', avoid: '太花、道具抢戏' } },
-  布景: { tool: 'apply_scene', input: { sceneId: 'tpl-moss' } },
   推荐风格: { tool: 'set_style', input: { items: [{ field: 'light', value: '清冷晨光', basis: 'recommend', reason: '测试：贴合雨后的安静' }] } },
   // 「你说的」要核对原话（BC-013）：用户这句话里带「平铺」时摆放记为你说的；「冷灰」用户没说过，会被记为小间推荐
   说过平铺: { tool: 'set_style', input: { items: [{ field: 'placement', value: '一对耳饰平铺', basis: 'said', quote: '平铺' }] } },
   误标你说的: { tool: 'set_style', input: { items: [{ field: 'tone', value: '低饱和、偏冷灰', basis: 'said', quote: '冷灰' }] } },
+  // 三视图只能提议：放卡片，用户点了才生成
+  三视图: { tool: 'propose_views', input: {} },
+  重做侧面: { tool: 'propose_views', input: { angles: ['side'], note: '测试：侧面重做一张' } },
+  用模板: { tool: 'use_backdrop', input: { backdropId: 'builtin:moss@1' } },
+  摆放: {
+    tool: 'set_style',
+    input: {
+      items: [
+        { field: 'placement', value: '平铺', basis: 'recommend', reason: '测试' },
+        { field: 'composition', value: '主体居中，留白多', basis: 'recommend', reason: '测试' },
+      ],
+    },
+  },
+  背景风格: {
+    tool: 'set_style',
+    input: {
+      items: [
+        { field: 'tone', value: '雨后苔绿', basis: 'recommend', reason: '测试' },
+        { field: 'background', value: '手工纸', basis: 'recommend', reason: '测试' },
+        { field: 'light', value: '清冷晨光', basis: 'recommend', reason: '测试' },
+      ],
+    },
+  },
+  背景提示词: {
+    tool: 'draft_backdrop_prompt',
+    input: { prompt: '一张不含任何饰品和文字的电商主图背景：苔绿手工纸，清冷晨光从左上方斜照，画面中下方留出放耳饰的位置。' },
+  },
+  批准背景: { tool: 'request_approval', input: { kind: 'backdrop' } },
+  生成背景: { tool: 'start_backdrop_generation', input: {} },
   提示词: {
     tool: 'draft_prompt',
-    input: { prompt: '一对手作 925 银蝴蝶结耳坠，严格按参考图还原颜色、数量、轮廓和连接结构，整件完整入框留边距，苔绿手工纸背景，清冷晨光，画面里不要任何文字。' },
+    input: {
+      prompt: '第 1 张是背景图，保持它的取景和光线；第 2—4 张是正面、侧面、背面三视图，商品只以三视图为准。一对手作 925 银蝴蝶结耳坠平铺在台面中央，完整入框留边距，画面里不要任何文字。',
+    },
   },
-  批准: { tool: 'request_approval', input: {} },
+  批准: { tool: 'request_approval', input: { kind: 'scene' } },
   生成: { tool: 'start_generation', input: {} },
   选卡: {
     tool: 'offer_picks',
@@ -62,12 +92,10 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
     },
   },
   意见: { tool: 'note_feedback', input: { round: 1, candidate: 1, issues: ['轮廓'], note: '链子变长了', revise: true } },
-  存布景: { tool: 'propose_scene_save', input: { name: '测试布景', reason: '你说这套光线很喜欢' } },
-  我的风格: { tool: 'propose_shop_style', input: { fields: ['light', 'tone'], reason: '你说以后都想要这种光线' } },
   导出: { tool: 'offer_export', input: { round: 1, candidate: 2 } },
-  补齐: { tool: 'retry_candidate', input: { round: 1, candidate: 1 } },
+  补齐: { tool: 'retry_candidate', input: { kind: 'scene', round: 1, candidate: 1 } },
+  补齐背景: { tool: 'retry_candidate', input: { kind: 'backdrop', round: 1, candidate: 1 } },
   后续: { tool: 'note_followup', input: { text: '真人佩戴图' } },
-  白底: { tool: 'make_white_asset', input: {} },
   换模型: { tool: 'set_image_model', input: { model: 'gpt-image-2' } },
   比例: { tool: 'set_ratio', input: { ratio: '3:4' } },
 };

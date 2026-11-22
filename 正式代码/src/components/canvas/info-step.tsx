@@ -23,8 +23,8 @@ function InfoRow({ k }: { k: InfoKey }) {
   };
   const required = (INFO_REQUIRED as readonly InfoKey[]).includes(k);
   const missing = required && !field.value && !field.unknown;
-  // 核心信息锁进了批准快照，生成中不能改；售价、目标顾客不影响生成，随时可改
-  const locked = ctx.isGenerating && (INFO_CORE as readonly InfoKey[]).includes(k);
+  // 核心信息锁进了背景和合成的批准快照，生成中不能改；售价、目标顾客不影响生成，随时可改
+  const locked = (ctx.busy.scene || ctx.busy.backdrop) && (INFO_CORE as readonly InfoKey[]).includes(k);
   const common = {
     id: `info-${k}`,
     name: k,
@@ -87,13 +87,13 @@ export function InfoStep() {
       <StepHead step="info">
         <span className={ready && !pending ? 'chip chip-ok' : 'chip chip-warn'}>{!ready ? '待补充' : pending ? '有建议待确认' : '已填好'}</span>
       </StepHead>
-      {ctx.isGenerating && <p className="-mt-2 mb-3 text-aux text-muted">正在生成这一轮，品类、材料、尺寸和不能改的细节暂时锁定。</p>}
+      {(ctx.busy.scene || ctx.busy.backdrop) && <p className="-mt-2 mb-3 text-aux text-muted">正在生成，品类、材料、尺寸和不能改的细节暂时锁定。</p>}
       <div className="max-w-[640px] rounded-xl bg-white px-5 py-3">
         {INFO_KEYS.map((k) => (
           <InfoRow key={k} k={k} />
         ))}
       </div>
-      <p className="mt-3 text-aux text-muted">改动材料、尺寸或不能改的细节后，已经写好的提示词和批准需要重新确认。</p>
+      <p className="mt-3 text-aux text-muted">改动品类、材料、尺寸或不能改的细节后，已经写好的提示词和批准需要重新确认。</p>
       <Followups />
     </div>
   );

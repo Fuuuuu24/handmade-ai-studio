@@ -68,13 +68,13 @@ test("过期 revision 和并发写请求不覆盖新配置", async (t) => {
     store.action({
       type: "prompt.save",
       revision: 0,
-      id: "white",
+      id: "views",
       content: "版本 A",
     }),
     store.action({
       type: "prompt.save",
       revision: 0,
-      id: "white",
+      id: "views",
       content: "版本 B",
     }),
   ]);
@@ -141,7 +141,7 @@ test("拒绝负价、错误尺寸、错误 JSON 形态和空提示词", async (t
     /JSON 对象/,
   );
   await assert.rejects(
-    action(store, "prompt.save", { id: "white", content: "  " }),
+    action(store, "prompt.save", { id: "views", content: "  " }),
     /不能为空/,
   );
   assert.equal((await store.get()).revision, 0);
@@ -157,13 +157,13 @@ test("单向同步更新未编辑项、保留冲突草稿和后台启停状态",
   const next = getSource();
   next.hash = "new-hash";
   next.prompts[0].content = "来源系统规则更新";
-  next.prompts[1].content = "来源白底更新";
+  next.prompts[1].content = "来源三视图更新";
   next.models.find((m) => m.id === "gemini-3.1-flash-image").perImageUSD = 0.1;
   setSource(next);
   const s = await action(store, "source.sync", { hash: next.hash });
   assert.equal(s.prompts[0].content, "后台独立草稿");
   assert.equal(s.source.prompts[0].content, "来源系统规则更新");
-  assert.equal(s.prompts[1].content, "来源白底更新");
+  assert.equal(s.prompts[1].content, "来源三视图更新");
   assert.equal(s.prompts[1].versions.length, 1);
   const m = s.models.find((m) => m.id === "gemini-3.1-flash-image");
   assert.equal(m.perImageUSD, 0.1);
@@ -249,7 +249,7 @@ test("HTTP 接口拒绝跨来源、任意路径与非法请求，并能保存导
   const save = await send({
     type: "prompt.save",
     revision: s.revision,
-    id: "white",
+    id: "views",
     content: "HTTP 保存验证",
   });
   assert.equal(save.status, 200);

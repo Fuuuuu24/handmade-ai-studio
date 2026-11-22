@@ -1,13 +1,13 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { STEPS } from '@/config/steps';
+import { STEP_NAMES, type StepId } from '@/config/steps';
 import { useWorkspace } from '@/components/workspace/context';
-import { AssetStep } from './asset-step';
+import { BackdropStep } from './backdrop-step';
 import { InfoStep } from './info-step';
-import { OutputStep } from './output-step';
-import { PlanStep } from './plan-step';
-import { StoryStep } from './story-step';
+import { PlacementStep } from './placement-step';
+import { ProductStep } from './product-step';
+import { ResultStep } from './result-step';
 
 const isTextEntry = (el: EventTarget) =>
   el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && !['checkbox', 'radio', 'file', 'button'].includes(el.type));
@@ -24,21 +24,20 @@ export function Canvas() {
         if (viewing === current && isTextEntry(e.target)) setViewing(viewing);
       }}
     >
-      {viewing === 'asset' && <AssetStep />}
+      {viewing === 'product' && <ProductStep />}
       {viewing === 'info' && <InfoStep />}
-      {viewing === 'story' && <StoryStep />}
-      {viewing === 'plan' && <PlanStep />}
-      {viewing === 'output' && <OutputStep />}
+      {viewing === 'backdrop' && <BackdropStep />}
+      {viewing === 'placement' && <PlacementStep />}
+      {viewing === 'result' && <ResultStep />}
     </section>
   );
 }
 
-export function StepHead({ step, children }: { step: (typeof STEPS)[number]['id']; children?: ReactNode }) {
+export function StepHead({ step, children }: { step: StepId; children?: ReactNode }) {
   const { current, setViewing, viewing } = useWorkspace();
-  const name = STEPS.find((s) => s.id === step)!.name;
   return (
     <div className="mb-[18px] flex items-center gap-3">
-      <h2 className="text-panel font-semibold">{name}</h2>
+      <h2 className="text-panel font-semibold">{STEP_NAMES[step]}</h2>
       {children}
       {viewing !== current && (
         <button type="button" className="btn btn-quiet btn-sm ml-auto" onClick={() => setViewing(null)}>

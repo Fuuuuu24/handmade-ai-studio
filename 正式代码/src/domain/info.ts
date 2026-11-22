@@ -1,12 +1,12 @@
 import { INFO_CORE, INFO_FIELDS, INFO_KEYS, INFO_REQUIRED, type CoreInfoKey, type InfoKey } from '@/config/info';
-import type { Basis, Info } from './types';
+import type { BackdropBasis, CoreInfoBasis, Info } from './types';
 
 export const emptyInfo = (): Info =>
   Object.fromEntries(INFO_KEYS.map((k) => [k, { value: '', unknown: false }])) as Info;
 
 const filled = (info: Info, key: InfoKey) => info[key].value.trim() !== '' || info[key].unknown;
 
-export const infoMissing = (info: Info): InfoKey[] => INFO_REQUIRED.filter((k) => !filled(info, k));
+export const infoMissing = (info: Info, keys: readonly InfoKey[] = INFO_REQUIRED): InfoKey[] => keys.filter((k) => !filled(info, k));
 
 export const infoReady = (info: Info) => infoMissing(info).length === 0;
 
@@ -21,7 +21,15 @@ export const infoDone = (info: Info) => infoReady(info) && pendingCore(info).len
 export const infoLabels = (keys: readonly InfoKey[]) => keys.map((k) => INFO_FIELDS[k].label).join('、');
 
 // 只有已确认的值和「未知」进入提示词依据；待确认建议不算
-export const coreInfoOf = (info: Info): Basis['info'] =>
+export const coreInfoOf = (info: Info): CoreInfoBasis =>
   Object.fromEntries(
     INFO_CORE.map((k: CoreInfoKey) => [k, { value: info[k].value.trim(), unknown: info[k].unknown }]),
-  ) as Basis['info'];
+  ) as CoreInfoBasis;
+
+// 背景提示词只用品类和尺寸：按它们留出主体位置和台面（技术写法 13.4）
+export const BACKDROP_INFO = ['category', 'size'] as const satisfies readonly CoreInfoKey[];
+
+export const backdropInfoOf = (info: Info): BackdropBasis['info'] => {
+  const core = coreInfoOf(info);
+  return { category: core.category, size: core.size };
+};

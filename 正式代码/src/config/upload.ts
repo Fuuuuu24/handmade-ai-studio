@@ -8,4 +8,6 @@ export const UPLOAD = {
   refEdge: 2048, // 发给生图模型的参考图长边（压缩后再上传，减少大陆到香港的上传量）
 };
 
-export const ASSET_KINDS = { overall: '整体', back: '背面', detail: '细节' } as const;
+// 照片类型（PRD AC-02.1）：正面、侧面、背面三张必须有，细节照可另传。首页和对话里上传的先进「未分类」，
+// 用户在商品画布里选类型（小间可以建议，不能代选）
+export const ASSET_KINDS = { front: '正面', side: '侧面', back: '背面', detail: '细节', unsorted: '未分类' } as const;

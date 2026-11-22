@@ -7,29 +7,29 @@ import { useWorkspace } from '@/components/workspace/context';
 import { Icon } from '@/components/ui/icon';
 import { ApprovalCard } from './approval-card';
 import { RichText } from './rich-text';
-import { ExportCard, PicksCard, SceneProposalCard, ShopProposalCard } from './tool-cards';
+import { ExportCard, PicksCard, ViewsCard } from './tool-cards';
 import ThoughtLine from '@/components/bits/ThoughtLine/ThoughtLine';
 
 const TOOL_DOING: Record<string, string> = {
   update_info: '整理商品信息',
   suggest_name: '起名字',
+  propose_views: '准备生成三视图',
   record_story: '记下你说的',
   draft_summary: '起草共创总结',
   set_style: '调整风格',
-  apply_scene: '套用布景',
+  use_backdrop: '选用模板库里的背景',
+  draft_backdrop_prompt: '写背景提示词',
+  start_backdrop_generation: '提交背景生成',
   set_ratio: '设置比例',
-  draft_prompt: '写提示词',
+  draft_prompt: '写合成提示词',
   resolve_prompt_sync: '核对手改的提示词',
   request_approval: '准备批准卡片',
   start_generation: '提交生成',
   offer_picks: '准备几个方向',
-  make_white_asset: '做白底图',
   set_image_model: '换生图模型',
-  retry_candidate: '补齐候选',
+  retry_candidate: '补齐',
   note_feedback: '记下你的意见',
   offer_export: '准备下载',
-  propose_scene_save: '准备存布景',
-  propose_shop_style: '准备更新我的风格',
   note_followup: '记下后续需求',
   show_step: '切换画布',
 };
@@ -128,15 +128,16 @@ export function MessageView({ message, latest }: { message: AgentUIMessage; late
             />
           ) : null;
         }
-        if (isToolUIPart(part) && getToolName(part) === 'request_approval') {
-          return <ApprovalCard key={i} active={latest} done={part.state === 'output-available'} />;
+        if (part.type === 'tool-request_approval') {
+          // 被拒绝时（比如用模板时要背景批准）照常显示原因
+          if (part.state === 'output-available' && !(part.output as ToolOutput).ok) return <ToolRecord key={i} part={part} />;
+          return <ApprovalCard key={i} kind={part.input?.kind ?? 'scene'} active={latest} done={part.state === 'output-available'} />;
         }
         // 卡片类工具：执行器同意（ok）后才显示卡片；被拒绝时照常显示原因
         if (isToolUIPart(part) && part.state === 'output-available' && (part.output as ToolOutput).ok) {
           if (part.type === 'tool-offer_picks') return <PicksCard key={i} input={part.input} active={latest} />;
           if (part.type === 'tool-offer_export') return <ExportCard key={i} round={part.input.round} candidate={part.input.candidate} />;
-          if (part.type === 'tool-propose_scene_save') return <SceneProposalCard key={i} toolCallId={part.toolCallId} input={part.input} active={latest} />;
-          if (part.type === 'tool-propose_shop_style') return <ShopProposalCard key={i} toolCallId={part.toolCallId} input={part.input} active={latest} />;
+          if (part.type === 'tool-propose_views') return <ViewsCard key={i} toolCallId={part.toolCallId} input={part.input} active={latest} />;
         }
         return <ToolRecord key={i} part={part} />;
       })}

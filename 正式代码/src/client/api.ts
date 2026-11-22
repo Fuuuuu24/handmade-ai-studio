@@ -1,4 +1,5 @@
 import type { Ratio } from '@/config/ratios';
+import type { TaskKind } from '@/domain/types';
 
 // 调用本站服务端接口。失败时抛出带中文原因的错误，由调用方显示，不吞掉
 export class ApiCallError extends Error {
@@ -36,7 +37,7 @@ export interface AppConfig {
   credential: { source: 'env' | 'file' | 'relay' | 'unknown'; ready: boolean; revision?: number; reason?: string };
   fake: boolean; // 开发用的假生图网关，结果是测试图
   fakeChat: boolean; // 开发用的假对话模型，小间的回复是测试剧本
-  operator: boolean; // 试用操作员模式：显示资产路线开关
+  operator: boolean; // 试用操作员模式：显示预算余量
   chatModels: { id: string; label: string; vision: boolean }[];
   imageModels: { id: string; label: string; perImageUSD: number }[];
   defaults: { chatModel: string; imageModel: string };
@@ -52,7 +53,8 @@ export interface SubmitResult {
   ledgerId: string;
 }
 
-export async function submitImageTask(body: { model: string; prompt: string; ratio: Ratio; images: string[] }) {
+// kind 只给假生图网关用（按类型出测试图），真实网关不看它
+export async function submitImageTask(body: { kind: TaskKind; model: string; prompt: string; ratio: Ratio; images: string[] }) {
   return json<SubmitResult>(
     await request('/api/images', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
   );

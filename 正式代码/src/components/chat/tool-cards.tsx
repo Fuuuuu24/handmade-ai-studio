@@ -1,18 +1,20 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import type { StyleKey } from '@/config/style';
+import { VIEW_NAMES, type ViewAngle } from '@/config/views';
 import { exportResult } from '@/client/export';
+import { generateViews } from '@/client/generation';
 import { mutateWork } from '@/client/work-store';
 import { logEvent } from '@/data/repo';
+import { anglesToGenerate, viewCheck } from '@/domain/assets';
 import { passed } from '@/domain/generation';
 import { decideProposal } from '@/domain/work';
-import { SceneSaveForm, ShopStyleForm } from '@/components/plan/library-forms';
 import { Icon } from '@/components/ui/icon';
 import { useWorkspace } from '@/components/workspace/context';
 import { useToast } from '@/components/ui/toast';
+import { AI_NOTICE } from '@/components/canvas/result-step';
 
-/* 小间放进对话的卡片：方向选卡、下载、存布景和更新我的风格的提议。卡片只是入口，真正的写入和下载都由用户点按钮完成。 */
+/* 小间放进对话的卡片：方向选卡、生成三视图的提议、下载。卡片只是入口，真正的生成和下载都由用户点按钮完成。 */
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -24,7 +26,7 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Closed({ children }: { children: ReactNode }) {
-  return <div className="rounded-lg bg-canvas px-2.5 py-2 text-aux text-ink-2">{children}</div>;
+  return <div className="flex items-center gap-2.5 rounded-lg bg-canvas px-2.5 py-2 text-aux text-ink-2">{children}</div>;
 }
 
 // 「我不知道」时的方向卡片（AC-04.2）：点一张就把选择发给小间
@@ -60,6 +62,63 @@ export function PicksCard({ input, active }: { input: { question?: string; optio
   );
 }
 
+// 生成三视图的提议（PRD AC-02.3、4.2 第 1 条）：小间只能提议，用户点了才生成；点过的卡片记下决定（Work.proposals）
+export function ViewsCard({ toolCallId, input, active }: { toolCallId: string; input: { angles?: ViewAngle[]; note?: string }; active: boolean }) {
+  const { ctx, workId, setViewing } = useWorkspace();
+  const [problem, setProblem] = useState<string | null>(null);
+  const decision = ctx.work.proposals?.[toolCallId];
+  const angles = input.angles?.length ? input.angles : anglesToGenerate(ctx.assets, ctx.tasks, workId);
+  const names = angles.map((a) => VIEW_NAMES[a]).join('、');
+  const look = (
+    <button type="button" className="mini-btn ml-auto" onClick={() => setViewing('product')}>
+      看商品
+    </button>
+  );
+  if (decision) {
+    return (
+      <Closed>
+        <span className="min-w-0 flex-1">{decision === 'accepted' ? '已开始生成三视图，出来后到「商品」里逐张对照确认' : '没有生成三视图'}</span>
+        {look}
+      </Closed>
+    );
+  }
+  if (!active) {
+    return (
+      <Closed>
+        <span className="min-w-0 flex-1">生成三视图的提议（未处理）</span>
+        {look}
+      </Closed>
+    );
+  }
+  const check = viewCheck(ctx.assets, ctx.tasks, workId, angles, ctx.busy);
+  return (
+    <Card title="生成三视图？">
+      <p className="text-aux text-ink-2">{input.note ?? `按${names || '三个角度'}照片各生成一张白底图，出来后逐张对照原图确认；合成只用三视图。`}</p>
+      {!check.ok && <p className="text-aux text-warn">{check.reason}</p>}
+      {problem && <p className="text-aux text-warn">{problem}</p>}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          disabled={!check.ok}
+          onClick={async () => {
+            setProblem(null);
+            const r = await generateViews(workId, input.angles?.length ? input.angles : undefined);
+            if (!r.ok) return setProblem(r.reason);
+            await mutateWork(workId, (c) => decideProposal(c.work, toolCallId, 'accepted'));
+          }}
+        >
+          生成{angles.length ? ` ${angles.length} 张` : ''}
+        </button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => void mutateWork(workId, (c) => decideProposal(c.work, toolCallId, 'declined'))}>
+          不用了
+        </button>
+        <span className="text-label text-muted">每张要花一张图的钱</span>
+      </div>
+    </Card>
+  );
+}
+
 export function ExportCard({ round, candidate }: { round: number; candidate: number }) {
   const { ctx } = useWorkspace();
   const toast = useToast();
@@ -90,40 +149,8 @@ export function ExportCard({ round, candidate }: { round: number; candidate: num
           下载
         </button>
       </div>
+      <p className="text-label text-muted">{AI_NOTICE}</p>
       {problem && <p className="text-bad">没有导出：{problem}</p>}
     </div>
-  );
-}
-
-function useDecision(toolCallId: string) {
-  const { ctx, workId } = useWorkspace();
-  return {
-    decision: ctx.work.proposals?.[toolCallId],
-    decide: (d: 'accepted' | 'declined') => void mutateWork(workId, (c) => decideProposal(c.work, toolCallId, d)),
-  };
-}
-
-// 存为布景的提议（PRD 4.2 第 2 条）：用户在卡片上确认才保存
-export function SceneProposalCard({ toolCallId, input, active }: { toolCallId: string; input: { name: string; updateSceneId?: string; reason?: string }; active: boolean }) {
-  const { decision, decide } = useDecision(toolCallId);
-  if (decision) return <Closed>{decision === 'accepted' ? `已存为布景「${input.name}」` : '没有存这套布景'}</Closed>;
-  if (!active) return <Closed>存为布景的提议（未处理）</Closed>;
-  return (
-    <Card title="存成摄影布景？">
-      {input.reason && <p className="text-aux text-ink-2">{input.reason}</p>}
-      <SceneSaveForm defaultName={input.name} updateSceneId={input.updateSceneId} onSaved={() => decide('accepted')} onCancel={() => decide('declined')} cancelText="不用了" />
-    </Card>
-  );
-}
-
-// 更新我的风格的提议（AC-06.4）：列出修改前后，用户同意才写入
-export function ShopProposalCard({ toolCallId, input, active }: { toolCallId: string; input: { fields: StyleKey[]; reason: string }; active: boolean }) {
-  const { decision, decide } = useDecision(toolCallId);
-  if (decision) return <Closed>{decision === 'accepted' ? '已更新我的风格' : '没有更新我的风格'}</Closed>;
-  if (!active) return <Closed>更新我的风格的提议（未处理）</Closed>;
-  return (
-    <Card title="更新我的风格？">
-      <ShopStyleForm fields={input.fields} reason={input.reason} onSaved={() => decide('accepted')} onCancel={() => decide('declined')} cancelText="不用了" />
-    </Card>
   );
 }

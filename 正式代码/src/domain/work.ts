@@ -1,26 +1,35 @@
+import { isBuiltinBackdrop } from '@/config/backdrops';
 import type { InfoKey } from '@/config/info';
 import type { Ratio } from '@/config/ratios';
-import { STYLE_KEYS, type StyleKey } from '@/config/style';
-import { approvalBlockers, generationBlockers, type Blocker } from './approval';
+import { SCENE_KEYS, STYLE_KEYS, type SceneKey, type StyleKey } from '@/config/style';
+import {
+  backdropApprovalBlockers,
+  backdropGenerationBlockers,
+  sceneApprovalBlockers,
+  sceneGenerationBlockers,
+  type Blocker,
+} from './approval';
 import { emptyInfo } from './info';
-import { basisOfSnapshot } from './snapshot';
+import { backdropSnapshotOf, basisOfSceneSnapshot, sceneSnapshotOf } from './snapshot';
 import type {
-  Approval,
-  Asset,
-  Basis,
+  BackdropApproval,
+  BackdropBasis,
+  BackdropMode,
   Id,
   InfoField,
+  PromptBases,
+  PromptKind,
   PromptState,
   Result,
-  Route,
-  SceneParams,
-  Snapshot,
+  SceneApproval,
+  SceneBasis,
   Story,
   StoryNote,
   StorySummary,
   Style,
   StyleSource,
   Work,
+  WorkState,
 } from './types';
 import { newId } from './util';
 
@@ -40,35 +49,37 @@ export interface NewWorkOptions {
   name?: string;
   imageModel: string;
   chatModel: string;
-  route: Route;
   ratio?: Ratio;
-  scene?: { id: Id; params: SceneParams } | null;
+  backdropId?: Id | null; // 从模板库「套用」进来：流程二，背景一进来就是这张（PRD 5.2）
 }
 
 export function newWork(o: NewWorkOptions): Work {
   const at = Date.now();
-  const work: Work = {
+  const template = !!o.backdropId;
+  return {
     id: newId('work'),
     name: o.name?.trim() || DEFAULT_WORK_NAME,
     createdAt: at,
     updatedAt: at,
+    flow: template ? 'template' : 'home',
     info: emptyInfo(),
     story: emptyStory(),
     style: emptyStyle(),
-    sceneId: null,
+    backdropMode: template ? 'library' : null,
+    backdropId: o.backdropId ?? null,
+    backdropPrompt: null,
+    backdropApprovalId: null,
+    backdropApprovalCount: 0,
+    backdropRound: 0,
     ratio: o.ratio ?? '1:1',
     imageModel: o.imageModel,
     chatModel: o.chatModel,
-    route: o.route,
-    assetsConfirmed: false,
-    whiteChoice: null,
     prompt: null,
     approvalId: null,
     approvalCount: 0,
     round: 0,
     costUSD: 0,
   };
-  return o.scene ? applyScene(work, o.scene.id, o.scene.params) : work;
 }
 
 // 名字清空时保留原名；用户自己改名后，小间的名字建议作废
@@ -109,7 +120,7 @@ export function acceptSuggestion(w: Work, key: InfoKey): Work {
 export const dismissSuggestion = (w: Work, key: InfoKey) =>
   setField(w, key, { value: w.info[key].value, unknown: w.info[key].unknown });
 
-/* ---------- 共创 ---------- */
+/* ---------- 共创（背景图的共创） ---------- */
 
 // 同样的内容只记一次：小间续轮时可能把同一批工具再调一遍（BC-007）
 export function addStoryNote(w: Work, kind: StoryNote['kind'], text: string): Work {
@@ -157,7 +168,7 @@ const trimSummary = (s: StorySummary): StorySummary => ({
   avoid: s.avoid.trim(),
 });
 
-/* ---------- 风格、布景、比例、模型 ---------- */
+/* ---------- 风格、比例、模型 ---------- */
 
 // 小间推荐时记下依据的共创总结，总结之后改了就能提示风格可能要跟着变（AC-04.6）。
 // quote 只在 said 时有：执行器核对过的用户原话（BC-013）
@@ -176,131 +187,175 @@ export const styleLagsSummary = (w: Work) =>
 // 用户看过后决定风格不用跟着改
 export const keepStyleForSummary = (w: Work) => touch(w, { styleSummary: w.story.summary });
 
-// 套用布景：只覆盖布景管的几项，「表达」保留
-export function applyScene(w: Work, sceneId: Id, params: SceneParams): Work {
-  const style = { ...w.style };
-  for (const [k, v] of Object.entries(params) as [keyof SceneParams, string][]) style[k] = { value: v, source: 'scene' };
-  return touch(w, { style, sceneId });
-}
-
-// 套用我的风格：长期偏好写进这件作品的风格卡，标来源「我的风格」（AC-06.1）；单件之后的改动不会回写长期风格
-export function applyShopPrefs(w: Work, prefs: Partial<Record<StyleKey, string>>): Work {
-  const style = { ...w.style };
-  for (const k of STYLE_KEYS) {
-    const v = prefs[k]?.trim();
-    if (v) style[k] = { value: v, source: 'shop' };
-  }
-  return touch(w, { style });
-}
-
+// 只改合成比例：三视图和背景的比例由系统固定（AC-08.1）
 export const setRatio = (w: Work, ratio: Ratio) => touch(w, { ratio });
+
+// 换生图模型：已确认的三视图和已选定的背景图不作废，只按快照比对让提示词过期、批准失效（AC-06.7）
 export const setImageModel = (w: Work, imageModel: string) => touch(w, { imageModel });
 export const setChatModel = (w: Work, chatModel: string) => touch(w, { chatModel });
 
-// 换路线要重新确认资产
-export const setRoute = (w: Work, route: Route) => (route === w.route ? w : touch(w, { route, assetsConfirmed: false }));
+/* ---------- 背景（技术写法 13.4） ---------- */
 
-/* ---------- 素材 ---------- */
+// 选背景的做法。换做法时清掉已选的背景图：「自己生成」时不会还挂着模板，选模板也要重新点一张。
+// 流程二里改为自己生成时切到流程一（商品还没上传，不能先共创背景），已有的照片、三视图和信息都保留（AC-06.6）
+export function setBackdropMode(w: Work, mode: BackdropMode): Work {
+  if (w.backdropMode === mode) return w;
+  return touch(w, { backdropMode: mode, backdropId: null, flow: mode === 'generate' ? 'home' : w.flow });
+}
 
-export const confirmAssets = (w: Work) => touch(w, { assetsConfirmed: true });
-export const assetsChanged = (w: Work) => (w.assetsConfirmed ? touch(w, { assetsConfirmed: false }) : w);
-export const chooseWhite = (w: Work, assetId: Id | null) => touch(w, { whiteChoice: assetId, assetsConfirmed: false });
+// 选模板库里的背景图（用户在画布上点，或小间的 use_backdrop）：做法随之是「用模板库里的」，流程不变
+export const chooseLibraryBackdrop = (w: Work, id: Id) =>
+  w.backdropMode === 'library' && w.backdropId === id ? w : touch(w, { backdropMode: 'library', backdropId: id });
 
-/* ---------- 提示词 ---------- */
+// 选这一轮的背景候选：只有界面按钮（技术写法 13.7，小间不能代选）
+export const chooseCandidate = (w: Work, id: Id) => (w.backdropId === id ? w : touch(w, { backdropId: id }));
+
+// 「重新设计背景」：放开选定的背景图，背景风格又能改，可以再生成一轮
+export const clearBackdrop = (w: Work) => (w.backdropId ? touch(w, { backdropId: null }) : w);
+
+/* ---------- 提示词（背景、合成各一段，写法相同） ---------- */
+
+type PromptOf<K extends PromptKind> = PromptState<PromptBases[K]>;
+
+export const promptOf = <K extends PromptKind>(w: Work, k: K): PromptOf<K> | null =>
+  (k === 'backdrop' ? w.backdropPrompt : w.prompt) as PromptOf<K> | null;
+
+const withPrompt = <K extends PromptKind>(w: Work, k: K, p: PromptOf<K> | null): Work =>
+  touch(w, k === 'backdrop' ? { backdropPrompt: p as PromptState<BackdropBasis> | null } : { prompt: p as PromptState<SceneBasis> | null });
 
 // 小间写提示词：记下当时的依据（AC-07.2a）
-export function writePrompt(w: Work, text: string, basis: Basis): Work {
+export function writePrompt<K extends PromptKind>(w: Work, k: K, text: string, basis: PromptBases[K]): Work {
   const t = text.trim();
-  return touch(w, {
-    prompt: { text: t, basis, author: 'agent', edited: false, sync: 'ok', conflicts: [], original: { text: t, basis }, at: Date.now() },
-  });
+  return withPrompt(w, k, { text: t, basis, author: 'agent', edited: false, sync: 'ok', conflicts: [], original: { text: t, basis }, at: Date.now() });
 }
 
 // 用户手改：标「已手动修改」，等小间核对（或用户自己核对）后才能批准
-export function editPrompt(w: Work, text: string, current: Basis): Work {
-  if (w.prompt && text === w.prompt.text) return w;
-  const base = w.prompt ?? { basis: current, original: null };
-  return touch(w, {
-    prompt: { ...base, text, author: 'user', edited: true, sync: 'unchecked', conflicts: [], at: Date.now() },
-  });
+export function editPrompt<K extends PromptKind>(w: Work, k: K, text: string, current: PromptBases[K]): Work {
+  const p = promptOf(w, k);
+  if (p && text === p.text) return w;
+  const base = p ?? { basis: current, original: null };
+  return withPrompt(w, k, { ...base, text, author: 'user', edited: true, sync: 'unchecked', conflicts: [], at: Date.now() });
 }
 
 // 小间核对手改的结果：没有矛盾时把依据更新为当前状态，避免把用户刚改的提示词判成过期
-export function resolvePromptSync(w: Work, conflicts: string[], current: Basis): Work {
-  if (!w.prompt) return w;
+export function resolvePromptSync<K extends PromptKind>(w: Work, k: K, conflicts: string[], current: PromptBases[K]): Work {
+  const p = promptOf(w, k);
+  if (!p) return w;
   const list = conflicts.map((c) => c.trim()).filter(Boolean);
-  return touch(w, {
-    prompt: { ...w.prompt, sync: list.length ? 'conflict' : 'ok', conflicts: list, basis: list.length ? w.prompt.basis : current },
-  });
+  return withPrompt(w, k, { ...p, sync: list.length ? 'conflict' : 'ok', conflicts: list, basis: list.length ? p.basis : current });
 }
 
 // 用户并排核对后自己确认一致（小间不可用时也能完成，AC-11.6）
-export const markPromptChecked = (w: Work, current: Basis) =>
-  w.prompt ? touch(w, { prompt: { ...w.prompt, sync: 'ok', conflicts: [], basis: current } }) : w;
+export function markPromptChecked<K extends PromptKind>(w: Work, k: K, current: PromptBases[K]): Work {
+  const p = promptOf(w, k);
+  return p ? withPrompt(w, k, { ...p, sync: 'ok', conflicts: [], basis: current }) : w;
+}
 
-export function revertPrompt(w: Work): Work {
-  const o = w.prompt?.original;
-  if (!w.prompt || !o) return w;
-  return touch(w, {
-    prompt: { ...w.prompt, text: o.text, basis: o.basis, author: 'agent', edited: false, sync: 'ok', conflicts: [], at: Date.now() },
-  });
+export function revertPrompt<K extends PromptKind>(w: Work, k: K): Work {
+  const p = promptOf(w, k);
+  const o = p?.original;
+  if (!p || !o) return w;
+  return withPrompt(w, k, { ...p, text: o.text, basis: o.basis, author: 'agent', edited: false, sync: 'ok', conflicts: [], at: Date.now() });
 }
 
 /* ---------- 从指定版本修改（AC-09.4） ---------- */
 
-// 恢复那一版批准时的风格、布景、比例、生图模型和提示词；商品信息、共创总结和照片是作品本身的事实，保持现在的。
-// 之后改过商品信息等依据时，恢复的提示词会被判为过期，需要重写或确认
-export function reviseFrom(w: Work, result: Result, approval: Approval): Work {
-  const text = approval.snapshot.prompt;
-  const basis = basisOfSnapshot(approval.snapshot);
+const sceneStyle = (style: Style) => Object.fromEntries(SCENE_KEYS.map((k) => [k, style[k]])) as Pick<Style, SceneKey>;
+
+// 恢复那一版合成批准时的摆放、背景图、比例、生图模型和提示词；三视图、商品信息、共创总结是作品本身的事实，保持现在的
+// （之后改过的话，恢复的提示词会被判为过期）。问题出在背景时回背景这一步重选或重新生成
+export function reviseFrom(w: Work, result: Result, approval: SceneApproval): Work {
+  const snap = approval.snapshot;
+  const text = snap.prompt;
+  const basis = basisOfSceneSnapshot(snap);
   const style = { ...w.style };
-  for (const k of STYLE_KEYS) {
-    const v = approval.snapshot.style[k] ?? '';
+  for (const k of SCENE_KEYS) {
+    const v = snap.style[k] ?? '';
     if (style[k].value !== v) style[k] = { value: v, source: 'user' };
   }
-  const prompt: PromptState = { text, basis, author: 'agent', edited: false, sync: 'ok', conflicts: [], original: { text, basis }, at: Date.now() };
+  const prompt: PromptState<SceneBasis> = { text, basis, author: 'agent', edited: false, sync: 'ok', conflicts: [], original: { text, basis }, at: Date.now() };
   // 连着从几张修改时，取消要回到最初的方案
-  const prev = w.revision?.prev ?? { style: w.style, sceneId: w.sceneId, ratio: w.ratio, imageModel: w.imageModel, prompt: w.prompt };
+  const prev = w.revision?.prev ?? {
+    scene: sceneStyle(w.style),
+    backdropId: w.backdropId,
+    backdropMode: w.backdropMode,
+    ratio: w.ratio,
+    imageModel: w.imageModel,
+    prompt: w.prompt,
+  };
+  const mode: BackdropMode = isBuiltinBackdrop(snap.backdropId) ? 'library' : (w.backdropMode ?? 'library');
   return touch(w, {
     style,
-    sceneId: approval.snapshot.sceneId,
-    ratio: approval.snapshot.ratio,
-    imageModel: approval.snapshot.imageModel,
+    backdropId: snap.backdropId,
+    backdropMode: snap.backdropId === w.backdropId ? w.backdropMode : mode,
+    ratio: snap.ratio,
+    imageModel: snap.imageModel,
     prompt,
     revision: { fromResultId: result.id, reasons: [...result.issues], prev },
   });
 }
 
-export const cancelRevision = (w: Work) => (w.revision ? touch(w, { ...w.revision.prev, revision: undefined }) : w);
+export function cancelRevision(w: Work): Work {
+  const r = w.revision;
+  if (!r) return w;
+  const { scene, ...rest } = r.prev;
+  return touch(w, { ...rest, style: { ...w.style, ...scene }, revision: undefined });
+}
 
 /* ---------- 批准与生成 ---------- */
 
-export type ApproveResult = { ok: true; work: Work; approval: Approval } | { ok: false; blockers: Blocker[] };
+export type ApproveResult<A> = { ok: true; work: Work; approval: A } | { ok: false; blockers: Blocker[] };
 
 // 批准只由界面上的用户操作调用；小间的工具里没有批准（PRD 4.2 第 1 条）
-export function approve(w: Work, assets: readonly Asset[], current: Snapshot, isGenerating: boolean): ApproveResult {
-  const blockers = approvalBlockers(w, assets, current, isGenerating);
+export function approveBackdrop(s: WorkState): ApproveResult<BackdropApproval> {
+  const blockers = backdropApprovalBlockers(s);
   if (blockers.length) return { ok: false, blockers };
-  const approval: Approval = {
+  const w = s.work;
+  const approval: BackdropApproval = {
+    kind: 'backdrop',
+    id: newId('apv'),
+    workId: w.id,
+    version: w.backdropApprovalCount + 1,
+    at: Date.now(),
+    snapshot: backdropSnapshotOf(w),
+    usedRound: null,
+  };
+  return { ok: true, work: touch(w, { backdropApprovalId: approval.id, backdropApprovalCount: approval.version }), approval };
+}
+
+export function approveScene(s: WorkState): ApproveResult<SceneApproval> {
+  const blockers = sceneApprovalBlockers(s);
+  if (blockers.length) return { ok: false, blockers };
+  const w = s.work;
+  const approval: SceneApproval = {
+    kind: 'scene',
     id: newId('apv'),
     workId: w.id,
     version: w.approvalCount + 1,
     at: Date.now(),
-    snapshot: current,
+    snapshot: sceneSnapshotOf(w, s.assets),
     usedRound: null,
     parentResultId: w.revision?.fromResultId ?? null,
   };
   return { ok: true, work: touch(w, { approvalId: approval.id, approvalCount: approval.version }), approval };
 }
 
-export type RoundResult = { ok: true; work: Work; approval: Approval; round: number } | { ok: false; reasons: string[] };
+export type RoundResult<A> = { ok: true; work: Work; approval: A; round: number } | { ok: false; reasons: string[] };
 
-// 发起一轮生成：校验有效批准，并把这版批准标为已用
-export function startRound(w: Work, approval: Approval | null, current: Snapshot, isGenerating: boolean): RoundResult {
-  const reasons = generationBlockers(approval, current, isGenerating);
+// 发起一轮背景生成：校验有效批准，并把这版批准标为已用
+export function startBackdropRound(s: WorkState, approval: BackdropApproval | null): RoundResult<BackdropApproval> {
+  const reasons = backdropGenerationBlockers(s, approval);
+  if (reasons.length || !approval) return { ok: false, reasons: reasons.length ? reasons : ['背景方案还没批准'] };
+  const round = s.work.backdropRound + 1;
+  return { ok: true, work: touch(s.work, { backdropRound: round }), approval: { ...approval, usedRound: round }, round };
+}
+
+// 发起一轮合成：校验有效批准，并把这版批准标为已用；从结果修改的记录到此结束
+export function startSceneRound(s: WorkState, approval: SceneApproval | null): RoundResult<SceneApproval> {
+  const reasons = sceneGenerationBlockers(s, approval);
   if (reasons.length || !approval) return { ok: false, reasons: reasons.length ? reasons : ['方案还没批准'] };
-  const round = w.round + 1;
-  return { ok: true, work: touch(w, { round, revision: undefined }), approval: { ...approval, usedRound: round }, round };
+  const round = s.work.round + 1;
+  return { ok: true, work: touch(s.work, { round, revision: undefined }), approval: { ...approval, usedRound: round }, round };
 }
 
 /* ---------- 后续需求与提议卡片 ---------- */

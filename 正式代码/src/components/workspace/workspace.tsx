@@ -17,15 +17,8 @@ export function Workspace({ ctx, initialStep = null }: { ctx: WorkContext; initi
   const [busy, setBusy] = useState(false);
   const sendRef = useRef<(text: string) => void>(() => undefined);
 
-  const states = stepStates({
-    work: ctx.work,
-    assets: ctx.assets,
-    tasks: ctx.tasks,
-    results: ctx.results,
-    approval: ctx.approval,
-    current: ctx.snapshot,
-  });
-  const current = currentStep(states);
+  const states = stepStates(ctx);
+  const current = currentStep(ctx, states);
   const askAgent = useCallback((text: string) => sendRef.current(text), []);
   const followCurrent = useCallback(() => setPicked(null), []);
 

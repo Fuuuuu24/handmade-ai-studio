@@ -1,12 +1,14 @@
 import 'server-only';
 import { ImageResponse } from 'next/og';
 import type { Ratio } from '@/config/ratios';
+import type { TaskKind } from '@/domain/types';
 import { newId } from '@/domain/util';
 import type { GatewayImageTask } from './aihubmix';
 import { GatewayError } from './errors';
 
 /* 假生图网关：只给开发和自动化测试用（FAKE_GATEWAY=1，且不是生产环境），不调用模型、不花钱、不记账。
-   任务存在开发服务器的内存里，几秒后完成；图片上写明是测试图、不是 AI 生成（AC-08.6）。
+   任务存在开发服务器的内存里，几秒后完成；图片上写明是测试图、不是 AI 生成（AC-08.6），并按任务类型写
+   「TEST VIEW」（三视图，白底）、「TEST BACKDROP」（背景图）、「TEST IMAGE」（合成），e2e 和人工走查都分得清。
    提示词里带「【测试：失败一张】」时，同一段提示词第一次提交的那张失败、之后的成功；带「【测试：全部失败】」时每张都失败。 */
 
 const SIZES: Record<Ratio, [number, number]> = { '1:1': [1024, 1024], '3:4': [960, 1280], '9:16': [900, 1600] };
@@ -17,8 +19,15 @@ interface FakeTask {
   id: string;
   at: number;
   ratio: Ratio;
+  kind: TaskKind;
   fail: boolean;
 }
+
+const LOOK: Record<TaskKind, { title: string; background: string }> = {
+  view: { title: 'TEST VIEW', background: '#ffffff' },
+  backdrop: { title: 'TEST BACKDROP', background: 'linear-gradient(160deg, #e6ede0, #c9d3bd 60%, #9aa78a)' },
+  scene: { title: 'TEST IMAGE', background: 'linear-gradient(150deg, #ecebe8, #d5d3ce 60%, #a8a49d)' },
+};
 
 // 存在 globalThis 上：开发模式热更新或不同接口各自加载模块时，提交和查询看到的是同一份
 const store = ((globalThis as { __yijianFakeImages?: { tasks: Map<string, FakeTask>; failedOnce: Set<string> } }).__yijianFakeImages ??= {
@@ -29,14 +38,14 @@ const { tasks, failedOnce } = store;
 
 const shape = (id: string, status: GatewayImageTask['status']): GatewayImageTask => ({ id, status, output: [], error: null, expires_at: null });
 
-export function submitFake(prompt: string, ratio: Ratio): GatewayImageTask {
+export function submitFake(prompt: string, ratio: Ratio, kind: TaskKind = 'scene'): GatewayImageTask {
   let fail = prompt.includes('【测试：全部失败】');
   if (!fail && prompt.includes('【测试：失败一张】') && !failedOnce.has(prompt)) {
     failedOnce.add(prompt);
     fail = true;
   }
   const id = newId('fake');
-  tasks.set(id, { id, at: Date.now(), ratio, fail });
+  tasks.set(id, { id, at: Date.now(), ratio, kind, fail });
   return shape(id, 'pending');
 }
 
@@ -55,10 +64,14 @@ export function getFake(id: string): GatewayImageTask {
   return { ...shape(id, 'completed'), output: [{ index: 0, b64_json: null, content_url: null }] };
 }
 
+// 测试图上写什么、用什么底色：按任务类型分
+export const fakeLook = (id: string) => LOOK[find(id).kind];
+
 export async function fakeContent(id: string): Promise<Response> {
   const t = find(id);
   if (getFake(id).status !== 'completed') throw new GatewayError(409, 'result_not_ready', '结果还没准备好');
   const [width, height] = SIZES[t.ratio];
+  const look = fakeLook(id);
   const image = new ImageResponse(
     (
       <div
@@ -70,11 +83,11 @@ export async function fakeContent(id: string): Promise<Response> {
           alignItems: 'center',
           justifyContent: 'center',
           gap: 24,
-          background: 'linear-gradient(150deg, #ecebe8, #d5d3ce 60%, #a8a49d)',
+          background: look.background,
           color: '#4d4d4d',
         }}
       >
-        <div style={{ fontSize: 72, fontWeight: 700, letterSpacing: 4 }}>TEST IMAGE</div>
+        <div style={{ fontSize: 72, fontWeight: 700, letterSpacing: 4 }}>{look.title}</div>
         <div style={{ fontSize: 36 }}>NOT AI GENERATED</div>
         <div style={{ fontSize: 28, color: '#6b6b6b' }}>{`${t.ratio} · ${id.slice(-6)}`}</div>
       </div>

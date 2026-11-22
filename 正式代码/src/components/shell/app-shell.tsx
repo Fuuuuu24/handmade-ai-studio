@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Suspense, useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { resumeActiveTasks } from '@/client/generation';
 import { exportTrialRecord } from '@/client/trial';
+import { clearedPending, dbNotice, dismissCleared, subscribeDbNotice, type DbNotice } from '@/data/db';
 import { ConfirmProvider, Modal } from '@/components/ui/dialog';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { WarmTooltipGroup } from '@/components/bits/WarmTooltip/WarmTooltip';
@@ -13,8 +14,7 @@ import { ToastProvider } from '@/components/ui/toast';
 const NAV: { href: string; icon: IconName; name: string; match: (p: string) => boolean }[] = [
   { href: '/', icon: 'home', name: '首页', match: (p) => p === '/' },
   { href: '/works', icon: 'works', name: '作品', match: (p) => p.startsWith('/works') },
-  { href: '/style', icon: 'style', name: '我的风格', match: (p) => p.startsWith('/style') },
-  { href: '/scenes', icon: 'image', name: '摄影布景', match: (p) => p.startsWith('/scenes') },
+  { href: '/templates', icon: 'image', name: '模板库', match: (p) => p.startsWith('/templates') },
   { href: '/history', icon: 'history', name: '历史结果', match: (p) => p.startsWith('/history') },
 ];
 
@@ -41,6 +41,47 @@ function NavLinks({ pathname }: { pathname: string | null }) {
 // 读当前路径的部分单独成组件：动态路由（/works/[id]）上 usePathname 会挂起，挂起时先显示不带高亮的导航
 function CurrentNav() {
   return <NavLinks pathname={usePathname()} />;
+}
+
+const NOTICE_TEXT: Record<DbNotice, string> = {
+  blocked: '「一间」升级了，但别的标签页还开着旧版：请关掉其他「一间」页面后刷新这里',
+  outdated: '「一间」在别的页面更新了，这个页面的内容不能再保存：请刷新这个页面',
+  cleared: '产品已更新，旧的测试作品已清除',
+};
+
+// 数据库提示（技术写法 13.6）：升级被别的页面挡住、这个页面过时了、升级清空了旧数据（只提示一次）
+function DbNoticeBar() {
+  const live = useSyncExternalStore(subscribeDbNotice, dbNotice, () => null);
+  const [pending, setPending] = useState(false);
+  useEffect(() => {
+    // 上次打开时升级过、还没看到提示：读 localStorage 要等挂载后
+    const t = setTimeout(() => setPending(clearedPending()), 0);
+    return () => clearTimeout(t);
+  }, []);
+  const notice = live ?? (pending ? 'cleared' : null);
+  if (!notice) return null;
+  const info = notice === 'cleared';
+  return (
+    <div role={info ? 'status' : 'alert'} className={`flex items-center gap-3 px-5 py-2 text-aux ${info ? 'bg-accent-soft text-ink-2' : 'bg-bad-bg text-bad'}`}>
+      <span className="min-w-0 flex-1">{NOTICE_TEXT[notice]}</span>
+      {info ? (
+        <button
+          type="button"
+          className="mini-btn"
+          onClick={() => {
+            dismissCleared();
+            setPending(false);
+          }}
+        >
+          知道了
+        </button>
+      ) : (
+        <button type="button" className="mini-btn" onClick={() => location.reload()}>
+          刷新
+        </button>
+      )}
+    </div>
+  );
 }
 
 // 图标栏（沿用 v2／v3）：收起 60px 只显示图标，悬停或键盘聚焦时展开到 196px、盖在内容上
@@ -82,6 +123,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
             </aside>
             <main className="ml-[60px] flex h-full min-w-0 flex-col">
+              <DbNoticeBar />
               {resumeProblem && (
                 <p role="alert" className="bg-bad-bg px-5 py-2 text-aux text-bad">
                   {resumeProblem}（刷新页面再试）
@@ -93,10 +135,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Modal open={help} onClose={() => setHelp(false)} title="使用说明" sub="一间 · 手作影像工作台">
             <ul className="flex list-disc flex-col gap-1.5 pl-4 text-body leading-relaxed text-ink-2">
               <li>
-                <strong className="text-ink">和小间说话就能往下走。</strong>上传作品照片，说说它是什么、想要什么感觉；小间会整理商品信息、陪你聊作品故事、配风格、写提示词。右边画布显示同一份内容，可以直接改。
+                <strong className="text-ink">和小间说话就能往下走。</strong>上传作品的正面、侧面、背面照片，说说它是什么、想要什么感觉；小间会整理商品信息、陪你聊背景、写提示词。右边画布显示同一份内容，可以直接改。
               </li>
               <li>
-                <strong className="text-ink">小间写的都是建议。</strong>商品信息、共创总结要你接受或确认才生效；生成之前一定要你滑动「批准并生成两张」，小间不能代你批准。
+                <strong className="text-ink">先有背景，再放进饰品。</strong>三张照片各生成一张白底三视图，逐张对照确认；背景用模板库里的，或者自己生成两张选一张；最后用背景图和三视图合成两张主图。满意的背景可以沉淀进模板库，下一件作品直接套用。
+              </li>
+              <li>
+                <strong className="text-ink">小间写的都是建议。</strong>商品信息、共创总结要你接受或确认才生效；三视图、背景图、主图都要你点按钮或滑动批准才生成，小间不能代你批准。
               </li>
               <li>
                 <strong className="text-ink">每张图分别看两件事：</strong>像不像实物、风格对不对，两项都满意才算完成，才能导出。

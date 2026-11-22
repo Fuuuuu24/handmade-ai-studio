@@ -4,16 +4,17 @@ import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { use } from 'react';
 import { browser } from 'react-dom';
-import { STEPS } from '@/config/steps';
+import { isStepId } from '@/config/steps';
 import { useWorkContext } from '@/client/hooks';
 import { Workspace } from './workspace';
 
 export function WorkspacePage() {
   use(browser('作品数据存在浏览器的本地数据库里'));
   const { id } = useParams<{ id: string }>();
-  // 历史结果点图进来时带 ?step=output，画布先显示那一步
-  const step = useSearchParams().get('step');
-  const initialStep = STEPS.find((s) => s.id === step)?.id ?? null;
+  // 历史结果点图进来时带 ?step=result，画布先显示那一步（旧链接的 output 也认）
+  const raw = useSearchParams().get('step');
+  const step = raw === 'output' ? 'result' : raw;
+  const initialStep = isStepId(step) ? step : null;
   const ctx = useWorkContext(id);
 
   if (ctx === null) {

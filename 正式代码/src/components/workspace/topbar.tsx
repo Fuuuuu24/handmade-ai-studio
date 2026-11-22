@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { STEPS, type StepId } from '@/config/steps';
+import { stepsOf, type StepId } from '@/config/steps';
 import { mutateWork } from '@/client/work-store';
 import { deleteWork, logEvent } from '@/data/repo';
 import { workStatus, type StepState } from '@/domain/status';
@@ -26,7 +26,7 @@ function DeleteWork() {
   const toast = useToast();
   const router = useRouter();
   const [problem, setProblem] = useState<string | null>(null);
-  const locked = ctx.isGenerating || ctx.isMakingWhite;
+  const locked = ctx.anyGenerating;
   return (
     <>
       {problem && (
@@ -144,14 +144,7 @@ function StepMark({ state, isCurrent, working }: { state: StepState; isCurrent: 
 
 export function Topbar({ states }: { states: Record<StepId, StepState> }) {
   const { ctx, viewing, current, setViewing, busy, workId } = useWorkspace();
-  const status = workStatus({
-    work: ctx.work,
-    assets: ctx.assets,
-    tasks: ctx.tasks,
-    results: ctx.results,
-    approval: ctx.approval,
-    current: ctx.snapshot,
-  });
+  const status = workStatus(ctx);
   useEffect(() => {
     document.title = `${ctx.work.name} · 一间`;
   }, [ctx.work.name]);
@@ -176,7 +169,8 @@ export function Topbar({ states }: { states: Record<StepId, StepState> }) {
       <SaveStatusText />
       <ServiceNote />
       <nav aria-label="流程进度" className="ml-auto flex items-center gap-0.5">
-        {STEPS.map((s) => {
+        {/* 两套流程各自的顺序（PRD 5.2）：首页开始先商品，套用模板先背景 */}
+        {stepsOf(ctx.work.flow).map((s) => {
           const st = states[s.id];
           const isCurrent = s.id === current;
           const isViewing = s.id === viewing;
@@ -190,7 +184,7 @@ export function Topbar({ states }: { states: Record<StepId, StepState> }) {
                 isViewing ? 'bg-fill font-medium text-ink' : isCurrent ? 'text-ink' : 'text-muted'
               }`}
             >
-              <StepMark state={st} isCurrent={isCurrent} working={isCurrent && (busy || ctx.isGenerating || ctx.isMakingWhite)} />
+              <StepMark state={st} isCurrent={isCurrent} working={isCurrent && (busy || ctx.anyGenerating)} />
               {s.name}
               <span className="sr-only">{st === 'done' ? '（完成）' : st === 'stale' ? '（已失效）' : isCurrent ? '（当前）' : ''}</span>
             </button>

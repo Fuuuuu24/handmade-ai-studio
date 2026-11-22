@@ -1,9 +1,12 @@
 import type { CoreInfoKey, InfoKey } from '@/config/info';
 import type { Ratio } from '@/config/ratios';
-import type { StyleKey } from '@/config/style';
+import type { Flow } from '@/config/steps';
+import type { BackdropKey, SceneKey, StyleKey } from '@/config/style';
+import type { ASSET_KINDS } from '@/config/upload';
+import type { ViewAngle } from '@/config/views';
 
 export type Id = string;
-export type Route = 'A' | 'B'; // A：先做白底再生成；B：原图直接作参考图（PRD 4.3）
+export type { Flow, ViewAngle };
 
 /* ---------- 商品信息 ---------- */
 
@@ -22,7 +25,7 @@ export interface InfoField {
 
 export type Info = Record<InfoKey, InfoField>;
 
-/* ---------- 共创 ---------- */
+/* ---------- 共创（v0.6 是背景图的共创，只在「自己生成」背景时做） ---------- */
 
 export interface StorySummary {
   express: string; // 作品想表达什么
@@ -45,10 +48,10 @@ export interface Story {
   drafted?: StorySummary; // 小间最后一次起草的原文，和 summary 对比就知道用户改了哪几项（BC-003）
 }
 
-/* ---------- 风格与布景 ---------- */
+/* ---------- 风格 ---------- */
 
-// user：用户在画布里改的；said：小间按用户明确说过的写入；recommend：小间推荐，批准方案即确认；scene／shop：来自布景或我的风格
-export type StyleSource = 'user' | 'said' | 'recommend' | 'scene' | 'shop';
+// user：用户在画布里改的；said：小间按用户明确说过的写入；recommend：小间推荐，批准方案即确认
+export type StyleSource = 'user' | 'said' | 'recommend';
 
 export interface StyleValue {
   value: string;
@@ -59,88 +62,147 @@ export interface StyleValue {
 
 export type Style = Record<StyleKey, StyleValue>;
 
-export type SceneParams = Record<Exclude<StyleKey, 'expression'>, string>;
+export type BackdropParams = Record<BackdropKey, string>;
+export type SceneParams = Record<SceneKey, string>;
 
-export interface SceneVersion {
-  version: number;
-  name: string;
-  params: SceneParams;
-  at: number;
-}
+/* ---------- 背景图与模板库（PRD FR-06） ---------- */
 
-export interface Scene {
+// 这件作品生成的背景图（候选）。生成后不再修改（AC-06.5）；用户选择「沉淀进模板库」后别的作品也能套用。
+// 删除只做标记：已经选了它的作品照常可以合成，历史结果仍能看到（AC-06.4）
+export interface Backdrop {
   id: Id;
   name: string;
-  params: SceneParams;
-  version: number;
-  history: SceneVersion[]; // 旧版本，历史方案仍指向当时的参数（AC-06.5）
+  blobId: Id;
+  thumbId: Id;
+  width: number;
+  height: number;
+  ratio: Ratio;
+  params: BackdropParams; // 生成时的背景五项
+  prompt: string;
+  imageModel: string;
+  workId: Id; // 出自哪件作品
+  taskId: Id;
+  round: number; // 这件作品第几轮背景
+  slot: number;
+  savedAt: number | null; // 沉淀进模板库的时间；没沉淀为空
   createdAt: number;
-  updatedAt: number;
+  deletedAt: number | null;
 }
 
-export interface ShopStyleChange {
-  at: number;
-  before: Partial<Record<StyleKey, string>>;
-  after: Partial<Record<StyleKey, string>>;
-  reason: string;
-}
-
-// 我的风格：只有用户同意才写入（PRD 4.2 第 2 条）
-export interface ShopStyle {
-  id: 'me';
-  prefs: Partial<Record<StyleKey, string>>;
-  history: ShopStyleChange[];
+// 选定的背景图，内置模板和数据库里的背景图统一成这一种（内置模板参数为空）
+export interface BackdropRef {
+  id: Id;
+  name: string;
+  builtin: boolean;
+  placeholder: boolean; // 内置模板的图还没提供，用色块示意
+  params: BackdropParams | null;
+  workId: Id | null; // 出自哪件作品；内置为空
+  saved: boolean;
+  deleted: boolean;
+  blobId: Id | null; // 数据库里的图；内置模板为空
+  thumbId: Id | null;
+  image: string | null; // 内置模板的图片地址
+  colors: readonly string[] | null; // 内置模板的示意色块
 }
 
 /* ---------- 方案、提示词与批准 ---------- */
 
-// 提示词的依据：这些内容一变，提示词就可能过期、批准失效
-export interface Basis {
-  references: Id[];
-  route: Route;
-  info: Record<CoreInfoKey, { value: string; unknown: boolean }>;
+export type CoreInfoBasis = Record<CoreInfoKey, { value: string; unknown: boolean }>;
+
+// 背景提示词的依据（PRD AC-07.3）：背景五项、共创总结、品类和尺寸、生图模型；比例固定，不进依据
+export interface BackdropBasis {
+  style: BackdropParams;
   summary: StorySummary | null;
-  style: Record<StyleKey, string>;
-  sceneId: Id | null;
-  ratio: Ratio;
+  info: Pick<CoreInfoBasis, 'category' | 'size'>;
   imageModel: string;
 }
 
-export interface Snapshot extends Basis {
+export interface BackdropSnapshot extends BackdropBasis {
   prompt: string;
   count: number;
 }
 
+// 合成提示词的依据：三视图、核心信息、共创总结（没做共创时为空）、背景图、摆放三项、比例、生图模型
+export interface SceneBasis {
+  references: Id[]; // 三视图，按正面、侧面、背面
+  info: CoreInfoBasis;
+  summary: StorySummary | null;
+  backdropId: Id | null;
+  style: SceneParams;
+  ratio: Ratio;
+  imageModel: string;
+}
+
+export interface SceneSnapshot extends SceneBasis {
+  prompt: string;
+  count: number;
+}
+
+export type PromptKind = 'backdrop' | 'scene';
+
+export interface PromptBases {
+  backdrop: BackdropBasis;
+  scene: SceneBasis;
+}
+
 // sync：手改提示词后小间核对的结果；unchecked／conflict 时不能批准（技术写法第 5 节第 4 条）
-export interface PromptState {
+export interface PromptState<B> {
   text: string;
-  basis: Basis;
+  basis: B;
   author: 'agent' | 'user';
   edited: boolean;
   sync: 'ok' | 'unchecked' | 'conflict';
   conflicts: string[];
-  original: { text: string; basis: Basis } | null; // 小间写的最后一版，撤销手改时恢复
+  original: { text: string; basis: B } | null; // 小间写的最后一版，撤销手改时恢复
   at: number;
 }
 
-export interface Approval {
+interface ApprovalBase {
   id: Id;
   workId: Id;
-  version: number; // 第几版方案
+  version: number; // 第几版方案（背景、合成各自编号）
   at: number;
-  snapshot: Snapshot;
   usedRound: number | null; // 每次批准只能发起一轮生成
+}
+
+export interface BackdropApproval extends ApprovalBase {
+  kind: 'backdrop';
+  snapshot: BackdropSnapshot;
+}
+
+export interface SceneApproval extends ApprovalBase {
+  kind: 'scene';
+  snapshot: SceneSnapshot;
   parentResultId?: Id | null; // 这版方案是从哪张结果改出来的（AC-09.4）
 }
+
+export type Approval = BackdropApproval | SceneApproval;
 
 // 从某张结果修改（AC-09.4）：记下父结果，以及修改前的方案，取消时恢复
 export interface Revision {
   fromResultId: Id;
   reasons: string[]; // 当时验收指出的问题
-  prev: Pick<Work, 'style' | 'sceneId' | 'ratio' | 'imageModel' | 'prompt'>;
+  prev: {
+    scene: Pick<Style, SceneKey>;
+    backdropId: Id | null;
+    backdropMode: BackdropMode | null;
+    ratio: Ratio;
+    imageModel: string;
+    prompt: PromptState<SceneBasis> | null;
+  };
 }
 
 /* ---------- 作品 ---------- */
+
+// 背景这一步选哪种做法：library 用模板库里的，generate 自己生成（共创 → 批准 → 两张选一张）
+export type BackdropMode = 'library' | 'generate';
+
+// 上次「下一步」交接时的文字快照（技术写法 13.12）：摘要里列出之后用户改了什么
+export interface Handoff {
+  step: string;
+  at: number;
+  facts: Record<string, string>;
+}
 
 export interface Work {
   id: Id;
@@ -148,25 +210,29 @@ export interface Work {
   nameSuggestion?: Suggestion; // 小间起的名字，用户接受后才改名
   createdAt: number;
   updatedAt: number;
+  flow: Flow;
   info: Info;
   story: Story;
   style: Style;
   styleSummary?: StorySummary | null; // 小间推荐风格时依据的共创总结；总结之后改了，推荐可能要跟着变（AC-04.6）
-  sceneId: Id | null;
-  ratio: Ratio;
-  imageModel: string;
+  backdropMode: BackdropMode | null; // 还没选做法时为空
+  backdropId: Id | null; // 选定的背景图：内置模板是带版本的编号，其余是 backdrops 表的编号
+  backdropPrompt: PromptState<BackdropBasis> | null;
+  backdropApprovalId: Id | null; // 最近一次背景批准
+  backdropApprovalCount: number;
+  backdropRound: number; // 已发起的背景生成轮数
+  ratio: Ratio; // 合成比例，全流程唯一可选的比例
+  imageModel: string; // 三视图、背景、合成都用它（AC-08.7）
   chatModel: string;
-  route: Route;
-  assetsConfirmed: boolean;
-  whiteChoice: Id | null; // A 路线选用的白底图
-  prompt: PromptState | null;
-  approvalId: Id | null; // 最近一次批准
+  prompt: PromptState<SceneBasis> | null; // 合成提示词
+  approvalId: Id | null; // 最近一次合成批准
   approvalCount: number;
-  round: number; // 已发起的生成轮数
+  round: number; // 已发起的合成轮数
   costUSD: number; // 这件作品累计花费（对话＋生图），试用记录用
   revision?: Revision; // 正在从某张结果修改；开始生成后清掉
   followups?: Followup[]; // 本期不支持、先记下的需求（如真人佩戴，AC-02.5）
-  proposals?: Record<Id, 'accepted' | 'declined'>; // 小间提议卡片（存布景、更新我的风格）上用户的决定，按工具调用编号记
+  proposals?: Record<Id, 'accepted' | 'declined'>; // 小间提议卡片上用户的决定，按工具调用编号记
+  lastHandoff?: Handoff | null;
 }
 
 export interface Followup {
@@ -177,15 +243,18 @@ export interface Followup {
 
 /* ---------- 素材 ---------- */
 
-export type AssetKind = 'overall' | 'back' | 'detail';
+export type AssetKind = keyof typeof ASSET_KINDS;
 
+// 原图（upload）和三视图（view）。三视图从同角度的原图派生，记来源，不覆盖原图（AC-02.2）
 export interface Asset {
   id: Id;
   workId: Id;
-  origin: 'upload' | 'white';
+  origin: 'upload' | 'view';
   kind: AssetKind;
-  parentId?: Id; // 白底图的来源图
-  method?: 'generate' | 'matting';
+  view?: ViewAngle; // 三视图的角度
+  parentId?: Id; // 三视图的来源原图
+  confirmed?: boolean; // 三视图用户对照后确认可以用
+  taskId?: Id; // 三视图出自哪个任务
   blobId: Id;
   thumbId: Id;
   width: number;
@@ -206,15 +275,20 @@ export interface BlobRecord {
 
 export type TaskStatus = 'queued' | 'running' | 'succeeded' | 'failed';
 
+// 三种生成任务（PRD 5.2）：三视图（用户点按钮）、背景图和合成（都要有效批准）
+export type TaskKind = 'view' | 'backdrop' | 'scene';
+
 export interface Task {
   id: Id;
   workId: Id;
-  kind: 'scene' | 'white';
+  kind: TaskKind;
   approvalId?: Id;
-  round?: number;
+  round?: number; // 背景、合成
   slot?: number;
-  sourceAssetId?: Id; // 白底任务的来源图
-  whiteAssetId?: Id; // 白底任务成功后存下的白底图
+  view?: ViewAngle; // 三视图的角度
+  sourceAssetIds?: Id[]; // 三视图的参考图：第 1 张是这个角度的原图，第 2 张是正面原图
+  viewAssetId?: Id; // 三视图任务成功后存下的三视图
+  backdropId?: Id; // 背景任务成功后存下的背景图
   attempt: number; // 第几次尝试，补齐时加一
   parentResultId?: Id; // 这一轮是从哪张结果改出来的，结果记为它的子版本
   model: string;
@@ -223,6 +297,7 @@ export interface Task {
   ledgerId?: string; // 服务端账本里的记录，内容被拦截不收费时据此退回
   costUSD?: number;
   error?: string;
+  notifiedAt?: number | null; // 结束后有没有告诉小间（技术写法 13.12）：null 是还没通知
   createdAt: number;
   updatedAt: number;
 }
@@ -237,7 +312,7 @@ export interface Result {
   round: number;
   slot: number;
   blobId: Id;
-  thumbId?: Id; // 缩略图，作品页和历史页用；早期的结果没有，按原图显示
+  thumbId?: Id; // 缩略图，作品页和历史页用
   width: number;
   height: number;
   verdict: { real: Verdict; style: Verdict };
@@ -247,6 +322,20 @@ export interface Result {
   createdAt: number;
   exports: number[];
   published?: number; // 商家说已经拿去发布的时间（AC-10.4：导出与实际发布分开记录）
+}
+
+/* ---------- 规则判断用的整件作品 ---------- */
+
+// 一件作品的全部数据：界面和小间的工具都从数据库读出这些，再交给 domain/ 的规则函数，判断用同一份
+export interface WorkState {
+  work: Work;
+  assets: readonly Asset[];
+  tasks: readonly Task[];
+  results: readonly Result[];
+  backdrops: readonly Backdrop[]; // 这件作品生成的背景图（候选）
+  backdrop: BackdropRef | null; // 选定的背景图；没选或找不到时为空
+  backdropApproval: BackdropApproval | null;
+  approval: SceneApproval | null;
 }
 
 /* ---------- 对话与试用记录 ---------- */

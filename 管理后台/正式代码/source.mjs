@@ -7,7 +7,7 @@ const project = fileURLToPath(new URL("../../", import.meta.url));
 export async function readSource(root = project) {
   const paths = [
     "src/agent/instructions.ts",
-    "src/config/white.ts",
+    "src/config/views.ts",
     "src/config/models.ts",
   ];
   const files = await Promise.all(
@@ -24,10 +24,10 @@ export async function readSource(root = project) {
   const modules = await Promise.all(
     files.map((f) => import(`${pathToFileURL(f.absolute).href}?sha=${f.hash}`)),
   );
-  const [instructions, white, models] = modules;
+  const [instructions, views, models] = modules;
   if (
     typeof instructions.SYSTEM_RULES !== "string" ||
-    typeof white.WHITE?.prompt !== "function" ||
+    typeof views.VIEWS?.prompt !== "function" ||
     !Array.isArray(models.CHAT_MODELS) ||
     !Array.isArray(models.IMAGE_MODELS)
   )
@@ -60,12 +60,12 @@ export async function readSource(root = project) {
         content: instructions.SYSTEM_RULES,
       },
       {
-        id: "white",
-        label: "白底商品图",
-        description: "依据原图生成白底资产，保真要求按作品追加",
+        id: "views",
+        label: "三视图（白底）",
+        description: "依据同角度原图生成白底三视图，保真要求按作品追加；以侧面为例（正面不带第 2 张参考图）",
         path: files[1].path,
         variables: ["keep"],
-        content: white.WHITE.prompt("{{keep}}"),
+        content: views.VIEWS.prompt("side", "{{keep}}", true),
       },
     ],
     models: [

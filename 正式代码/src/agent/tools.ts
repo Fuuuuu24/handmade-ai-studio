@@ -3,21 +3,23 @@ import { z } from 'zod';
 import { INFO_KEYS } from '@/config/info';
 import { IMAGE_MODELS } from '@/config/models';
 import { RATIOS } from '@/config/ratios';
-import { STEPS } from '@/config/steps';
+import { STEP_IDS } from '@/config/steps';
 import { STYLE_KEYS } from '@/config/style';
+import { VIEW_ANGLES } from '@/config/views';
 import { ISSUES } from '@/config/verdict';
 
-/* 小间的工具：只有参数格式，没有执行代码。服务端把它们交给模型，模型决定调用哪个；
-   执行在浏览器里（agent/executors.ts），硬规则也在那里检查。批准、确认总结、同意改长期风格这类操作只在界面按钮里，没有对应工具。 */
+/* 小间的工具（21 个，技术写法 13.7）：只有参数格式，没有执行代码。服务端把它们交给模型，模型决定调用哪个；
+   执行在浏览器里（agent/executors.ts），硬规则也在那里检查。批准、确认总结、确认三视图、选定背景候选、
+   沉淀／改名／删除背景图这类操作只在界面按钮里，没有对应工具。 */
 
-const stepIds = STEPS.map((s) => s.id) as [string, ...string[]];
 const imageModelIds = IMAGE_MODELS.map((m) => m.id) as [string, ...string[]];
 const issueNames = [...ISSUES.real, ...ISSUES.style] as [string, ...string[]];
+const kinds = z.enum(['backdrop', 'scene']).describe('backdrop：背景（两张背景图）；scene：合成（两张候选主图）');
 
 // 第几轮第几张：和作品状态里的「第 N 轮」「候选 M」一致，张数从 1 开始
 const candidateRef = {
   round: z.number().int().min(1),
-  candidate: z.number().int().min(1).max(2).describe('候选几，从 1 开始'),
+  candidate: z.number().int().min(1).max(2).describe('第几张，从 1 开始'),
 };
 
 // 工具执行结果的统一格式：ok 表示照做了；message 给模型看，也作为对话里的操作记录（AC-11.4）
@@ -54,9 +56,18 @@ export const agentTools = {
       note: z.string().max(40).optional().describe('依据，比如「按品类和造型起的」'),
     }),
   }),
+  propose_views: tool({
+    outputSchema: toolOutput,
+    description:
+      '在对话里放出「生成三视图」卡片：按正面、侧面、背面三张照片各生成一张白底图，用户点了卡片才生成（每张要花一张图的钱）。不填 angles 时生成还没有三视图的角度；用户说某一张不像时，angles 填那个角度，提议重做。缺正面、侧面、背面任何一张照片时会被拒绝。',
+    inputSchema: z.object({
+      angles: z.array(z.enum(VIEW_ANGLES)).max(3).optional(),
+      note: z.string().max(80).optional().describe('卡片上的一句说明，比如「侧面那张扣头画歪了，重做一张」'),
+    }),
+  }),
   record_story: tool({
     outputSchema: toolOutput,
-    description: '记录用户讲的作品灵感、主题或情绪的要点，用用户自己的意思，不添加用户没说的经历或寓意。',
+    description: '记录用户讲的作品灵感、主题或情绪的要点（背景共创用），用用户自己的意思，不添加用户没说的经历或寓意。',
     inputSchema: z.object({
       kind: z.enum(['inspiration', 'theme', 'emotion', 'other']),
       text: z.string().min(1).max(300),
@@ -65,7 +76,7 @@ export const agentTools = {
   draft_summary: tool({
     outputSchema: toolOutput,
     description:
-      '起草共创三项总结：作品想表达什么、希望顾客感受到什么、明确避免什么。只能是草稿，用户在卡片上确认。必须基于用户说过的内容；用户说没有故事时如实写。',
+      '起草背景共创的三项总结：作品想表达什么、希望顾客感受到什么、明确避免什么。只能是草稿，用户在卡片上确认。必须基于用户说过的内容；用户说没有故事时如实写。',
     inputSchema: z.object({
       express: z.string().min(1).max(200),
       feel: z.string().max(200),
@@ -75,7 +86,7 @@ export const agentTools = {
   set_style: tool({
     outputSchema: toolOutput,
     description:
-      '修改风格卡的一项或多项。basis=said 只用于用户原话里明确说过的那一项，并且必须在 quote 里逐字照抄用户的原话片段；代码会到用户的消息和用户手改的提示词里核对，找不到就记为「小间推荐」。从感受、氛围推断出来的都是你的推荐，写 basis=recommend，会显示为「小间推荐」。道具不放时 value 写「不放道具」。',
+      '修改风格卡的一项或多项。背景五项：tone 色调、background 背景、light 光线、props 装饰道具（苔藓、旧书、丝带等）、bannedBackdrop 背景禁止项；摆放三项：placement 摆放（平铺、悬挂，支架、挂钩、首饰托盘这类展示用具也写在这里）、composition 构图、bannedScene 合成禁止项。背景图选定后背景五项以背景图为准，不能改。basis=said 只用于用户原话里明确说过的那一项，并且必须在 quote 里逐字照抄用户的原话片段；代码会到用户的消息和用户手改的提示词里核对，找不到就记为「小间推荐」。从感受、氛围推断出来的都是你的推荐，写 basis=recommend，会显示为「小间推荐」。道具不放时 value 写「不放道具」。',
     inputSchema: z.object({
       items: z
         .array(
@@ -91,36 +102,48 @@ export const agentTools = {
         .max(8),
     }),
   }),
-  apply_scene: tool({
+  use_backdrop: tool({
     outputSchema: toolOutput,
-    description: '套用一套摄影布景（状态里列出了可用布景及编号），覆盖色调、背景、光线、摆放、道具、构图。',
-    inputSchema: z.object({ sceneId: z.string().min(1) }),
+    description:
+      '选用模板库里的一张背景图（作品状态里列出了可选的背景图及编号）：内置模板或已沉淀进模板库的。这件作品自己生成、还没沉淀的背景候选不能用这个工具选，要由用户在画布上点「用这张」。',
+    inputSchema: z.object({ backdropId: z.string().min(1) }),
+  }),
+  draft_backdrop_prompt: tool({
+    outputSchema: toolOutput,
+    description:
+      '写背景图的提示词（中文），只在背景「自己生成」时用。写之前确认共创总结已确认、背景五项已定；品类、材料、尺寸、不能改的细节里还有待用户处理的建议时会被拒绝。',
+    inputSchema: z.object({ prompt: z.string().min(20).max(2000) }),
+  }),
+  start_backdrop_generation: tool({
+    outputSchema: toolOutput,
+    description: '按用户已经批准的背景方案生成两张背景图。没有有效的背景批准时会被拒绝并返回原因。',
+    inputSchema: z.object({}),
   }),
   set_ratio: tool({
     outputSchema: toolOutput,
-    description: '设置主图比例。已经批准的方案会因此失效。',
+    description: '设置合成主图的比例（只有合成比例可选，三视图和背景图的比例由系统固定）。已经批准的合成方案会因此失效。',
     inputSchema: z.object({ ratio: z.enum(RATIOS) }),
   }),
   draft_prompt: tool({
     outputSchema: toolOutput,
     description:
-      '写最终的生图提示词（中文）。写之前确认商品信息、共创总结和风格都已就绪；品类、材料、尺寸、不能改的细节里还有待用户处理的建议时会被拒绝。',
+      '写合成提示词（中文）：拿选定的背景图和三张三视图生成两张主图。没有选定的背景图、三视图没全部确认时会被拒绝；品类、材料、尺寸、不能改的细节里还有待用户处理的建议时也会被拒绝。',
     inputSchema: z.object({ prompt: z.string().min(20).max(2000) }),
   }),
   resolve_prompt_sync: tool({
     outputSchema: toolOutput,
     description:
-      '用户手改提示词后：先把能对应到风格卡的改动用 set_style（basis=said，quote 抄用户在提示词里新写的字）写回，再调用本工具报告核对结果。没有矛盾传空列表；对不上的逐条写出来，请用户决定。',
-    inputSchema: z.object({ conflicts: z.array(z.string().min(1).max(120)).max(6) }),
+      '用户手改提示词后：先把能对应到风格卡的改动用 set_style（basis=said，quote 抄用户在提示词里新写的字）写回，再调用本工具报告核对结果。which 是改的哪一段（backdrop 背景提示词、scene 合成提示词）。没有矛盾传空列表；对不上的逐条写出来，请用户决定。',
+    inputSchema: z.object({ which: kinds, conflicts: z.array(z.string().min(1).max(120)).max(6) }),
   }),
   request_approval: tool({
     outputSchema: toolOutput,
-    description: '在对话里放出批准卡片，请用户确认方案。你不能代替用户批准；卡片会列出还缺什么。',
-    inputSchema: z.object({ note: z.string().max(200).optional() }),
+    description: '在对话里放出批准卡片，请用户确认方案：kind=backdrop 是背景方案（自己生成背景时），kind=scene 是合成方案。你不能代替用户批准；卡片会列出还缺什么。',
+    inputSchema: z.object({ kind: kinds, note: z.string().max(200).optional() }),
   }),
   start_generation: tool({
     outputSchema: toolOutput,
-    description: '按用户已经批准的方案生成两张候选图。没有有效批准时会被拒绝并返回原因。',
+    description: '按用户已经批准的合成方案生成两张候选主图。没有有效批准时会被拒绝并返回原因。',
     inputSchema: z.object({}),
   }),
   offer_picks: tool({
@@ -135,26 +158,20 @@ export const agentTools = {
         .max(4),
     }),
   }),
-  make_white_asset: tool({
-    outputSchema: toolOutput,
-    description:
-      '资产路线为 A 时，用生图模型按一张整体或背面照做白底图（要花一张图的钱）。不填 assetId 时用第一张整体照。做好后由用户在画布上对照原图选用，你不能替用户选。',
-    inputSchema: z.object({ assetId: z.string().optional().describe('照片编号，见作品状态里的「照片编号」') }),
-  }),
   set_image_model: tool({
     outputSchema: toolOutput,
-    description: '换生图模型（用户明确要求时才换）。已经批准的方案会因此失效，提示词也要按新模型核对。',
+    description: '换生图模型（用户明确要求时才换；三视图、背景、合成都用它）。已确认的三视图和已选定的背景图不作废，已经批准的方案会失效，提示词也要按新模型核对。',
     inputSchema: z.object({ model: z.enum(imageModelIds) }),
   }),
   retry_candidate: tool({
     outputSchema: toolOutput,
-    description: '补齐失败的一张候选（用户同意后再调用，要花钱）。只能补失败的，次数有上限；批准后方案改过就不能补。',
-    inputSchema: z.object(candidateRef),
+    description: '补齐失败的一张（用户同意后再调用，要花钱）：kind=backdrop 补背景图，kind=scene 补候选主图。只能补失败的，次数有上限；批准后方案改过就不能补。',
+    inputSchema: z.object({ kind: kinds, ...candidateRef }),
   }),
   note_feedback: tool({
     outputSchema: toolOutput,
     description:
-      '记下用户对某张候选的意见：问题标签和用户原话。验收「像不像」「风格对不对」只能由用户在画布上点，你不能代点。revise=true 时同时「从这一张修改」：方案恢复成那一版，原结果保留，改好后请用户重新批准。',
+      '记下用户对某张候选主图的意见：问题标签和用户原话。验收「像不像」「风格对不对」只能由用户在画布上点，你不能代点。revise=true 时同时「从这一张修改」：合成方案恢复成那一版，原结果保留，改好后请用户重新批准。',
     inputSchema: z.object({
       ...candidateRef,
       issues: z.array(z.enum(issueNames)).max(10),
@@ -164,24 +181,8 @@ export const agentTools = {
   }),
   offer_export: tool({
     outputSchema: toolOutput,
-    description: '在对话里放出下载卡片，让用户导出一张候选。只有两项验收都满意的候选才能导出（AC-10.1）；下载由用户点。',
+    description: '在对话里放出下载卡片，让用户导出一张候选。只有两项验收都满意的候选才能导出（AC-10.1）；下载由用户点。卡片上会提醒：这是 AI 生成的图，发布时请按平台要求声明。',
     inputSchema: z.object(candidateRef),
-  }),
-  propose_scene_save: tool({
-    outputSchema: toolOutput,
-    description:
-      '提议把现在的方案（色调、背景、光线、摆放、道具、禁止出现、构图）存成摄影布景，以后别的作品可以套用。放出卡片，用户确认才保存。updateSceneId 填已存布景的编号时，提议更新那一套（生成新版本）。',
-    inputSchema: z.object({
-      name: z.string().min(1).max(20),
-      updateSceneId: z.string().optional(),
-      reason: z.string().max(80).optional(),
-    }),
-  }),
-  propose_shop_style: tool({
-    outputSchema: toolOutput,
-    description:
-      '提议把这件作品风格卡里的几项写进「我的风格」（店铺长期偏好）。放出卡片，列出修改前后，用户同意才写入；单件作品的调整不会自动改长期风格。',
-    inputSchema: z.object({ fields: z.array(z.enum(STYLE_KEYS)).min(1).max(8), reason: z.string().min(1).max(80) }),
   }),
   note_followup: tool({
     outputSchema: toolOutput,
@@ -190,8 +191,8 @@ export const agentTools = {
   }),
   show_step: tool({
     outputSchema: toolOutput,
-    description: '让右侧画布切到某一步，方便用户查看和修改。',
-    inputSchema: z.object({ step: z.enum(stepIds) }),
+    description: '让右侧画布切到某一步：product 商品、info 信息、backdrop 背景、placement 摆放、result 出图。',
+    inputSchema: z.object({ step: z.enum(STEP_IDS) }),
   }),
 };
 
@@ -207,6 +208,8 @@ export interface MessageMeta {
   // 最近一次请求怎么结束的：模型给的结束原因，或者服务端超时中止（timeout）。每次请求开始时清空（null）。
   // 只有思考、没写完时界面据此说明原因（BC-001），也留给排查
   endReason?: FinishReason | 'timeout' | 'aborted' | null;
+  // 浏览器代发的系统消息（技术写法 13.12）：「下一步」交接、生成和验收通知。界面显示为小卡片，不当成用户原话
+  system?: 'handoff' | 'notice';
 }
 
 // 用户消息里附带的照片只记素材编号，图片本身每次请求单独附上（技术写法第 6 节）

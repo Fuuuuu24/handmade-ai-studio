@@ -4,19 +4,20 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState, type ReactNode } from 'react';
 import { imageModel } from '@/config/models';
 import type { Ratio } from '@/config/ratios';
-import { NO_PROPS, STYLE_LABELS } from '@/config/style';
+import { SCENE_KEYS, STYLE_SHORT } from '@/config/style';
 import { ASSET_KINDS } from '@/config/upload';
 import { ISSUES, VERDICT_SHORT } from '@/config/verdict';
-import { useBlobFailed, useBlobUrl } from '@/client/hooks';
+import { useBackdropRef, useBlobFailed, useBlobUrl } from '@/client/hooks';
 import { retrySlot } from '@/client/generation';
 import { mutateWork } from '@/client/work-store';
 import { db } from '@/data/db';
 import { logEvent, patchResult } from '@/data/repo';
 import { exportResult } from '@/client/export';
-import { approvalStatus } from '@/domain/approval';
+import { sceneApprovalStatus } from '@/domain/approval';
+import { activeUploads } from '@/domain/assets';
 import { passed, roundSlots, slotState } from '@/domain/generation';
-import { activeUploads, diffSnapshot } from '@/domain/snapshot';
-import type { Approval, Asset, Result, Verdict } from '@/domain/types';
+import { diffSceneSnapshot } from '@/domain/snapshot';
+import type { Approval, Asset, Result, SceneApproval, Verdict } from '@/domain/types';
 import { reviseFrom } from '@/domain/work';
 import { useWorkspace } from '@/components/workspace/context';
 import { Modal } from '@/components/ui/dialog';
@@ -32,7 +33,8 @@ const RATIO_CSS = { '1:1': '1 / 1', '3:4': '3 / 4', '9:16': '9 / 16' } as const;
 // 刚生成出来的结果播一次细化动画（从马赛克到清晰）；之前的结果直接显示
 const REVEAL_MS = 20_000;
 
-const PLAN_ROWS = ['tone', 'background', 'light', 'placement', 'props', 'banned', 'composition'] as const;
+// 导出时提醒发布时声明（PRD AC-10.5）：试用期关掉了模型自带的「AI生成」字样
+export const AI_NOTICE = '这是 AI 生成的图，发布时请按平台要求声明';
 
 function VerdictRow({ label, value, okText, badText, onPick, extra }: { label: string; value: Verdict; okText: string; badText: string; onPick: (v: Verdict) => void; extra?: ReactNode }) {
   return (
@@ -49,24 +51,24 @@ function VerdictRow({ label, value, okText, badText, onPick, extra }: { label: s
   );
 }
 
-// 对照时能看的商品照片：这一轮生成时用的参考图在前（按当时的顺序），作品现在的其他原图在后；同类有几张时编号，比如「细节 2」
-function comparePhotos(assets: readonly Asset[], workId: string, refs: readonly string[]) {
-  const used = refs.map((id) => assets.find((a) => a.id === id)).filter((a): a is Asset => !!a);
-  const all = [...used, ...activeUploads(assets, workId).filter((a) => !refs.includes(a.id))];
-  const kind = (a: Asset) => (a.origin === 'white' ? '白底图' : ASSET_KINDS[a.kind]);
+// 对照时看的是原图，不是三视图（AC-09.1：三视图本身也是 AI 生成的）：正面、侧面、背面、细节（AC-09.1a），
+// 同类有几张时编号，比如「细节 2」；还没分类的照片放最后
+function comparePhotos(assets: readonly Asset[], workId: string) {
+  const all = activeUploads(assets, workId);
   return all.map((a) => {
-    const same = all.filter((b) => kind(b) === kind(a));
-    return { asset: a, name: same.length > 1 ? `${kind(a)} ${same.indexOf(a) + 1}` : kind(a), used: refs.includes(a.id) };
+    const same = all.filter((b) => b.kind === a.kind);
+    const kind = ASSET_KINDS[a.kind];
+    return { asset: a, name: same.length > 1 ? `${kind} ${same.indexOf(a) + 1}` : kind };
   });
 }
 
 const linkClass = 'text-aux text-muted underline decoration-line-hover underline-offset-2 hover:text-ink';
 
-// 对照原图（AC-09.1）：生成时用的参考图和候选并排看。商品照片可以切换（整体、背面、细节），
+// 对照原图（AC-09.1）：原图和候选并排看。商品照片可以切换（正面、侧面、背面、细节），
 // 两边都能在新标签页打开原尺寸，看细链、开孔、透明边缘这类细节（UX-05）
-function CompareModal({ open, onClose, result, approval }: { open: boolean; onClose: () => void; result: Result; approval: Approval | undefined }) {
+function CompareModal({ open, onClose, result }: { open: boolean; onClose: () => void; result: Result }) {
   const { ctx } = useWorkspace();
-  const photos = comparePhotos(ctx.assets, ctx.work.id, approval?.snapshot.references ?? []);
+  const photos = comparePhotos(ctx.assets, ctx.work.id);
   const [pick, setPick] = useState<string | null>(null);
   const ref = photos.find((p) => p.asset.id === pick) ?? photos[0];
   const refUrl = useBlobUrl(open ? ref?.asset.blobId : null);
@@ -93,11 +95,7 @@ function CompareModal({ open, onClose, result, approval }: { open: boolean; onCl
             )}
           </div>
           <figcaption className="flex items-center gap-2 text-aux text-muted">
-            {ref && (
-              <span className="min-w-0 flex-1">
-                {ref.used ? '生成时用的参考图' : '原图，这一轮没用'}：{ref.name}
-              </span>
-            )}
+            {ref && <span className="min-w-0 flex-1">原图：{ref.name}</span>}
             {ref && refUrl && (
               <a href={refUrl} target="_blank" rel="noreferrer" className={linkClass} aria-label={`看原尺寸：原图${ref.name}，${ref.asset.width}×${ref.asset.height}`}>
                 看原尺寸 {ref.asset.width}×{ref.asset.height}
@@ -126,7 +124,7 @@ function CompareModal({ open, onClose, result, approval }: { open: boolean; onCl
   );
 }
 
-function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }: { result: Result; ratio: Ratio; approval: Approval | undefined; comparing: boolean; onCompare: () => void }) {
+function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }: { result: Result; ratio: Ratio; approval: SceneApproval | undefined; comparing: boolean; onCompare: () => void }) {
   const { ctx, workId, askAgent, busy, setViewing } = useWorkspace();
   const url = useBlobUrl(result.blobId);
   const missing = useBlobFailed(result.blobId);
@@ -136,7 +134,7 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
   const [fresh] = useState(() => Date.now() - result.createdAt < REVEAL_MS);
   const ok = passed(result);
   const anyBad = result.verdict.real === 'bad' || result.verdict.style === 'bad';
-  const locked = ctx.isGenerating;
+  const locked = ctx.busy.scene;
   const parent = result.parentId ? ctx.results.find((r) => r.id === result.parentId) : undefined;
   // 每次只改自己的字段，基于数据库里的最新记录（连着点「像」「对」不会互相覆盖）
   const patch = (fn: (r: Result) => void) => void patchResult(result.id, fn);
@@ -259,7 +257,7 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
             title={locked ? '正在生成，等这一轮结束再改' : '恢复这一张当时的方案，改好后重新批准；原结果会保留'}
             onClick={async () => {
               await revise();
-              setViewing('plan');
+              setViewing('placement');
             }}
           >
             从这一版修改
@@ -268,6 +266,7 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
             {inCompare ? '取消对比' : '加入对比'}
           </button>
         </div>
+        {ok && <p className="text-label text-muted">{AI_NOTICE}</p>}
         {result.exports.length > 0 && (
           <label className="flex items-center gap-1.5 text-aux text-muted">
             <input
@@ -290,7 +289,7 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
           </p>
         )}
       </div>
-      <CompareModal open={comparing} onClose={() => setComparing(false)} result={result} approval={approval} />
+      <CompareModal open={comparing} onClose={() => setComparing(false)} result={result} />
     </div>
   );
 }
@@ -311,7 +310,7 @@ function FailedSlot({ round, slot, error, ratio }: { round: number; slot: number
         retryDisabled={pending}
         onRetry={async () => {
           setPending(true);
-          const r = await retrySlot(workId, round, slot);
+          const r = await retrySlot(workId, 'scene', round, slot);
           setPending(false);
           setReason(r.ok ? null : r.reasons.join('；'));
         }}
@@ -323,16 +322,18 @@ function FailedSlot({ round, slot, error, ratio }: { round: number; slot: number
 }
 
 // 这一轮批准时的方案：验收风格时对照（AC-09.1），也是结果的来历（AC-10.3）
-function RoundPlan({ approval }: { approval: Approval }) {
+function RoundPlan({ approval, backdropName }: { approval: SceneApproval; backdropName: string }) {
   const s = approval.snapshot;
   return (
     <details className="text-aux text-ink-2">
       <summary className="w-fit cursor-pointer select-none text-muted hover:text-ink">这一轮的方案</summary>
       <dl className="mt-2 grid max-w-[720px] grid-cols-[64px_1fr] gap-x-3 gap-y-1">
-        {PLAN_ROWS.map((k) => (
+        <dt className="text-muted">背景图</dt>
+        <dd>{backdropName}</dd>
+        {SCENE_KEYS.map((k) => (
           <div key={k} className="contents">
-            <dt className="text-muted">{STYLE_LABELS[k]}</dt>
-            <dd>{s.style[k] || (k === 'props' ? NO_PROPS : '—')}</dd>
+            <dt className="text-muted">{STYLE_SHORT[k]}</dt>
+            <dd>{s.style[k] || '—'}</dd>
           </div>
         ))}
         {s.summary && (
@@ -352,9 +353,11 @@ function RoundPlan({ approval }: { approval: Approval }) {
   );
 }
 
-function Round({ round, approval, isCurrent, compare, toggleCompare }: { round: number; approval: Approval | undefined; isCurrent: boolean; compare: string[]; toggleCompare: (id: string) => void }) {
+function Round({ round, approval, isCurrent, compare, toggleCompare }: { round: number; approval: SceneApproval | undefined; isCurrent: boolean; compare: string[]; toggleCompare: (id: string) => void }) {
   const { ctx, workId } = useWorkspace();
   const ratio = approval?.snapshot.ratio ?? ctx.work.ratio;
+  const backdrop = useBackdropRef(approval?.snapshot.backdropId);
+  const backdropName = backdrop ? `「${backdrop.name}」${backdrop.deleted ? '（已从模板库删除）' : ''}` : '—';
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
@@ -362,19 +365,19 @@ function Round({ round, approval, isCurrent, compare, toggleCompare }: { round: 
           <h3 className="text-block font-semibold text-ink">第 {round} 轮</h3>
           {approval && (
             <span>
-              第 {approval.version} 版方案 · {ratio} · {imageModel(approval.snapshot.imageModel)?.label ?? approval.snapshot.imageModel} · 路线 {approval.snapshot.route}
+              第 {approval.version} 版方案 · {ratio} · {imageModel(approval.snapshot.imageModel)?.label ?? approval.snapshot.imageModel} · 背景{backdropName}
             </span>
           )}
           {!isCurrent && <span className="chip">基于之前的方案</span>}
         </div>
-        {approval && <RoundPlan approval={approval} />}
+        {approval && <RoundPlan approval={approval} backdropName={backdropName} />}
       </div>
       <div className="grid grid-cols-[repeat(2,minmax(0,320px))] gap-5">
         {roundSlots().map((slot) => {
           const result = ctx.results.find((r) => r.round === round && r.slot === slot);
           if (result) return <Candidate key={slot} result={result} ratio={ratio} approval={approval} comparing={compare.includes(result.id)} onCompare={() => toggleCompare(result.id)} />;
-          const st = slotState(ctx.tasks, workId, round, slot);
-          const last = ctx.tasks.filter((t) => t.round === round && t.slot === slot).sort((a, b) => a.attempt - b.attempt).at(-1);
+          const st = slotState(ctx.tasks, workId, 'scene', round, slot);
+          const last = ctx.tasks.filter((t) => t.kind === 'scene' && t.round === round && t.slot === slot).sort((a, b) => a.attempt - b.attempt).at(-1);
           if (st === 'failed') return <FailedSlot key={slot} round={round} slot={slot} error={last?.error} ratio={ratio} />;
           // 生成中（React Bits Refine Frame）：还没有图，只显示扫光和状态；结果出来后在 Candidate 里用真实结果做细化动画
           return (
@@ -395,7 +398,7 @@ function Round({ round, approval, isCurrent, compare, toggleCompare }: { round: 
 }
 
 // 两版对比（AC-09.5）：并排看图、比例、方案版本和验收，列出两版方案的差别
-function CompareView({ ids, approvals, onClose }: { ids: string[]; approvals: Approval[]; onClose: () => void }) {
+function CompareView({ ids, approvals, onClose }: { ids: string[]; approvals: SceneApproval[]; onClose: () => void }) {
   const { ctx } = useWorkspace();
   const items = ids.map((id) => ctx.results.find((r) => r.id === id)).filter((r): r is Result => !!r);
   if (items.length < 2) return null;
@@ -403,8 +406,8 @@ function CompareView({ ids, approvals, onClose }: { ids: string[]; approvals: Ap
   const ap = (r: Result) => approvals.find((x) => x.id === r.approvalId);
   const pa = ap(a);
   const pb = ap(b);
-  const diff = pa && pb ? diffSnapshot(pa.snapshot, pb.snapshot) : [];
-  const col = (r: Result, p: Approval | undefined) => (
+  const diff = pa && pb ? diffSceneSnapshot(pa.snapshot, pb.snapshot) : [];
+  const col = (r: Result, p: SceneApproval | undefined) => (
     <CompareColumn key={r.id} result={r} approval={p} />
   );
   return (
@@ -426,16 +429,18 @@ function CompareView({ ids, approvals, onClose }: { ids: string[]; approvals: Ap
   );
 }
 
-function CompareColumn({ result, approval }: { result: Result; approval: Approval | undefined }) {
+function CompareColumn({ result, approval }: { result: Result; approval: SceneApproval | undefined }) {
   const url = useBlobUrl(result.blobId);
   const s = approval?.snapshot;
+  const backdrop = useBackdropRef(s?.backdropId);
   const rows: [string, string][] = [
     ['来源', `第 ${result.round} 轮候选 ${result.slot + 1}`],
     ['方案', approval ? `第 ${approval.version} 版` : '—'],
     ['比例', s?.ratio ?? '—'],
     ['模型', s ? (imageModel(s.imageModel)?.label ?? s.imageModel) : '—'],
-    ['光线', s?.style.light || '—'],
-    ['背景', s?.style.background || '—'],
+    ['背景图', backdrop?.name ?? '—'],
+    ['摆放', s?.style.placement || '—'],
+    ['构图', s?.style.composition || '—'],
     ['验收', `像实物 ${VERDICT_SHORT.real[result.verdict.real]} · 风格 ${VERDICT_SHORT.style[result.verdict.style]}`],
   ];
   if (result.issues.length) rows.push(['问题', result.issues.join('、')]);
@@ -460,19 +465,21 @@ function CompareColumn({ result, approval }: { result: Result; approval: Approva
   );
 }
 
-// 出图（PRD FR-08、FR-09）：每次两张，状态如实显示；每张分别验收还原度和风格，两项都满意才算完成
-export function OutputStep() {
+const isScene = (a: Approval): a is SceneApproval => a.kind === 'scene';
+
+// 出图（PRD FR-08、FR-09）：背景图＋三视图合成两张，状态如实显示；每张分别验收还原度和风格，两项都满意才算完成
+export function ResultStep() {
   const { ctx, workId } = useWorkspace();
-  const approvals = useLiveQuery(() => db().approvals.where('workId').equals(workId).toArray(), [workId]) ?? [];
+  const approvals = (useLiveQuery(() => db().approvals.where('workId').equals(workId).toArray(), [workId]) ?? []).filter(isScene);
   const rounds = [...new Set(ctx.tasks.filter((t) => t.kind === 'scene' && t.round != null).map((t) => t.round!))].sort((a, b) => b - a);
-  const valid = approvalStatus(ctx.approval, ctx.snapshot).kind === 'valid';
+  const valid = sceneApprovalStatus(ctx).kind === 'valid';
   const [compare, setCompare] = useState<string[]>([]);
   // 最多对比两张：再选一张时替换最早选的
   const toggleCompare = (id: string) => setCompare((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id].slice(-2)));
 
   return (
     <div className="flex flex-col gap-8">
-      <StepHead step="output" />
+      <StepHead step="result" />
       {ctx.results.length > 0 && (
         <p className="-mt-6 text-aux text-muted">
           两项都满意才算完成、才能导出。验收只代表你满意，不代表和实物完全一致，也不代表符合平台规则。
@@ -484,7 +491,7 @@ export function OutputStep() {
         <div className="flex min-h-[40vh] flex-col items-center justify-center gap-1.5 text-center text-muted">
           <Icon name="image" className="mb-1.5 size-7 text-faint [stroke-width:1.2]" />
           <strong className="text-block font-medium text-ink-2">还没有生成结果</strong>
-          <span className="text-aux">方案批准后会在这里出现两张候选</span>
+          <span className="text-aux">摆放方案批准后会在这里出现两张候选</span>
         </div>
       ) : (
         rounds.map((r) => {
