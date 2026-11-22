@@ -249,3 +249,94 @@ test.describe('背景与模板库（PRD FR-04、FR-06，技术写法 13.4）', (
     await expect(canvas(page).getByText('示意模板，无参数').first()).toBeVisible();
   });
 });
+
+// 流程一走到摆放：三视图都确认、信息接受、背景用内置模板
+async function readyForPlacement(page: Page) {
+  await startHome(page);
+  await uploadAngles(page);
+  await canvas(page).getByRole('button', { name: '生成三视图' }).click();
+  for (const name of ANGLES) await confirmView(page, name);
+  await acceptInfo(page);
+  await say(page, '用雨后那张背景吧【测试：用模板】');
+  await expect(step(page, '背景')).toHaveAccessibleName(/完成/);
+}
+
+const candidate = (page: Page, round: number, n: number) => canvas(page).getByRole('group', { name: `第 ${round} 轮候选 ${n}` });
+
+test.describe('摆放与合成（PRD FR-07—FR-10，技术写法 13.5）', () => {
+  test('流程一主线：摆放 → 批准 → 背景图＋三视图合成两张 → 验收 → 导出（提醒声明 AI 生成）→ 对照原图 → 两版对比 → 从这一版修改', async ({ page }, info) => {
+    await readyForPlacement(page);
+    // 硬规则：没有批准时小间不能生成（PRD 4.2 第 1 条）
+    await say(page, '直接生成吧【测试：生成】');
+    await expect(chat(page).getByText('不能生成：方案还没批准')).toBeVisible();
+
+    await say(page, '平铺就好【测试：摆放】【测试：提示词】【测试：批准】');
+    await step(page, '摆放').click();
+    // 合成方案写明所用的背景图
+    await expect(canvas(page).getByText('背景「雨后清晨」＋三视图')).toBeVisible();
+    const card = chat(page).getByText('确认这版方案').locator('xpath=ancestor::div[contains(@class,"rounded-[14px]")]');
+    await approveBy(card.getByRole('slider', { name: /滑动批准并生成两张/ }));
+
+    await expect(canvas(page).getByRole('heading', { name: '第 1 轮' })).toBeVisible();
+    await expect(canvas(page).getByText(/背景「雨后清晨」/).first()).toBeVisible();
+    await expect(canvas(page).getByRole('img', { name: '候选 1' })).toBeVisible({ timeout: 60_000 });
+    await expect(canvas(page).getByRole('img', { name: '候选 2' })).toBeVisible({ timeout: 60_000 });
+    await page.screenshot({ path: info.outputPath('result.png') });
+
+    // 验收：候选 2 两项满意，候选 1 不像
+    const c1 = candidate(page, 1, 1);
+    const c2 = candidate(page, 1, 2);
+    await c2.getByRole('button', { name: '像', exact: true }).click();
+    await c2.getByRole('button', { name: '对', exact: true }).click();
+    await expect(page.getByText('已完成')).toBeVisible();
+    await expect(c2.getByText('这是 AI 生成的图，发布时请按平台要求声明')).toBeVisible();
+
+    // 导出卡片（两项满意才能下载），卡片上也提醒（PRD AC-10.5）
+    await say(page, '把第二张给我【测试：导出】');
+    const download = page.waitForEvent('download');
+    await chat(page).getByRole('button', { name: '下载' }).click();
+    expect((await download).suggestedFilename()).toMatch(/第1轮-候选2\.(jpg|png)$/);
+    await expect(chat(page).getByText('这是 AI 生成的图，发布时请按平台要求声明')).toBeVisible();
+
+    // 对照原图（不是三视图），可以切换正面、侧面、背面（AC-09.1、AC-09.1a）
+    await step(page, '出图').click();
+    await c1.getByRole('button', { name: '不像' }).click();
+    await c1.getByRole('button', { name: '对照原图' }).click();
+    const cmp = page.getByRole('dialog', { name: '对照原图：第 1 轮候选 1' });
+    await cmp.getByRole('button', { name: '侧面' }).click();
+    await expect(cmp.getByText('原图：侧面')).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    // 两版对比（AC-09.5）
+    await c1.getByRole('button', { name: '加入对比' }).click();
+    await c2.getByRole('button', { name: '加入对比' }).click();
+    await expect(canvas(page).getByRole('heading', { name: '两版对比' })).toBeVisible();
+    await expect(canvas(page).getByText('两张来自同一版方案')).toBeVisible();
+    await canvas(page).getByRole('button', { name: '关闭对比' }).click();
+
+    // 从这一版修改（AC-09.4）：回到摆放，原结果保留
+    await c1.getByRole('button', { name: '从这一版修改' }).click();
+    await expect(canvas(page).getByRole('heading', { name: '摆放', level: 2 })).toBeVisible();
+    await expect(canvas(page).getByText(/正在修改第 1 轮候选 1/)).toBeVisible();
+  });
+
+  test('部分失败：成功的那张保留，失败的可以补齐（AC-08.5）', async ({ page }) => {
+    await readyForPlacement(page);
+    await say(page, '平铺就好【测试：摆放】【测试：提示词】');
+    await step(page, '摆放').click();
+    // 用户手改合成提示词（带上假网关的失败标记），自己核对后批准
+    const prompt = canvas(page).getByRole('textbox', { name: '完整合成提示词' });
+    await prompt.click();
+    await prompt.press('End');
+    await page.keyboard.type('【测试：失败一张】');
+    await page.keyboard.press('Tab');
+    await expect(canvas(page).getByText('已手动修改')).toBeVisible();
+    await canvas(page).getByRole('button', { name: '我已核对，两者一致' }).click();
+    await approveBy(canvas(page).getByRole('slider', { name: /滑动批准并生成两张/ }));
+
+    await expect(canvas(page).getByText(/候选 \d 没有生成出来：/)).toBeVisible({ timeout: 60_000 });
+    await expect(canvas(page).getByRole('img', { name: /^候选 \d$/ })).toHaveCount(1, { timeout: 60_000 });
+    await canvas(page).getByRole('button', { name: '补齐这一张' }).click();
+    await expect(canvas(page).getByRole('img', { name: /^候选 \d$/ })).toHaveCount(2, { timeout: 60_000 });
+  });
+});

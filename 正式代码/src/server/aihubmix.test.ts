@@ -3,7 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchImageContent, getImageTask } from './aihubmix';
+import { IMAGE_MODELS, imageModel } from '@/config/models';
+import { fetchImageContent, getImageTask, imageRequestBody } from './aihubmix';
 import { emptyCredentialFile, seal } from './credential-file';
 
 const master = randomBytes(32);
@@ -78,5 +79,23 @@ describe('查询与取回生图（任务按创建它的 key 隔离）', () => {
       'https://relay.example.com/api/relay/aihubmix/ai/v1/images/task_1/content/result_1',
     ]);
     expect(fetchMock.mock.calls.every(([, init]) => auth(init) === 'Bearer team-token-0123456789abcdefghij')).toBe(true);
+  });
+});
+
+describe('生图请求体（技术写法 13.8）', () => {
+  it('Seedream 关掉「AI生成」字样（PRD AC-10.5）：watermark: false 随 extra 发出；三种任务用的是同一个请求体', () => {
+    const seedream = imageModel('doubao-seedream-5.0-lite')!;
+    const body = imageRequestBody(seedream, { prompt: '背景图', ratio: '3:4', images: [] });
+    expect(body).toMatchObject({ model: 'doubao-seedream-5.0-lite', aspect_ratio: '3:4', n: 1, async: true, extra: { watermark: false } });
+    expect(body).not.toHaveProperty('images');
+    const scene = imageRequestBody(seedream, { prompt: '合成', ratio: '9:16', images: ['data:image/jpeg;base64,1', 'data:image/jpeg;base64,2'] });
+    expect(scene).toMatchObject({ aspect_ratio: '9:16', images: ['data:image/jpeg;base64,1', 'data:image/jpeg;base64,2'], extra: { watermark: false } });
+  });
+
+  it('其他模型不带 watermark；按像素出图的模型用 size', () => {
+    const gpt = imageRequestBody(imageModel('gpt-image-2')!, { prompt: 'x', ratio: '1:1', images: [] });
+    expect(gpt).toMatchObject({ size: '1024x1024', extra: { quality: 'medium' } });
+    expect(gpt.extra).not.toHaveProperty('watermark');
+    expect(IMAGE_MODELS.every((m) => m.maxRefs >= 4)).toBe(true); // 合成要 1 张背景图＋3 张三视图
   });
 });

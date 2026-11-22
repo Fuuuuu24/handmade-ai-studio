@@ -171,7 +171,7 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-2.5">
+    <div className="flex min-w-0 flex-col gap-2.5" role="group" aria-label={`第 ${result.round} 轮候选 ${result.slot + 1}`}>
       <a href={url ?? undefined} target="_blank" rel="noreferrer" className={`grid ${ratioClass[ratio]} cursor-zoom-in place-items-center overflow-hidden rounded-lg bg-soft`} aria-label={`查看候选 ${result.slot + 1} 大图`}>
         {url &&
           (fresh ? (
