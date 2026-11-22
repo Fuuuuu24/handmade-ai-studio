@@ -174,8 +174,10 @@ function AngleColumn({ angle, locked }: { angle: ViewAngle; locked: boolean }) {
   const left = VIEWS.perAngle - s.attempts;
 
   return (
-    <div className="flex min-w-0 flex-col gap-2.5">
-      <h3 className="text-aux font-medium text-ink-2">{name}</h3>
+    <div className="flex min-w-0 flex-col gap-2.5" role="group" aria-labelledby={`angle-${angle}`}>
+      <h3 id={`angle-${angle}`} className="text-aux font-medium text-ink-2">
+        {name}
+      </h3>
       {s.photo ? (
         <Photo asset={s.photo} locked={locked} />
       ) : (
@@ -289,12 +291,12 @@ export function ProductStep() {
   const confirmed = states.filter((s) => s.view?.confirmed).length;
 
   return (
-    <div className="flex max-w-[880px] flex-col gap-6">
+    <div className="flex max-w-[720px] flex-col gap-6">
       <StepHead step="product">
         <span className={confirmed === 3 ? 'chip chip-ok' : 'chip chip-warn'}>三视图 {confirmed}/3 已确认</span>
       </StepHead>
       <p className="-mt-4 text-aux text-muted">正面、侧面、背面三张照片都要有；每张生成一张白底三视图，对照原图确认后用于合成。看不清的部分小间不会去猜，建议补拍。</p>
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-[repeat(3,minmax(0,196px))] gap-5">
         {VIEW_ANGLES.map((a) => (
           <AngleColumn key={a} angle={a} locked={locked} />
         ))}
@@ -308,7 +310,7 @@ export function ProductStep() {
           </h3>
           <span className="text-aux text-muted">细节照只给小间看，帮它理解商品，不进合成；首页和对话里传的照片先放这里，选好类型</span>
         </div>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(128px,148px))] gap-4">
           {extra.map((a) => (
             <Photo key={a.id} asset={a} locked={locked} kindSelect />
           ))}
