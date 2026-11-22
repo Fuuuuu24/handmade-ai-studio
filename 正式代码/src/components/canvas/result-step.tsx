@@ -141,17 +141,20 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
   const saveNote = (note: string) =>
     patch((r) => {
       r.note = note;
+      r.verdictAt = Date.now();
     });
 
   const pick = (kind: 'real' | 'style', v: Verdict) => {
     patch((r) => {
       r.verdict = { ...r.verdict, [kind]: v };
+      r.verdictAt = Date.now(); // 两项都点完后停手一会儿再告诉小间（技术写法 13.12）
     });
     void logEvent('verdict', result.workId, { round: result.round, slot: result.slot, kind, value: v });
   };
   const toggleIssue = (issue: string) =>
     patch((r) => {
       r.issues = r.issues.includes(issue) ? r.issues.filter((i) => i !== issue) : [...r.issues, issue];
+      r.verdictAt = Date.now();
     });
 
   // 从这一版修改（AC-09.4）：恢复那一版的方案并记下父结果，原结果保留

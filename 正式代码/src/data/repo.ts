@@ -1,5 +1,6 @@
+import type { StepId } from '@/config/steps';
 import { isViewAngle, type ViewAngle } from '@/config/views';
-import type { Approval, Asset, AssetKind, Backdrop, BackdropApproval, Id, Result, SceneApproval, StoredMessage, Task, TrialEvent, Work } from '@/domain/types';
+import type { Approval, Asset, AssetKind, Backdrop, BackdropApproval, Fact, Id, Result, SceneApproval, StoredMessage, Task, TrialEvent, Work } from '@/domain/types';
 import { newId } from '@/domain/util';
 import { db } from './db';
 import { tracked } from './save';
@@ -228,6 +229,53 @@ export async function listSavedBackdrops(): Promise<Backdrop[]> {
 // 沉淀、改名、删除：只由界面按钮调用（PRD 4.2 第 2 条、AC-06.4）；按数据库里的最新记录只改对应字段
 export const patchBackdrop = (id: Id, fn: (b: Backdrop) => void) =>
   tracked(`backdrop:${id}`, () => db().backdrops.where('id').equals(id).modify(fn));
+
+/* ---------- 交接与通知的认领（技术写法 13.12）：事务里先写先得，两个标签页同时开着也只发一次 ---------- */
+
+// 取走排队的「下一步」交接，同时记下交接时的作品快照（之后的变化写进作品状态）。调用方要包在 serial 里，免得被整条作品覆盖
+export function claimHandoffs(workId: Id, facts: Record<string, Fact>, at = Date.now()): Promise<StepId[]> {
+  const d = db();
+  return tracked(`work:${workId}`, () =>
+    d.transaction('rw', d.works, async () => {
+      const w = await d.works.get(workId);
+      const steps = w?.pendingHandoffs ?? [];
+      if (!w || !steps.length) return [];
+      await d.works.update(workId, { pendingHandoffs: [], lastHandoff: { step: steps.at(-1)!, at, facts } });
+      return steps;
+    }),
+  );
+}
+
+// 生成通知：只认领结束了、还没通知的任务
+export function claimTaskNotices(ids: readonly Id[], at = Date.now()): Promise<Id[]> {
+  const d = db();
+  return d.transaction('rw', d.tasks, async () => {
+    const got: Id[] = [];
+    for (const t of await d.tasks.bulkGet([...ids])) {
+      if (t && t.notifiedAt === null) {
+        await d.tasks.update(t.id, { notifiedAt: at });
+        got.push(t.id);
+      }
+    }
+    return got;
+  });
+}
+
+// 验收通知：验收内容和上次通知的不一样才认领（key 由 domain/notices.ts 的 verdictKey 算）
+export function claimVerdicts(items: readonly { id: Id; key: string }[]): Promise<Id[]> {
+  const d = db();
+  return d.transaction('rw', d.results, async () => {
+    const got: Id[] = [];
+    for (const it of items) {
+      const r = await d.results.get(it.id);
+      if (r && r.notifiedVerdict !== it.key) {
+        await d.results.update(it.id, { notifiedVerdict: it.key });
+        got.push(it.id);
+      }
+    }
+    return got;
+  });
+}
 
 /* ---------- 对话 ---------- */
 

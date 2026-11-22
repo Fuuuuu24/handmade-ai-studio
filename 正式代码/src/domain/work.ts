@@ -1,6 +1,7 @@
 import { isBuiltinBackdrop } from '@/config/backdrops';
 import type { InfoKey } from '@/config/info';
 import type { Ratio } from '@/config/ratios';
+import type { StepId } from '@/config/steps';
 import { SCENE_KEYS, STYLE_KEYS, type SceneKey, type StyleKey } from '@/config/style';
 import {
   backdropApprovalBlockers,
@@ -357,6 +358,12 @@ export function startSceneRound(s: WorkState, approval: SceneApproval | null): R
   const round = s.work.round + 1;
   return { ok: true, work: touch(s.work, { round, revision: undefined }), approval: { ...approval, usedRound: round }, round };
 }
+
+/* ---------- 「下一步」交接（技术写法 13.12） ---------- */
+
+// 用户点了「下一步」：只记「哪一步交接了」，内容在发出那一刻按当时的作品数据生成；同一步排两次只记一次
+export const queueHandoff = (w: Work, step: StepId) =>
+  w.pendingHandoffs?.includes(step) ? w : touch(w, { pendingHandoffs: [...(w.pendingHandoffs ?? []), step] });
 
 /* ---------- 后续需求与提议卡片 ---------- */
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AgentUIMessage, MessageMeta } from '@/agent/tools';
-import { turnProblem, withoutLastStep } from './chat-turn';
+import { turnProblem, userTextsOf, withoutLastStep } from './chat-turn';
 
 type Part = AgentUIMessage['parts'][number];
 
@@ -53,5 +53,13 @@ describe('withoutLastStep：重试只重做最后一步', () => {
   it('前面没有调用过工具：整条重来', () => {
     expect(withoutLastStep(reply([step, think()]))).toBeNull();
     expect(withoutLastStep(reply([step, say('上一步只有一句话'), step, think()]))).toBeNull();
+  });
+});
+
+describe('userTextsOf：核对「你说的」只看用户原话（技术写法 13.12）', () => {
+  it('浏览器代发的交接和通知不算', () => {
+    const user = (text: string, system?: 'handoff' | 'notice') =>
+      ({ id: text, role: 'user', metadata: system ? { system } : undefined, parts: [{ type: 'text', text }] }) as AgentUIMessage;
+    expect(userTextsOf([user('想要平铺'), user('【交接：摆放】摆放：平铺', 'handoff'), user('【通知：候选】…', 'notice')])).toEqual(['想要平铺']);
   });
 });

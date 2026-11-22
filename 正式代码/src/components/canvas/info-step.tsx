@@ -2,25 +2,22 @@
 
 import { INFO_CORE, INFO_FIELDS, INFO_KEYS, INFO_REQUIRED, type InfoKey } from '@/config/info';
 import { mutateWork } from '@/client/work-store';
-import { infoReady, pendingCore, pendingSuggestions } from '@/domain/info';
+import { infoReady, pendingCore } from '@/domain/info';
 import type { Work } from '@/domain/types';
 import { acceptSuggestion, dismissSuggestion, markUnknown, removeFollowup, setInfo } from '@/domain/work';
 import { DraftInput, DraftTextarea } from '@/components/ui/draft-field';
 import { Icon } from '@/components/ui/icon';
 import { useWorkspace } from '@/components/workspace/context';
-import { StepHead } from './canvas';
+import { NextStep, StepHead } from './canvas';
 import WarmTooltip from '@/components/bits/WarmTooltip/WarmTooltip';
 
 const OPTIONAL: readonly InfoKey[] = ['price', 'audience'];
 
 function InfoRow({ k }: { k: InfoKey }) {
-  const { ctx, workId, setViewing } = useWorkspace();
+  const { ctx, workId } = useWorkspace();
   const field = ctx.work.info[k];
-  // 逐条处理小间的建议时停在这一步：还有别的建议就不跟着跳走，最后一条处理完再跟到当前该做的一步（BC-002）
-  const decide = (fn: (w: Work, key: InfoKey) => Work) => {
-    setViewing(pendingSuggestions(ctx.work.info).some((x) => x !== k) ? 'info' : null);
-    void mutateWork(workId, (c) => fn(c.work, k));
-  };
+  // 逐条处理小间的建议时画布停在这一步（BC-002）；处理完由用户点「下一步」交接（技术写法 13.12）
+  const decide = (fn: (w: Work, key: InfoKey) => Work) => void mutateWork(workId, (c) => fn(c.work, k));
   const required = (INFO_REQUIRED as readonly InfoKey[]).includes(k);
   const missing = required && !field.value && !field.unknown;
   // 核心信息锁进了背景和合成的批准快照，生成中不能改；售价、目标顾客不影响生成，随时可改
@@ -95,6 +92,9 @@ export function InfoStep() {
       </div>
       <p className="mt-3 text-aux text-muted">改动品类、材料、尺寸或不能改的细节后，已经写好的提示词和批准需要重新确认。</p>
       <Followups />
+      <div className="max-w-[640px]">
+        <NextStep step="info" />
+      </div>
     </div>
   );
 }

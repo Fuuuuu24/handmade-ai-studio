@@ -13,7 +13,7 @@ import { Modal, useConfirm } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { MissingImage } from '@/components/ui/missing-image';
 import { useWorkspace } from '@/components/workspace/context';
-import { StepHead } from './canvas';
+import { NextStep, StepHead } from './canvas';
 import WarmTooltip from '@/components/bits/WarmTooltip/WarmTooltip';
 import GlideSelect from '@/components/bits/GlideSelect/GlideSelect';
 
@@ -348,6 +348,7 @@ export function ProductStep() {
           if (files.length) setNotes((await addPhotos(workId, files, 'detail')).notes);
         }}
       />
+      <NextStep step="product" />
     </div>
   );
 }

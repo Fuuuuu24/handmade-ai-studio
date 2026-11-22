@@ -1,6 +1,7 @@
 import { builtinBackdrop } from '@/config/backdrops';
+import { BACKDROP_KEYS, NO_PROPS, STYLE_LABELS } from '@/config/style';
 import { backdropBasisOf, basisOfBackdropSnapshot, diffBackdropBasis } from './snapshot';
-import type { Approval, Backdrop, BackdropRef, Id, Work, WorkState } from './types';
+import type { Approval, Backdrop, BackdropParams, BackdropRef, Id, Work, WorkState } from './types';
 
 /* 背景图与模板库（PRD FR-06，技术写法 13.4）。内置模板只写在配置里；生成的背景图存在 backdrops 表，
    用户沉淀进模板库后别的作品才能套用。沉淀、改名、删除只有界面按钮（PRD 4.2 第 2 条）。 */
@@ -85,3 +86,9 @@ export function backdropLag(s: WorkState): string[] {
   if (!b || !a || a.usedRound !== b.round) return [];
   return diffBackdropBasis(basisOfBackdropSnapshot(a.snapshot), backdropBasisOf(s.work)).filter((x) => x !== '生图模型');
 }
+
+// 背景图的参数写成一行（给小间看）：内置模板参数为空时按看到的图描述
+export const paramsText = (p: BackdropParams | null) =>
+  p
+    ? BACKDROP_KEYS.map((k) => `${STYLE_LABELS[k]}「${p[k] || (k === 'props' ? NO_PROPS : '未写')}」`).join('、')
+    : '示意模板，无参数（描述时按你看到的背景图）';

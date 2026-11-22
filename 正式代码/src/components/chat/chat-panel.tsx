@@ -8,8 +8,9 @@ import type { AgentUIMessage, ToolName } from '@/agent/tools';
 import { BUDGET } from '@/config/budget';
 import type { StepId } from '@/config/steps';
 import { errorText } from '@/client/api';
+import { setFirstPhotos, takeFirstPhotos, takeQueue } from '@/client/agent-queue';
 import { chatErrorMessage, chatRequestBody } from '@/client/chat-body';
-import { turnProblem, withoutLastStep, type TurnProblem } from '@/client/chat-turn';
+import { turnProblem, userTextsOf, withoutLastStep, type TurnProblem } from '@/client/chat-turn';
 import { takeFirstMessage } from '@/client/first-message';
 import { addPhotos } from '@/client/uploads';
 import { loadMessages, saveMessages } from '@/data/repo';
@@ -62,7 +63,7 @@ export function ChatPanel(props: Props) {
 }
 
 function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, onUserSend }: Props & { initialMessages: AgentUIMessage[] }) {
-  const { workId } = useWorkspace();
+  const { workId, ctx } = useWorkspace();
   const savedRef = useRef(JSON.stringify(initialMessages));
   const autoSteps = useRef(0);
   const [capHit, setCapHit] = useState(false);
@@ -73,8 +74,9 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   // 用户发过的文字，执行器核对「你说的」用（BC-013）；工具在回复中途执行，这时对话还没存进数据库
   const userTextsRef = useRef<string[]>([]);
 
+  // 生成通知附的结果图排在附图最前面（技术写法 13.9）：发通知前放进 agent-queue，请求时取走
   const transport = useMemo(
-    () => new DefaultChatTransport<AgentUIMessage>({ api: '/api/chat', body: () => chatRequestBody(workId) }),
+    () => new DefaultChatTransport<AgentUIMessage>({ api: '/api/chat', body: () => chatRequestBody(workId, takeFirstPhotos(workId)) }),
     [workId],
   );
 
@@ -122,8 +124,36 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   }, [busy, onBusyChange]);
 
   useEffect(() => {
-    userTextsRef.current = messages.filter((m) => m.role === 'user').flatMap((m) => m.parts.flatMap((p) => (p.type === 'text' ? [p.text] : [])));
+    userTextsRef.current = userTextsOf(messages);
   }, [messages]);
+
+  // 小间跟上画布（技术写法 13.12）：空闲时把排队的「下一步」交接、生成通知、验收通知合成一条代用户发出。
+  // 空闲和自动续步用同一个条件；上一轮出错、撞上单轮上限或用户正在打字时先不发
+  const [draftEmpty, setDraftEmpty] = useState(true);
+  const [queueTick, setQueueTick] = useState(0);
+  const idle = status === 'ready' && !lastAssistantMessageIsCompleteWithToolCalls({ messages }) && !error && !capHit && !problem && draftEmpty;
+  useEffect(() => {
+    if (!idle) return;
+    let again: ReturnType<typeof setTimeout> | undefined;
+    // 推迟到下一轮：开发模式的严格模式会先演练一次卸载；认领在事务里，重复取也只发一次
+    const timer = setTimeout(() => {
+      takeQueue(workId)
+        .then(({ message, retryInMs }) => {
+          if (message) {
+            setFirstPhotos(workId, message.photos);
+            autoSteps.current = 0; // 系统消息各自算新的一轮
+            void sendMessage({ parts: [{ type: 'text', text: message.text }], metadata: { system: message.system } });
+          } else if (retryInMs != null) {
+            again = setTimeout(() => setQueueTick((t) => t + 1), retryInMs + 50);
+          }
+        })
+        .catch((e: unknown) => console.error('给小间的交接或通知没发出去', e));
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      if (again) clearTimeout(again);
+    };
+  }, [idle, ctx, queueTick, workId, sendMessage]);
 
   // 一轮结束（或出错）时保存对话，含工具调用记录（AC-11.4）；和读出来时一样就不写
   useEffect(() => {
@@ -249,6 +279,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
         )}
         <Composer
           busy={busy}
+          onDraftChange={setDraftEmpty}
           onSend={(text) => send(text)}
           onFiles={onFiles}
           onStop={() => {

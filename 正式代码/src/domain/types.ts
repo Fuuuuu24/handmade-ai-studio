@@ -1,6 +1,6 @@
 import type { CoreInfoKey, InfoKey } from '@/config/info';
 import type { Ratio } from '@/config/ratios';
-import type { Flow } from '@/config/steps';
+import type { Flow, StepId } from '@/config/steps';
 import type { BackdropKey, SceneKey, StyleKey } from '@/config/style';
 import type { ASSET_KINDS } from '@/config/upload';
 import type { ViewAngle } from '@/config/views';
@@ -197,11 +197,17 @@ export interface Revision {
 // 背景这一步选哪种做法：library 用模板库里的，generate 自己生成（共创 → 批准 → 两张选一张）
 export type BackdropMode = 'library' | 'generate';
 
-// 上次「下一步」交接时的文字快照（技术写法 13.12）：摘要里列出之后用户改了什么
+// 作品的一条事实：显示的文字，加上用来判断「换了一张」「改过了」的编号（照片、三视图、背景图、提示词原文）
+export interface Fact {
+  text: string;
+  id?: string;
+}
+
+// 上次「下一步」交接时的作品快照（技术写法 13.12）：摘要里列出之后改了什么
 export interface Handoff {
-  step: string;
+  step: StepId;
   at: number;
-  facts: Record<string, string>;
+  facts: Record<string, Fact>;
 }
 
 export interface Work {
@@ -233,6 +239,7 @@ export interface Work {
   followups?: Followup[]; // 本期不支持、先记下的需求（如真人佩戴，AC-02.5）
   proposals?: Record<Id, 'accepted' | 'declined'>; // 小间提议卡片上用户的决定，按工具调用编号记
   lastHandoff?: Handoff | null;
+  pendingHandoffs?: StepId[]; // 用户点了「下一步」、还没发给小间的交接（对话空闲时发出，内容在发出那一刻生成）
 }
 
 export interface Followup {
@@ -322,6 +329,8 @@ export interface Result {
   createdAt: number;
   exports: number[];
   published?: number; // 商家说已经拿去发布的时间（AC-10.4：导出与实际发布分开记录）
+  verdictAt?: number; // 最近一次改验收、问题标签或说明的时间：停手一会儿再通知小间
+  notifiedVerdict?: string; // 已经告诉小间的验收内容（domain/notices.ts 的 verdictKey），变了才再通知
 }
 
 /* ---------- 规则判断用的整件作品 ---------- */

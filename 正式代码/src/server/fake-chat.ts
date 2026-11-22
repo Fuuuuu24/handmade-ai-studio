@@ -114,6 +114,14 @@ export function fakeTurn(prompt: Prompt): { text: string; calls: { tool: string;
   const user = [...prompt].reverse().find((m) => m.role === 'user');
   const text = user?.role === 'user' ? user.content.map((c) => (c.type === 'text' ? c.text : '')).join('') : '';
   if (text.includes(THINK_ONLY)) return { text: '', calls: [], thinkOnly: true };
+  // 浏览器代发的交接和通知（技术写法 13.12）：按「我理解的现状 → 还没确认或有矛盾的地方 → 下一步」的结构固定回一句
+  const system = text.match(/^【(交接|通知)：([^】]+)】/);
+  if (system) {
+    return {
+      text: `（测试对话模型，不是 AI）我理解的现状：收到「${system[2]}」的${system[1]}。还没确认或有矛盾的地方：这是测试回复，没有检查。下一步：请继续。`,
+      calls: [],
+    };
+  }
   const calls = [...text.matchAll(MARK)].map((m) => FAKE_SCRIPT[m[1]]).filter((c): c is (typeof FAKE_SCRIPT)[string] => !!c);
   if (calls.length) return { text: '', calls };
   return { text: `（测试对话模型，不是 AI）收到：${text.replaceAll(MARK, '').slice(0, 40) || '照片'}`, calls: [] };

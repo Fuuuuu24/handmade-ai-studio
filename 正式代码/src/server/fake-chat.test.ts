@@ -14,6 +14,13 @@ describe('假对话模型（只给开发和测试用）', () => {
     expect(fakeTurn([user('【测试：信息】'), { role: 'tool', content: [] }])).toEqual({ text: expect.stringContaining('测试对话模型'), calls: [] });
   });
 
+  it('浏览器代发的交接和通知：按结构回一句，不调用工具（技术写法 13.12）', () => {
+    const turn = fakeTurn([user('【交接：商品】用户点了「下一步」…')]);
+    expect(turn.calls).toEqual([]);
+    expect(turn.text).toContain('我理解的现状：收到「商品」的交接');
+    expect(turn.text).toContain('下一步：');
+  });
+
   it('「只想不说」只出思考，不调用工具、不写正文（测回复停在半路的提示，BC-001）', () => {
     expect(fakeTurn([user('继续【测试：只想不说】')])).toEqual({ text: '', calls: [], thinkOnly: true });
   });

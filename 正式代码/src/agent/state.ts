@@ -20,10 +20,11 @@ import {
   type PromptStatus,
 } from '@/domain/approval';
 import { activeUploads, angleStates } from '@/domain/assets';
-import { backdropCandidates } from '@/domain/backdrops';
+import { backdropCandidates, paramsText } from '@/domain/backdrops';
+import { changeText, diffFacts, factsOf } from '@/domain/handoff';
 import { roundResults, slotsOf, slotState } from '@/domain/generation';
 import { currentStep, stepStates, workStatus } from '@/domain/status';
-import type { BackdropParams, BackdropRef, StyleSource } from '@/domain/types';
+import type { BackdropRef, StyleSource } from '@/domain/types';
 import { styleLagsSummary, summaryEdits } from '@/domain/work';
 import type { WorkContext } from '@/client/work-store';
 
@@ -55,11 +56,6 @@ const promptText = (ps: PromptStatus, name: string) =>
     ok: '有效',
   })[ps.kind];
 
-export const paramsText = (p: BackdropParams | null) =>
-  p
-    ? BACKDROP_KEYS.map((k) => `${STYLE_LABELS[k]}「${p[k] || (k === 'props' ? NO_PROPS : '未写')}」`).join('、')
-    : '示意模板，无参数（描述时按你看到的背景图）';
-
 const refText = (r: BackdropRef) =>
   `${r.id} ${r.name}（${r.builtin ? `内置模板${r.placeholder ? '，图还没提供，用色块示意' : ''}` : '用户沉淀的'}；${paramsText(r.params)}）`;
 
@@ -80,6 +76,13 @@ export function stateSummary(i: SummaryInput): string {
   lines.push(`作品：${work.name}${work.nameSuggestion ? `；你建议的名字「${work.nameSuggestion.value}」待用户在顶栏确认` : ''}`);
   lines.push(`流程：${FLOW_NAMES[work.flow]}（${flowSteps.map((s) => s.name).join(' → ')}）`);
   lines.push(`进度：${workStatus(i).text}；现在该做：${STEP_NAMES[currentStep(i, steps)]}；已完成：${flowSteps.filter((s) => steps[s.id] === 'done').map((s) => s.name).join('、') || '无'}`);
+  // 自上次交接以来的变化（AC-11.3b）：包括用户在画布上改的，也包括你用工具改的
+  if (work.lastHandoff) {
+    const changes = diffFacts(work.lastHandoff.facts, factsOf(i));
+    lines.push(
+      `上次交接：${STEP_NAMES[work.lastHandoff.step]}；之后有这些变化（你自己用工具改的也算在内）：${changes.length ? changes.map(changeText).join('；') : '没有'}`,
+    );
+  }
 
   /* ---------- 商品 ---------- */
   const uploads = activeUploads(i.assets, work.id);

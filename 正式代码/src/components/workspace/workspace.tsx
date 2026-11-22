@@ -19,6 +19,13 @@ export function Workspace({ ctx, initialStep = null }: { ctx: WorkContext; initi
 
   const states = stepStates(ctx);
   const current = currentStep(ctx, states);
+  // 「当前该做的一步」变了而画布正跟着它时，停在刚才那一步：完成一步后不自己跳走，由用户点「下一步」交接（技术写法 13.12）。
+  // 渲染时比较上一次的值（React 的「根据上一次渲染调整状态」写法），不用副作用
+  const [seen, setSeen] = useState<StepId>(current);
+  if (seen !== current) {
+    setSeen(current);
+    if (picked === null) setPicked(seen);
+  }
   const askAgent = useCallback((text: string) => sendRef.current(text), []);
   const followCurrent = useCallback(() => setPicked(null), []);
 

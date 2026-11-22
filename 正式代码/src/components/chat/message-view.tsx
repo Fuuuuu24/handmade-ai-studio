@@ -72,7 +72,20 @@ function ToolRecord({ part }: { part: AgentUIMessage['parts'][number] }) {
   );
 }
 
+// 浏览器代发给小间的交接和通知（技术写法 13.12）：显示成可以展开的小卡片，不当成用户原话
+function SystemNote({ message }: { message: AgentUIMessage }) {
+  const text = message.parts.flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('\n');
+  const title = text.match(/^【([^】]+)】/)?.[1] ?? (message.metadata?.system === 'handoff' ? '交接' : '通知');
+  return (
+    <details className="self-stretch rounded-lg bg-canvas px-3 py-2 text-aux text-ink-2">
+      <summary className="cursor-pointer select-none text-muted hover:text-ink">{title} · 已告诉小间</summary>
+      <p className="mt-1.5 whitespace-pre-wrap">{text.replace(/^【[^】]+】/, '')}</p>
+    </details>
+  );
+}
+
 export function MessageView({ message, latest }: { message: AgentUIMessage; latest: boolean }) {
+  if (message.role === 'user' && message.metadata?.system) return <SystemNote message={message} />;
   if (message.role === 'user') {
     return (
       <div className="flex max-w-[82%] flex-col items-end gap-1.5 self-end">

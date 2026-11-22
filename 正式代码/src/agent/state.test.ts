@@ -6,6 +6,8 @@ import { refOfBackdrop, refOfBuiltin } from '@/domain/backdrops';
 import type { Asset, Work, WorkState } from '@/domain/types';
 import { approveScene, chooseCandidate, confirmSummary, draftSummary, editSummary, reviseFrom, setRatio, startSceneRound, suggestInfo } from '@/domain/work';
 import { backdrop, backdropPromptedWork, backdropWork, product, promptedWork, readyWork, result, stateOf, task, upload, view } from '@/test/fixtures';
+import { factsOf } from '@/domain/handoff';
+import { setInfo } from '@/domain/work';
 import { stateSummary } from './state';
 
 const library = listedBuiltins().map((b) => refOfBuiltin(b.id)!);
@@ -102,6 +104,13 @@ describe('stateSummary（技术写法 13.12）', () => {
     const text = summarize(reviseFrom({ ...a.work, round: 1 }, r, a.approval), assets, { results: [r] });
     expect(text).toContain('正在从第 1 轮候选 1 修改（用户指出的问题：背景）');
     expect(text).toContain('请用户回「背景」换一张或重新生成');
+  });
+
+  it('写明上次交接是哪一步，以及之后的变化（AC-11.3b）', () => {
+    const { work, assets } = readyWork();
+    const handed = { ...work, lastHandoff: { step: 'info' as const, at: 1, facts: factsOf(stateOf(work, assets)) } };
+    expect(summarize(handed, assets)).toContain('上次交接：信息；之后有这些变化（你自己用工具改的也算在内）：没有');
+    expect(summarize(setInfo(handed, 'size', '5cm'), assets)).toContain('尺寸：长 4.5cm → 5cm');
   });
 
   it('写明这次附上的图各是什么，以及对话模型能否看图', () => {

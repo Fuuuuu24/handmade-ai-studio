@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { newId } from '@/domain/util';
 import { newWork } from '@/domain/work';
 import { backdrop, result, task, viewTask } from '@/test/fixtures';
+import { queueHandoff } from '@/domain/work';
 import { dbNotice, dismissCleared, useTestDb, YijianDB } from './db';
 import {
   addUpload,
@@ -27,6 +28,11 @@ import {
   saveViewResult,
   saveWork,
   setPhotoKind,
+  claimHandoffs,
+  claimTaskNotices,
+  claimVerdicts,
+  getWork as readWork,
+  putTask,
 } from './repo';
 import { getSaveStatus, resetSaveStatus } from './save';
 
@@ -231,5 +237,37 @@ describe('数据库第 2 版（技术写法 13.6）', () => {
     expect(d.verno).toBe(2);
     expect(dbNotice()).toBeNull();
     d.close();
+  });
+});
+
+describe('交接与通知的认领（技术写法 13.12）：事务里先写先得', () => {
+  it('交接：取走排队的步骤并记下快照；再取就没有了', async () => {
+    const w = queueHandoff(queueHandoff(fresh(), 'product'), 'info');
+    await saveWork(w);
+    const facts = { 品类: { text: '耳饰' } };
+    const [a, b] = await Promise.all([claimHandoffs(w.id, facts, 5), claimHandoffs(w.id, facts, 6)]);
+    expect([...a, ...b]).toEqual(['product', 'info']);
+    expect(await readWork(w.id)).toMatchObject({ pendingHandoffs: [], lastHandoff: { step: 'info', facts } });
+    expect(await claimHandoffs(w.id, facts)).toEqual([]);
+  });
+
+  it('生成通知：只认领结束了还没通知的；两个标签页同时认领只有一个拿到', async () => {
+    const w = fresh();
+    const t1 = { ...task(w.id, 1, 0, 'succeeded'), notifiedAt: null };
+    const t2 = { ...task(w.id, 1, 1, 'failed'), notifiedAt: 3 };
+    const t3 = task(w.id, 1, 0, 'running', 2);
+    for (const t of [t1, t2, t3]) await putTask(t);
+    const [a, b] = await Promise.all([claimTaskNotices([t1.id, t2.id, t3.id], 9), claimTaskNotices([t1.id, t2.id, t3.id], 9)]);
+    expect([...a, ...b]).toEqual([t1.id]);
+  });
+
+  it('验收通知：内容变了才认领', async () => {
+    const w = fresh();
+    const t = task(w.id, 1, 0, 'succeeded');
+    const r = { ...result(w.id, 1, 0), taskId: t.id };
+    await saveResult(t, r, new Blob([new Uint8Array(3)]));
+    expect(await claimVerdicts([{ id: r.id, key: 'ok/ok//' }])).toEqual([r.id]);
+    expect(await claimVerdicts([{ id: r.id, key: 'ok/ok//' }])).toEqual([]);
+    expect(await claimVerdicts([{ id: r.id, key: 'ok/bad//' }])).toEqual([r.id]);
   });
 });

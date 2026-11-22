@@ -12,7 +12,7 @@ import { BlockerList, PlanSummary } from '@/components/plan/plan-summary';
 import { PromptSection } from '@/components/plan/prompt-section';
 import { StyleRow } from '@/components/plan/style-row';
 import { useWorkspace } from '@/components/workspace/context';
-import { StepHead } from './canvas';
+import { NextStep, StepHead } from './canvas';
 import JellyRadio from '@/components/bits/JellyRadio/JellyRadio';
 
 // 正在从某张结果修改（AC-09.4）：说明来源，可以取消、恢复修改前的方案。参考图仍是背景图和三视图（v0.6 取消房间参考）
@@ -97,6 +97,7 @@ export function PlacementStep() {
         <BlockerList kind="scene" />
         <ApproveButton kind="scene" />
       </section>
+      <NextStep step="placement" />
     </div>
   );
 }

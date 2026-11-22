@@ -24,3 +24,7 @@ export function withoutLastStep(m: AgentUIMessage): AgentUIMessage | null {
   const kept = m.parts.slice(0, Math.max(0, lastStepStart(m)));
   return kept.some(isToolUIPart) ? { ...m, parts: kept } : null;
 }
+
+// 用户在对话里说过的话（核对「你说的」用，BC-013）：浏览器代发的交接和通知不算用户原话（技术写法 13.12）
+export const userTextsOf = (messages: readonly AgentUIMessage[]) =>
+  messages.filter((m) => m.role === 'user' && !m.metadata?.system).flatMap((m) => m.parts.flatMap((p) => (p.type === 'text' ? [p.text] : [])));

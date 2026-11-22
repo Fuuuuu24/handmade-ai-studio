@@ -10,15 +10,20 @@ import { useWorkspace } from '@/components/workspace/context';
 
 interface Props {
   busy: boolean;
+  onDraftChange?: (empty: boolean) => void; // 输入框里有没有字：有字时先不代发交接和通知，免得打断用户
   onSend: (text: string) => void;
   onFiles: (files: File[], text: string) => Promise<void>;
   onStop: () => void;
 }
 
 // 对话输入框（React Bits Prompt Bar）：文字、「＋」上传照片、「/」命令、切换对话模型和生图模型（AC-08.7、AC-11.8）
-export function Composer({ busy, onSend, onFiles, onStop }: Props) {
+export function Composer({ busy, onDraftChange, onSend, onFiles, onStop }: Props) {
   const { ctx, config, configError, workId } = useWorkspace();
-  const [text, setText] = useState('');
+  const [text, setTextState] = useState('');
+  const setText = (v: string) => {
+    setTextState(v);
+    onDraftChange?.(!v.trim());
+  };
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { work } = ctx;

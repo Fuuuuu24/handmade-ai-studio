@@ -25,7 +25,7 @@ import { useConfirm } from '@/components/ui/dialog';
 import { DraftTextarea } from '@/components/ui/draft-field';
 import { useToast } from '@/components/ui/toast';
 import { useWorkspace } from '@/components/workspace/context';
-import { StepHead } from './canvas';
+import { NextStep, StepHead } from './canvas';
 import RefineFrame from '@/components/bits/RefineFrame/RefineFrame';
 
 const PARTS: [keyof StorySummary, string, string][] = [
@@ -429,6 +429,7 @@ export function BackdropStep() {
           <Candidates locked={lockPick} />
         </>
       )}
+      <NextStep step="backdrop" />
     </div>
   );
 }

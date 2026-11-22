@@ -42,11 +42,22 @@ async function approveBy(slider: Locator) {
   await slider.press('End');
 }
 
+// 发一句话。浏览器会在小间空闲时代发交接和通知（技术写法 13.12），先等它回完再发；发出后确认这句出现在对话里
 async function say(page: Page, text: string) {
   const box = chat(page).getByRole('textbox', { name: '和小间说' });
-  await box.fill(text);
-  await box.press('Enter');
-  await expect(chat(page).getByRole('button', { name: '发送' })).toBeVisible({ timeout: 30_000 });
+  const send = chat(page).getByRole('button', { name: '发送' });
+  for (let i = 0; ; i++) {
+    await expect(send).toBeVisible({ timeout: 30_000 });
+    await box.fill(text);
+    await box.press('Enter');
+    try {
+      await expect(chat(page).getByText(text, { exact: true }).last()).toBeVisible({ timeout: 3000 });
+      break;
+    } catch (e) {
+      if (i >= 2) throw e;
+    }
+  }
+  await expect(send).toBeVisible({ timeout: 30_000 });
 }
 
 // 从首页开始（流程一）：只说一句话
@@ -318,6 +329,10 @@ test.describe('摆放与合成（PRD FR-07—FR-10，技术写法 13.5）', () =
     await c1.getByRole('button', { name: '从这一版修改' }).click();
     await expect(canvas(page).getByRole('heading', { name: '摆放', level: 2 })).toBeVisible();
     await expect(canvas(page).getByText(/正在修改第 1 轮候选 1/)).toBeVisible();
+
+    // 生成完成和两项验收都告诉了小间（AC-11.3a、AC-11.3c）
+    await expect(chat(page).getByText('通知：候选 · 已告诉小间').first()).toBeVisible({ timeout: 30_000 });
+    await expect(chat(page).getByText('通知：验收 · 已告诉小间').first()).toBeVisible({ timeout: 30_000 });
   });
 
   test('部分失败：成功的那张保留，失败的可以补齐（AC-08.5）', async ({ page }) => {
@@ -338,5 +353,31 @@ test.describe('摆放与合成（PRD FR-07—FR-10，技术写法 13.5）', () =
     await expect(canvas(page).getByRole('img', { name: /^候选 \d$/ })).toHaveCount(1, { timeout: 60_000 });
     await canvas(page).getByRole('button', { name: '补齐这一张' }).click();
     await expect(canvas(page).getByRole('img', { name: /^候选 \d$/ })).toHaveCount(2, { timeout: 60_000 });
+  });
+});
+
+test.describe('小间跟上画布（PRD AC-11.3a—c，技术写法 13.12）', () => {
+  test('三视图生成完成告诉小间；做完一步画布不自己跳走；点「下一步」把这一页交接给小间、画布切到下一步', async ({ page }) => {
+    await startHome(page);
+    await uploadAngles(page);
+    // 三视图没确认时「下一步」不能点，写明缺什么
+    await expect(canvas(page).getByRole('button', { name: '下一步：信息' })).toBeDisabled();
+    await expect(canvas(page).getByText('正面、侧面、背面的三视图还没确认')).toBeVisible();
+
+    await canvas(page).getByRole('button', { name: '生成三视图' }).click();
+    await expect(chat(page).getByText('通知：三视图 · 已告诉小间')).toBeVisible({ timeout: 60_000 });
+    await expect(chat(page).getByText(/我理解的现状：收到「三视图」的通知/)).toBeVisible();
+    for (const name of ANGLES) await confirmView(page, name);
+    await expect(step(page, '商品')).toHaveAccessibleName(/完成/);
+    await expect(canvas(page).getByRole('heading', { name: '商品', level: 2 })).toBeVisible();
+
+    await canvas(page).getByRole('button', { name: '下一步：信息' }).click();
+    await expect(canvas(page).getByRole('heading', { name: '信息', level: 2 })).toBeVisible();
+    const note = chat(page).getByText('交接：商品 · 已告诉小间');
+    await expect(note).toBeVisible({ timeout: 30_000 });
+    await expect(chat(page).getByText(/我理解的现状：收到「商品」的交接/)).toBeVisible();
+    // 小卡片展开能看到交接的内容
+    await note.click();
+    await expect(chat(page).getByText(/三视图：正面已确认、侧面已确认、背面已确认/)).toBeVisible();
   });
 });
