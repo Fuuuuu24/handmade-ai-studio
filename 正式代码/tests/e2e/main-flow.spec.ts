@@ -381,3 +381,36 @@ test.describe('小间跟上画布（PRD AC-11.3a—c，技术写法 13.12）', (
     await expect(chat(page).getByText(/三视图：正面已确认、侧面已确认、背面已确认/)).toBeVisible();
   });
 });
+
+test.describe('流程二（PRD 5.2）', () => {
+  test('流程二主线：套用模板 → 交接背景 → 商品 → 信息 → 换一张模板 → 摆放 → 批准 → 合成两张', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: '套用「雨后清晨」' }).click();
+    await page.waitForURL(/\/works\/work_/);
+    await expect(chat(page).getByRole('button', { name: '发送' })).toBeVisible({ timeout: 30_000 });
+    // 背景一进来就完成；从背景交接，画布切到商品
+    await step(page, '背景').click();
+    await canvas(page).getByRole('button', { name: '下一步：商品' }).click();
+    await expect(canvas(page).getByRole('heading', { name: '商品', level: 2 })).toBeVisible();
+    await expect(chat(page).getByText('交接：背景 · 已告诉小间')).toBeVisible({ timeout: 30_000 });
+
+    await uploadAngles(page);
+    await canvas(page).getByRole('button', { name: '生成三视图' }).click();
+    for (const name of ANGLES) await confirmView(page, name);
+    await acceptInfo(page);
+
+    // 背景这一步可以换一张模板（AC-06.6）
+    await step(page, '背景').click();
+    await canvas(page).getByRole('button', { name: /午后书桌/ }).click();
+    await expect(canvas(page).getByRole('button', { name: /午后书桌/ })).toHaveAttribute('aria-pressed', 'true');
+
+    await say(page, '平铺就好【测试：摆放】【测试：提示词】【测试：批准】');
+    const card = chat(page).getByText('确认这版方案').locator('xpath=ancestor::div[contains(@class,"rounded-[14px]")]');
+    await approveBy(card.getByRole('slider', { name: /滑动批准并生成两张/ }));
+    await expect(canvas(page).getByText(/背景「午后书桌」/).first()).toBeVisible();
+    await expect(canvas(page).getByRole('img', { name: '候选 1' })).toBeVisible({ timeout: 60_000 });
+    await expect(canvas(page).getByRole('img', { name: '候选 2' })).toBeVisible({ timeout: 60_000 });
+    // 流程二只批准一次（合成）；顶栏顺序仍是背景在前
+    await expect(page.getByRole('navigation', { name: '流程进度' }).getByRole('button').first()).toHaveAccessibleName(/^背景/);
+  });
+});
