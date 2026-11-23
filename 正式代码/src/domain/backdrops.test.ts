@@ -33,11 +33,13 @@ describe('背景图与模板库（PRD FR-06）', () => {
     expect(backdropDone(w, refOfBackdrop(backdrop('other', 1, 0, { savedAt: 1 })))).toBe(true);
   });
 
-  it('小间只能选内置或已沉淀、没删除的；候选只能用户点（技术写法 13.7）', () => {
-    expect(agentPickProblem(refOfBuiltin(BUILTIN), BUILTIN)).toBeNull();
-    expect(agentPickProblem(null, 'bd_x')).toBe('没有编号为 bd_x 的背景图');
-    expect(agentPickProblem(refOfBackdrop(backdrop('w', 1, 0)), 'x')).toContain('选哪张要由用户在画布上点「用这张」');
-    expect(agentPickProblem(refOfBackdrop(backdrop('w', 1, 0, { savedAt: 1, deletedAt: 2 })), 'x')).toBe('这张背景图已经从模板库删除，不能再选');
+  it('use_backdrop 只能选内置或已沉淀、没删除的；这件作品的候选要先问用户（技术写法 14.4）', () => {
+    expect(agentPickProblem(refOfBuiltin(BUILTIN), BUILTIN, 'w')).toBeNull();
+    expect(agentPickProblem(null, 'bd_x', 'w')).toBe('没有编号为 bd_x 的背景图');
+    // 这件作品的候选：先问用户再代点（技术写法 14.4）；别的作品没沉淀的选不了
+    expect(agentPickProblem(refOfBackdrop(backdrop('w', 1, 0)), 'x', 'w')).toContain('用 ask_confirm（pick_backdrop）问用户');
+    expect(agentPickProblem(refOfBackdrop(backdrop('other', 1, 0)), 'x', 'w')).toBe('这张背景图还没沉淀进模板库，不能选');
+    expect(agentPickProblem(refOfBackdrop(backdrop('w', 1, 0, { savedAt: 1, deletedAt: 2 })), 'x', 'w')).toBe('这张背景图已经从模板库删除，不能再选');
   });
 
   it('用户能选模板库里的和这件作品的候选；删掉的不能再被新选，但正在用的照常（AC-06.4）', () => {

@@ -7,7 +7,7 @@ import { BUDGET } from '@/config/budget';
 import { INFO_KEYS } from '@/config/info';
 import { backdropBasisOf } from '@/domain/snapshot';
 import type { Asset, Work, WorkState } from '@/domain/types';
-import { approveScene, chooseBackdrop, confirmSummary, draftSummary, editSummary, reviseFrom, setRatio, startSceneRound, suggestInfo, writePrompt } from '@/domain/work';
+import { approveScene, chooseBackdrop, confirmSummary, draftSummary, editSummary, openAsk, reviseFrom, setRatio, startSceneRound, suggestInfo, writePrompt } from '@/domain/work';
 import { backdrop, backdropPromptedWork, backdropWork, currentBasis, product, promptedWork, readyWork, result, stateOf, task, upload, view } from '@/test/fixtures';
 import { factsOf } from '@/domain/handoff';
 import { setInfo } from '@/domain/work';
@@ -31,7 +31,8 @@ describe('stateSummary（技术写法 13.12）', () => {
     const side = upload(w.id, 'side');
     const unsorted = upload(w.id, 'unsorted');
     const text = summarize(w, [front, side, unsorted, view(front, { confirmed: false })]);
-    expect(text).toContain('照片：正面有、侧面有、背面缺；细节 0 张；未分类 1 张，要用户在「商品」里选类型（你可以建议，不能代选）');
+    expect(text).toContain('照片：正面有、侧面有、背面缺；细节 0 张；未分类 1 张，看照片用 set_photo_kind 选好类型，看不出就问用户');
+    expect(text).toContain(`照片编号：1. ${front.id}（正面）；2. ${side.id}（侧面）；3. ${unsorted.id}（未分类）`);
     expect(text).toContain('三视图：正面待用户对照原图确认；侧面还没生成；背面缺照片');
     const all = product(w.id);
     expect(summarize(w, all)).toContain('三视图：正面已确认；侧面已确认；背面已确认');
@@ -89,11 +90,11 @@ describe('stateSummary（技术写法 13.12）', () => {
     expect(text).toContain('- 色调：雨后苔绿（用户在画布上改的）');
     expect(text).toContain('背景提示词：有效');
     expect(text).toContain(`背景 1：已生成（${cands[0].id}）`);
-    expect(text).toContain('选哪张要用户在画布上点「用这张」，你不能代选');
+    expect(text).toContain('选哪张要用户看过图决定（图里不能有饰品）：他在画布上点「用这张」，或你用 ask_confirm（pick_backdrop）问过、他同意后代点');
     expect(text).toContain('背景批准前还缺：无，可以请用户批准（request_approval，kind=backdrop）');
     const picked = chooseBackdrop(w, refOfBackdrop(cands[1]));
     const after = summarize(picked, [], { backdrops: cands, backdrop: refOfBackdrop(cands[1]) });
-    expect(after).toContain('（背景图已选定，以背景图的参数为准，不能改；想改要用户先点「重新设计背景」）');
+    expect(after).toContain('（背景图已选定，以背景图的参数为准，不能改；想改先用 redesign_backdrop 放开）');
     expect(after).toContain('选定的背景图：第 1 轮背景 2');
     expect(after).not.toContain('背景批准前还缺');
   });
@@ -162,5 +163,14 @@ describe('stateSummary（技术写法 13.12）', () => {
     const text = summarize(work, assets, {}, { photoLabels: ['正面三视图', '选定的背景图「雨后清晨」'] });
     expect(text).toContain('这次附上的图：1. 正面三视图；2. 选定的背景图「雨后清晨」');
     expect(text).toContain('当前对话模型：Qwen 3.8 Flash（能看图）');
+  });
+
+  it('在等用户回复的「要我替你点吗」写进状态；作品没起名时提示起名（技术写法 14.4、14.3）', () => {
+    const { work, assets } = readyWork();
+    const item = { action: { type: 'confirm_summary' as const }, text: '确认共创总结：表达「雨后」', target: null, mark: '' };
+    const text = summarize(openAsk(work, 'call_1', [item]), assets);
+    expect(text).toContain('在等用户回复的「要我替你点吗」：1. 确认共创总结：表达「雨后」。用户同意后用 confirm_for_user 代点；他没同意就不要点');
+    expect(text).toContain('作品：未命名作品（还没起名，品类清楚后用 rename_work 起一个）');
+    expect(summarize(work, assets)).not.toContain('在等用户回复');
   });
 });

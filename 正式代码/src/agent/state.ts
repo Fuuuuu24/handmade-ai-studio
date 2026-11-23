@@ -21,6 +21,7 @@ import {
   type ApprovalStatus,
   type PromptStatus,
 } from '@/domain/approval';
+import { waitingAsk } from '@/domain/asks';
 import { activeUploads, angleStates } from '@/domain/assets';
 import { backdropCandidates, paramsText } from '@/domain/backdrops';
 import { changeText, diffFacts, factsOf } from '@/domain/handoff';
@@ -76,8 +77,9 @@ function approvalText(name: string, status: ApprovalStatus, a: { version: number
   if (status.kind === 'stale') return `${name}：第 ${a.version} 版已失效，批准后改了：${status.changed.join('、')}`;
   // 用户可能在小间回复的同时批准并开始了生成：说清楚是这版方案在生成，不要再请用户批准（BC-009）
   if (phase === 'generating') return `${name}：用户已经批准了第 ${a.version} 版，第 ${a.usedRound} 轮正在生成；不需要再请用户批准`;
-  if (phase === 'used') return `${name}：第 ${a.version} 版有效，已用于第 ${a.usedRound} 轮；要按同一方案再生成，需要用户在「${where}」里再批准一次`;
-  return `${name}：第 ${a.version} 版有效，还没生成`;
+  if (phase === 'used') return `${name}：第 ${a.version} 版有效，已用于第 ${a.usedRound} 轮；要按同一方案再生成，需要用户在「${where}」里再滑一次「批准并生成」`;
+  // 批准了却没发起（发起时被挡住了）：批准和生成是同一下，用户再滑一次就是新的一版（技术写法 14.6）
+  return `${name}：第 ${a.version} 版有效，还没生成；请用户在「${where}」里再滑一次「批准并生成」`;
 }
 
 export function stateSummary(i: SummaryInput): string {
@@ -102,7 +104,7 @@ export function stateSummary(i: SummaryInput): string {
   const count = (k: keyof typeof ASSET_KINDS) => uploads.filter((a) => a.kind === k).length;
   lines.push(
     uploads.length
-      ? `照片：${angles.map((s) => `${VIEW_NAMES[s.angle]}${s.photo ? '有' : '缺'}`).join('、')}；细节 ${count('detail')} 张${count('unsorted') ? `；未分类 ${count('unsorted')} 张，要用户在「商品」里选类型（你可以建议，不能代选）` : ''}`
+      ? `照片：${angles.map((s) => `${VIEW_NAMES[s.angle]}${s.photo ? '有' : '缺'}`).join('、')}；细节 ${count('detail')} 张${count('unsorted') ? `；未分类 ${count('unsorted')} 张，看照片用 set_photo_kind 选好类型，看不出就问用户` : ''}`
       : '照片：还没有，请用户上传正面、侧面、背面三张照片（可以另传细节照）',
   );
   if (uploads.length) lines.push(`照片编号：${uploads.map((a, n) => `${n + 1}. ${a.id}（${ASSET_KINDS[a.kind]}）`).join('；')}`);
@@ -114,7 +116,7 @@ export function stateSummary(i: SummaryInput): string {
     if (!s.view) return `${name}${s.failed ? `没生成出来（${s.failed}）` : '还没生成'}`;
     return `${name}${s.view.confirmed ? '已确认' : '待用户对照原图确认'}${failed}`;
   });
-  lines.push(`三视图：${viewText.join('；')}。三张都确认，商品这一步才完成；生成要用户点按钮，你只能用 propose_views 放卡片`);
+  lines.push(`三视图：${viewText.join('；')}。三张都确认，商品这一步才完成；生成要用户点按钮，你只能用 propose_views 放卡片；确认要用户对照原图看过，你问过、他同意后可以代点`);
 
   /* ---------- 信息 ---------- */
   lines.push('商品信息：');
@@ -127,7 +129,7 @@ export function stateSummary(i: SummaryInput): string {
 
   /* ---------- 背景 ---------- */
   const mode = BACKDROP_MODE_NAMES[work.backdropMode ?? 'library'];
-  lines.push(work.backdropMode ? `背景做法：${mode}` : '背景做法：还没选（请用户在「背景」里选：用模板库里的，或自己生成）');
+  lines.push(work.backdropMode ? `背景做法：${mode}` : '背景做法：还没选（问用户用模板库里的还是自己生成，他说了用 set_backdrop_mode 选好）');
   const bd = i.backdrop;
   if (bd) {
     const from = bd.builtin ? '内置模板' : bd.workId === work.id ? '这件作品生成的' : '模板库里别的作品沉淀的';
@@ -152,7 +154,7 @@ export function stateSummary(i: SummaryInput): string {
   }
   if (work.backdropMode === 'generate') {
     if (styleLagsSummary(work)) lines.push('注意：你推荐风格之后，共创总结改过了；按新总结检查背景风格，需要时用 set_style 调整并说明理由');
-    lines.push(`背景风格${work.backdropId ? '（背景图已选定，以背景图的参数为准，不能改；想改要用户先点「重新设计背景」）' : ''}：`);
+    lines.push(`背景风格${work.backdropId ? '（背景图已选定，以背景图的参数为准，不能改；想改先用 redesign_backdrop 放开）' : ''}：`);
     for (const k of BACKDROP_KEYS) lines.push(styleLine(i, k));
     const round = work.backdropRound;
     if (round > 0) {
@@ -164,7 +166,9 @@ export function stateSummary(i: SummaryInput): string {
         const lastFail = lastSlotTask(i.tasks, work.id, 'backdrop', round, s);
         return `背景 ${s + 1}：${{ empty: '未开始', active: '生成中', succeeded: '已完成', failed: `失败（${lastFail?.error ?? '原因未知'}）` }[st]}`;
       });
-      lines.push(`第 ${round} 轮背景：${slots.join('；')}${cands.length && !work.backdropId ? '。选哪张要用户在画布上点「用这张」，你不能代选；图里不能有饰品，请用户把关' : ''}`);
+      lines.push(
+        `第 ${round} 轮背景：${slots.join('；')}${cands.length && !work.backdropId ? '。选哪张要用户看过图决定（图里不能有饰品）：他在画布上点「用这张」，或你用 ask_confirm（pick_backdrop）问过、他同意后代点' : ''}`,
+      );
     }
     lines.push(`背景提示词：${promptText(backdropPromptStatus(work, i.backdropBasis), '背景提示词')}`);
     const wait = backdropPromptWriteBlocker(work);
@@ -202,7 +206,7 @@ export function stateSummary(i: SummaryInput): string {
     const bs = sceneApprovalBlockers(i);
     lines.push(`合成批准前还缺：${bs.length ? bs.map((b) => b.text).join('；') : '无，可以请用户批准（request_approval，kind=scene）'}`);
     const reminders = approvalReminders(work);
-    if (reminders.length) lines.push(`批准前提醒（不挡批准）：${reminders.map((b) => b.text).join('；')}；请用户在信息页接受或忽略`);
+    if (reminders.length) lines.push(`批准前提醒（不挡批准）：${reminders.map((b) => b.text).join('；')}；请用户处理（在「信息」里接受或忽略，或你问过、他同意后代点）`);
   }
 
   /* ---------- 出图 ---------- */
@@ -224,6 +228,9 @@ export function stateSummary(i: SummaryInput): string {
     lines.push('合成：还没有生成');
   }
 
+  // 在等用户回复的「要我替你点吗」（技术写法 14.4）：用户回复同意后用 confirm_for_user 代点
+  const ask = waitingAsk(work);
+  if (ask) lines.push(`在等用户回复的「要我替你点吗」：${ask.items.map((it, n) => `${n + 1}. ${it.text}`).join('；')}。用户同意后用 confirm_for_user 代点；他没同意就不要点`);
   lines.push(libraryLine(i.library));
   if (i.photoLabels?.length) lines.push(`这次附上的图：${i.photoLabels.map((l, n) => `${n + 1}. ${l}`).join('；')}`);
   if (i.missingPhotos?.length) lines.push(`本地读不出来、没附上的图：${i.missingPhotos.join('；')}`);

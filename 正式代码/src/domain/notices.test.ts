@@ -16,7 +16,7 @@ describe('生成通知（PRD AC-11.3c，技术写法 13.12）', () => {
     const c = done(viewTask(w.id, 'side', 'p2', 'failed'), { error: '内容被拦截' });
     const batches = pendingNotices(stateOf(w, [], { tasks: [a, c, { ...done(viewTask(w.id, 'back', 'p3', 'succeeded')), notifiedAt: 5 }] }));
     expect(batches).toEqual([{ kind: 'view', tasks: [a, c] }]);
-    expect(noticeText(stateOf(w), batches[0])).toBe('【通知：三视图】正面生成好了，待用户对照原图确认；侧面没生成出来（内容被拦截）。三视图对不对由用户逐张对照原图确认，不像的可以单独重做。');
+    expect(noticeText(stateOf(w), batches[0])).toBe('【通知：三视图】正面生成好了，待用户对照原图确认；侧面没生成出来（内容被拦截）。三视图要用户对照原图看：他觉得可以用，问他要不要替他点「可以用」（ask_confirm）；不像的可以单独重做。');
   });
 
   it('背景、候选按轮次：那一轮两张都有结果（含部分失败）才发；文字按整轮现在的样子写', () => {
@@ -28,13 +28,13 @@ describe('生成通知（PRD AC-11.3c，技术写法 13.12）', () => {
     const [batch] = pendingNotices(stateOf(w, [], { tasks: [t0, f1] }));
     expect(batch).toMatchObject({ kind: 'backdrop', round: 1 });
     expect(noticeText(stateOf(w, [], { tasks: [t0, f1], backdrops: [b0] }), batch)).toBe(
-      `【通知：背景图】第 1 轮：背景 1 生成好了（${b0.id}）；背景 2 没生成出来（超时），可以补齐。选哪张要用户在画布上点「用这张」，图里不能有饰品，请用户把关。`,
+      `【通知：背景图】第 1 轮：背景 1 生成好了（${b0.id}）；背景 2 没生成出来（超时），可以补齐。选哪张要用户看过图决定，图里不能有饰品，请他把关：他在画布上点「用这张」，或你问过、他同意后代点。`,
     );
     const s0 = done(task(w.id, 2, 0, 'succeeded'));
     const s1 = done(task(w.id, 2, 1, 'succeeded'));
     const r = [result(w.id, 2, 0), result(w.id, 2, 1)];
     const [scene] = pendingNotices(stateOf(w, [], { tasks: [s0, s1], results: r }));
-    expect(noticeText(stateOf(w, [], { tasks: [s0, s1], results: r }), scene)).toBe('【通知：候选】第 2 轮：候选 1 生成好了；候选 2 生成好了。两项验收要用户自己点。');
+    expect(noticeText(stateOf(w, [], { tasks: [s0, s1], results: r }), scene)).toBe('【通知：候选】第 2 轮：候选 1 生成好了；候选 2 生成好了。两项验收要用户看过图判断：他在画布上点，或你问过、他同意后代点。');
   });
 
   it('补齐后又失败：通知写最后一次的原因，不看任务在数组里的顺序（评审第 11 条）', () => {
@@ -72,7 +72,7 @@ describe('验收通知', () => {
     expect(pendingVerdicts(stateOf(w, [], { results: [{ ...sent, issues: ['轮廓', '颜色'] }] }), 9000, 6000).ready).toHaveLength(1);
     const half = { ...result(w.id, 1, 1, { real: 'ok', style: 'none' }), verdictAt: 0 };
     expect(pendingVerdicts(stateOf(w, [], { results: [half] }), 9000, 6000).ready).toEqual([]);
-    expect(verdictText(r)).toBe('【通知：验收】第 1 轮候选 1：像不像实物：不像；风格对不对：对；问题：轮廓；用户说：链子变长了。验收只由用户点，你不能替用户改。');
+    expect(verdictText(r)).toBe('【通知：验收】第 1 轮候选 1：像不像实物：不像；风格对不对：对；问题：轮廓；用户说：链子变长了。这是用户的判断，不要自己改；要改先问他。');
     expect(verdictText({ ...r, verdict: { real: 'ok', style: 'ok' }, issues: [], note: '' })).toContain('两项都满意，可以放下载卡片');
   });
 });

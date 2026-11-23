@@ -33,4 +33,11 @@ describe('假对话模型（只给开发和测试用）', () => {
       expect(schema.safeParse(input).success, mark).toBe(true);
     }
   });
+
+  it('用户回「同意」时照抄原话代点；占位编号从作品状态里取（技术写法 14）', () => {
+    expect(fakeTurn([user('同意')]).calls).toEqual([{ tool: 'confirm_for_user', input: { quote: '同意' } }]);
+    const system = { role: 'system' as const, content: '照片编号：1. asset_a（正面）；2. asset_b（未分类）\n模板库里可选的背景图（use_backdrop 用编号）：bd_x 苔绿晨光（用户沉淀的；色调「苔绿」）；builtin:moss@1 雨后清晨（内置模板）' };
+    expect(fakeTurn([system, user('删掉它【测试：删背景】')]).calls).toEqual([{ tool: 'request_delete', input: { target: 'backdrop', id: 'bd_x' } }]);
+    expect(fakeTurn([system, user('这张是正面【测试：设成正面】')]).calls[0].input).toEqual({ assetId: 'asset_b', kind: 'front' });
+  });
 });

@@ -2,20 +2,23 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { executeTool } from '@/agent/executors';
+import { executeTool, type ExecDeps } from '@/agent/executors';
 import type { AgentUIMessage, ToolName } from '@/agent/tools';
 import { BUDGET } from '@/config/budget';
 import type { StepId } from '@/config/steps';
 import { errorText } from '@/client/api';
 import { hasHeld, queueDue, sendQueued, setFirstPhotos, takeFirstPhotos, type QueuedMessage } from '@/client/agent-queue';
 import { chatErrorMessage, chatRequestBody } from '@/client/chat-body';
-import { turnProblem, userTextsOf, withoutLastStep, type TurnProblem } from '@/client/chat-turn';
+import { closeDanglingCalls, pendingToolCall, turnProblem, userTextsAfterCall, userTextsOf, withoutLastStep, type TurnProblem } from '@/client/chat-turn';
 import { takeFirstMessage } from '@/client/first-message';
 import { addPhotos } from '@/client/uploads';
 import { loadMessages, saveMessages } from '@/data/repo';
 import { mutateWork } from '@/client/work-store';
 import { addCost } from '@/domain/work';
+import { useConfirm } from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/toast';
 import { useWorkspace } from '@/components/workspace/context';
 import { Composer } from './composer';
 import { MessageView } from './message-view';
@@ -35,14 +38,15 @@ interface Props {
   onUserSend: () => void; // 用户发了消息：画布跟回当前步骤
 }
 
-// 每次挂载都从本地数据库读最新的对话，再交给对话会话；不用上层缓存的旧记录，避免把旧记录写回去覆盖新内容
+// 每次挂载都从本地数据库读最新的对话，再交给对话会话；不用上层缓存的旧记录，避免把旧记录写回去覆盖新内容。
+// 中途停下留下的没结果的工具调用补上结果，不然下一次请求会出错（技术写法 14.5）
 export function ChatPanel(props: Props) {
   const { workId } = useWorkspace();
   const [loaded, setLoaded] = useState<{ workId: string; messages: AgentUIMessage[] } | { workId: string; error: string } | null>(null);
   useEffect(() => {
     let live = true;
     loadMessages(workId).then(
-      (messages) => live && setLoaded({ workId, messages: messages as AgentUIMessage[] }),
+      (messages) => live && setLoaded({ workId, messages: closeDanglingCalls(messages as AgentUIMessage[]) }),
       (e: unknown) => live && setLoaded({ workId, error: e instanceof Error ? e.message : String(e) }),
     );
     return () => {
@@ -71,8 +75,15 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   const [userStopped, setUserStopped] = useState(false);
   const [notes, setNotes] = useState<string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
-  // 用户发过的文字，执行器核对「你说的」用（BC-013）；工具在回复中途执行，这时对话还没存进数据库
+  // 用户发过的文字，执行器核对「你说的」用（BC-013）；工具在回复中途执行，这时对话还没存进数据库。
+  // 整段对话也留一份：代点时核对同意的原话，只认问过之后用户说的（技术写法 14.4）
   const userTextsRef = useRef<string[]>([]);
+  const messagesRef = useRef<AgentUIMessage[]>(initialMessages);
+  // 小间发起的「删除这件作品」用户确认了：回作品页，这段对话不再保存、不再继续（技术写法 14.5）
+  const leavingRef = useRef(false);
+  const confirm = useConfirm();
+  const toast = useToast();
+  const router = useRouter();
 
   // 生成通知附的结果图排在附图最前面（技术写法 13.9）：发通知前放进 agent-queue，请求时取走
   const transport = useMemo(
@@ -97,14 +108,28 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
     // 对话花费累加进作品（试用记录的累计成本）；中止或出错的请求没有结束信息，服务端账本仍按估价记全
     onFinish({ message, isAbort, isError }) {
       const cost = message.metadata?.costUSD;
-      if (isAbort || isError || !cost) return;
+      // 作品已经删了：这一轮的花费记不进作品了（服务端账本照常记）
+      if (isAbort || isError || !cost || leavingRef.current) return;
       void mutateWork(workId, (c) => addCost(c.work, cost)).catch((e) => console.error('对话花费没记上', e));
     },
     async onToolCall({ toolCall }) {
       if (toolCall.dynamic) return;
       const name = toolCall.toolName as ToolName;
+      const deps: ExecDeps = {
+        showStep: onShowStep,
+        userTexts: () => userTextsRef.current,
+        userTextsAfter: (callId) => userTextsAfterCall(messagesRef.current, callId),
+        // 删除、停用、替换：弹出和画布上同一个确认框，用户点完才往下走（工具执行期间对话一直是「回复中」）
+        confirm,
+        leave: () => {
+          leavingRef.current = true;
+          toast(`已删除「${ctx.work.name}」`);
+          router.push('/works');
+        },
+      };
       try {
-        const output = await executeTool(workId, name, toolCall.input, { showStep: onShowStep, userTexts: () => userTextsRef.current });
+        const output = await executeTool(workId, name, toolCall.input, deps, toolCall.toolCallId);
+        if (leavingRef.current) return;
         void addToolOutput({ tool: name, toolCallId: toolCall.toolCallId, output });
       } catch (e) {
         void addToolOutput({ tool: name, toolCallId: toolCall.toolCallId, state: 'output-error', errorText: errorText(e) });
@@ -125,13 +150,15 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
 
   useEffect(() => {
     userTextsRef.current = userTextsOf(messages);
+    messagesRef.current = messages;
   }, [messages]);
 
   // 小间跟上画布（技术写法 13.12）：空闲时把排队的「下一步」交接、生成通知、验收通知合成一条代用户发出。
-  // 空闲和自动续步用同一个条件；上一轮出错、撞上单轮上限或用户正在打字时先不发
+  // 空闲和自动续步用同一个条件；上一轮出错、撞上单轮上限、有工具调用还没结果（技术写法 14.5）或用户正在打字时先不发
   const [draftEmpty, setDraftEmpty] = useState(true);
   const [queueTick, setQueueTick] = useState(0);
-  const idle = status === 'ready' && !lastAssistantMessageIsCompleteWithToolCalls({ messages }) && !error && !capHit && !problem && draftEmpty;
+  const idle =
+    status === 'ready' && !lastAssistantMessageIsCompleteWithToolCalls({ messages }) && !pendingToolCall(messages) && !error && !capHit && !problem && draftEmpty;
   // 取到消息那一刻对话还空不空闲（评审第 4 条）：提交时就记下，卸载时记为不空闲；不空闲时取到的消息先留着
   const idleRef = useRef(false);
   useLayoutEffect(() => {
@@ -177,6 +204,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   // 一轮结束（或出错）时保存对话，含工具调用记录（AC-11.4）；和读出来时一样就不写
   useEffect(() => {
     if (status !== 'ready' && status !== 'error') return;
+    if (leavingRef.current) return; // 作品已删除，对话跟着删了，不再写回
     const json = JSON.stringify(messages);
     if (json === savedRef.current) return;
     savedRef.current = json;

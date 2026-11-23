@@ -200,15 +200,11 @@ function approveAndLaunch<K extends RoundKind>(kind: K, workId: Id): Promise<Gen
 export const approveAndGenerateBackdrop = (workId: Id) => approveAndLaunch('backdrop', workId);
 export const approveAndGenerate = (workId: Id) => approveAndLaunch('scene', workId);
 
-// 小间的 start_backdrop_generation／start_generation：只在已有有效且未用过的批准时执行
-export const startBackdropGeneration = (workId: Id) => serial(workId, () => launch('backdrop', workId, null));
-export const startGeneration = (workId: Id) => serial(workId, () => launch('scene', workId, null));
-
-// 发起一轮：fresh 是刚批准的；为空时用作品最近一次的批准
-async function launch<K extends RoundKind>(kind: K, workId: Id, fresh: ApprovalOf<K> | null): Promise<GenOutcome> {
+// 发起一轮（只跟在用户的批准后面：生成只能用户亲自点，小间没有发起生成的工具，技术写法 14.6）
+async function launch<K extends RoundKind>(kind: K, workId: Id, fresh: ApprovalOf<K>): Promise<GenOutcome> {
   const spec = specOf(kind);
   const ctx = await loadContext(workId);
-  const s = spec.start(ctx, fresh ?? spec.current(ctx));
+  const s = spec.start(ctx, fresh);
   if (!s.ok) return s;
   const tasks = slotsOf(kind).map((slot) => roundTask(workId, kind, s.approval, s.round, slot, 1));
   await saveApproval(s.work, s.approval);
@@ -220,23 +216,40 @@ async function launch<K extends RoundKind>(kind: K, workId: Id, fresh: ApprovalO
 
 /* ---------- 补齐 ---------- */
 
-// 补齐失败的一张（背景或合成）：能不能补看 retryCheck（别的种类在生成时不能补、次数有上限），和画布上的补齐按钮是同一套条件；
-// 沿用那一轮的批准，但批准必须仍然有效（PRD 4.2 第 1 条）
+// 补齐失败的一张（背景或合成）：只由用户点「补齐这一张」调用（画布上的，或小间放进对话的卡片上的，技术写法 14.6）。
+// 能不能补看 retryCheck（别的种类在生成时不能补、次数有上限），沿用那一轮的批准，但批准必须仍然有效（PRD 4.2 第 1 条）
 export function retrySlot(workId: Id, kind: RoundKind, round: number, slot: number): Promise<GenOutcome> {
   return serial(workId, () => retry(kind, workId, round, slot));
 }
 
-async function retry<K extends RoundKind>(kind: K, workId: Id, round: number, slot: number): Promise<GenOutcome> {
+type RetryPlan<K extends RoundKind> = { ok: true; approval: ApprovalOf<K>; attempt: number } | { ok: false; reason: string };
+
+// 这一张现在能不能补：retryCheck，加上那一轮的批准仍然有效（要读数据库）
+async function retryPlan<K extends RoundKind>(kind: K, workId: Id, round: number, slot: number): Promise<RetryPlan<K>> {
   const spec = specOf(kind);
   const ctx = await loadContext(workId);
   const check = retryCheck(ctx.tasks, workId, kind, round, slot);
-  if (!check.ok) return { ok: false, reasons: [check.reason] };
+  if (!check.ok) return check;
   const approval = await spec.load(lastSlotTask(ctx.tasks, workId, kind, round, slot)?.approvalId);
-  if (!approval || approval.usedRound !== round) return { ok: false, reasons: [spec.missing] };
-  if (!spec.valid(ctx, approval)) return { ok: false, reasons: [spec.changed] };
-  const task = roundTask(workId, kind, approval, round, slot, check.attempt);
+  if (!approval || approval.usedRound !== round) return { ok: false, reason: spec.missing };
+  if (!spec.valid(ctx, approval)) return { ok: false, reason: spec.changed };
+  return { ok: true, approval, attempt: check.attempt };
+}
+
+// 小间放「补齐这一张」卡片前先看能不能补（propose_retry，技术写法 14.6）；能补时为空。卡片上的按钮由用户点，走 retrySlot
+export async function retryProblem(workId: Id, kind: RoundKind, round: number, slot: number): Promise<string | null> {
+  const plan = await retryPlan(kind, workId, round, slot);
+  return plan.ok ? null : plan.reason;
+}
+
+async function retry<K extends RoundKind>(kind: K, workId: Id, round: number, slot: number): Promise<GenOutcome> {
+  const spec = specOf(kind);
+  const plan = await retryPlan(kind, workId, round, slot);
+  if (!plan.ok) return { ok: false, reasons: [plan.reason] };
+  const { approval, attempt } = plan;
+  const task = roundTask(workId, kind, approval, round, slot, attempt);
   await putTask(task);
-  void logEvent('retry', workId, { kind, round, slot, attempt: check.attempt });
+  void logEvent('retry', workId, { kind, round, slot, attempt });
   void submit(task, spec.request(approval));
   return { ok: true, round };
 }

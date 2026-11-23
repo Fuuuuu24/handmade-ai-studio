@@ -120,9 +120,12 @@ export function changeText(c: FactChange): string {
 const head = (step: HandoffStep) => `【交接：${STEP_NAMES[step]}】用户点了「下一步」，这是「${STEP_NAMES[step]}」这一页现在的内容（系统代发，不是用户原话）：`;
 
 // 交接消息：这一页填了什么、定了什么（技术写法 13.12 第 2 条）
-export function handoffText(s: WorkState, step: HandoffStep): string {
+export const handoffText = (s: WorkState, step: HandoffStep) => `${head(step)}\n${pageText(s, step)}`;
+
+// 这一页现在的内容，一行一项：交接消息和小间 next_step 的结果都用它（技术写法 14.7）
+export function pageText(s: WorkState, step: HandoffStep): string {
   const { work } = s;
-  const lines: string[] = [head(step)];
+  const lines: string[] = [];
   if (step === 'product') {
     const uploads = activeUploads(s.assets, work.id);
     const angles = VIEW_ANGLES.map((a) => angleState(s.assets, s.tasks, work.id, a));

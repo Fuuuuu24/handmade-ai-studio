@@ -1,6 +1,6 @@
 import { isBuiltinBackdrop } from '@/config/backdrops';
 import { maxRefsOf } from '@/config/models';
-import { getBackdrop, getBackdropApproval, getSceneApproval, getWork, listAssets, listResults, listTasks, listWorkBackdrops, saveWork } from '@/data/repo';
+import { deleteWork, getBackdrop, getBackdropApproval, getSceneApproval, getWork, listAssets, listResults, listTasks, listWorkBackdrops, logEvent, saveWork } from '@/data/repo';
 import { refOfBackdrop, refOfBuiltin } from '@/domain/backdrops';
 import { anyBusy, busyOf, type Busy } from '@/domain/generation';
 import { backdropBasisOf, backdropSnapshotOf, sceneBasisOf, sceneSnapshotOf } from '@/domain/snapshot';
@@ -79,4 +79,11 @@ export function mutateWork(workId: Id, fn: (ctx: WorkContext) => Work | Promise<
     if (next !== ctx.work) await saveWork(next);
     return next;
   });
+}
+
+// 删除作品：用户在确认框里点了「删除」之后（顶栏的删除按钮，或小间发起的 request_delete，PRD 4.2 第 5 条）。
+// 试用记录留一条带花费的删除记录，作品删了累计成本也不漏算
+export async function removeWork(work: Pick<Work, 'id' | 'costUSD'>): Promise<void> {
+  await deleteWork(work.id);
+  void logEvent('delete_work', undefined, { costUSD: work.costUSD });
 }

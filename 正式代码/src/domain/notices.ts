@@ -40,7 +40,7 @@ export function noticeText(s: WorkState, b: NoticeBatch): string {
   const { work } = s;
   if (b.kind === 'view') {
     const parts = b.tasks.map((t) => `${VIEW_NAMES[t.view!]}${t.status === 'succeeded' ? '生成好了，待用户对照原图确认' : `没生成出来（${t.error ?? '原因未知'}）`}`);
-    return `【通知：三视图】${parts.join('；')}。三视图对不对由用户逐张对照原图确认，不像的可以单独重做。`;
+    return `【通知：三视图】${parts.join('；')}。三视图要用户对照原图看：他觉得可以用，问他要不要替他点「可以用」（ask_confirm）；不像的可以单独重做。`;
   }
   const round = b.round!;
   if (b.kind === 'backdrop') {
@@ -50,14 +50,14 @@ export function noticeText(s: WorkState, b: NoticeBatch): string {
       if (c) return `背景 ${slot + 1} 生成好了（${c.id}）`;
       return slotState(s.tasks, work.id, 'backdrop', round, slot) === 'failed' ? `背景 ${slot + 1} 没生成出来（${failText(s, 'backdrop', round, slot)}），可以补齐` : `背景 ${slot + 1} 还没有`;
     });
-    return `【通知：背景图】第 ${round} 轮：${parts.join('；')}。选哪张要用户在画布上点「用这张」，图里不能有饰品，请用户把关。`;
+    return `【通知：背景图】第 ${round} 轮：${parts.join('；')}。选哪张要用户看过图决定，图里不能有饰品，请他把关：他在画布上点「用这张」，或你问过、他同意后代点。`;
   }
   const done = roundResults(s.results, work.id, round);
   const parts = slotsOf('scene').map((slot) => {
     if (done.some((r) => r.slot === slot)) return `候选 ${slot + 1} 生成好了`;
     return slotState(s.tasks, work.id, 'scene', round, slot) === 'failed' ? `候选 ${slot + 1} 没生成出来（${failText(s, 'scene', round, slot)}），可以补齐` : `候选 ${slot + 1} 还没有`;
   });
-  return `【通知：候选】第 ${round} 轮：${parts.join('；')}。两项验收要用户自己点。`;
+  return `【通知：候选】第 ${round} 轮：${parts.join('；')}。两项验收要用户看过图判断：他在画布上点，或你问过、他同意后代点。`;
 }
 
 // 已经告诉小间的验收内容：两项结果、问题标签和说明，变了才再通知
@@ -80,5 +80,5 @@ export function verdictText(r: Result): string {
   if (r.issues.length) parts.push(`问题：${r.issues.join('、')}`);
   if (r.note.trim()) parts.push(`用户说：${r.note.trim()}`);
   const passed = r.verdict.real === 'ok' && r.verdict.style === 'ok';
-  return `【通知：验收】第 ${r.round} 轮候选 ${r.slot + 1}：${parts.join('；')}。${passed ? '两项都满意，可以放下载卡片。' : '验收只由用户点，你不能替用户改。'}`;
+  return `【通知：验收】第 ${r.round} 轮候选 ${r.slot + 1}：${parts.join('；')}。${passed ? '两项都满意，可以放下载卡片。' : '这是用户的判断，不要自己改；要改先问他。'}`;
 }

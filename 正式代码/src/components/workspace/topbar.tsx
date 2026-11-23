@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { stepsOf, type StepId } from '@/config/steps';
-import { mutateWork } from '@/client/work-store';
-import { deleteWork, logEvent } from '@/data/repo';
+import { mutateWork, removeWork } from '@/client/work-store';
 import { workStatus, type StepState } from '@/domain/status';
 import { renameWork } from '@/domain/work';
 import { useConfirm } from '@/components/ui/dialog';
@@ -19,9 +18,10 @@ import StatusMark from '@/components/bits/StatusMark/StatusMark';
 import { useToast } from '@/components/ui/toast';
 
 // 顶栏：作品 / 名称（可直接改）· 状态，右侧细进度（v3 原型）
-// 删除作品（PRD 4.2 第 5 条）：用户确认后才删；生成中不能删，避免轮询把结果写回已删除的作品
+// 删除作品（PRD 4.2 第 5 条）：用户确认后才删（小间也能发起，弹同样的确认框，见 agent/executors.ts）；
+// 生成中不能删，避免轮询把结果写回已删除的作品
 function DeleteWork() {
-  const { ctx, workId } = useWorkspace();
+  const { ctx } = useWorkspace();
   const confirm = useConfirm();
   const toast = useToast();
   const router = useRouter();
@@ -50,10 +50,7 @@ function DeleteWork() {
             });
             if (!ok) return;
             try {
-              const cost = ctx.work.costUSD;
-              await deleteWork(workId);
-              // 试用记录：作品删了，花费仍要算进总成本
-              void logEvent('delete_work', undefined, { costUSD: cost });
+              await removeWork(ctx.work);
               toast(`已删除「${ctx.work.name}」`);
               router.push('/works');
             } catch (e) {

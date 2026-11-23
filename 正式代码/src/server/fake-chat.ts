@@ -71,7 +71,6 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
     input: { prompt: '一张不含任何饰品和文字的电商主图背景：苔绿手工纸，清冷晨光从左上方斜照，画面中下方留出放耳饰的位置。' },
   },
   批准背景: { tool: 'request_approval', input: { kind: 'backdrop' } },
-  生成背景: { tool: 'start_backdrop_generation', input: {} },
   提示词: {
     tool: 'draft_prompt',
     input: {
@@ -79,7 +78,6 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
     },
   },
   批准: { tool: 'request_approval', input: { kind: 'scene' } },
-  生成: { tool: 'start_generation', input: {} },
   选卡: {
     tool: 'offer_picks',
     input: {
@@ -93,12 +91,41 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
   },
   意见: { tool: 'note_feedback', input: { round: 1, candidate: 1, issues: ['轮廓'], note: '链子变长了', revise: true } },
   导出: { tool: 'offer_export', input: { round: 1, candidate: 2 } },
-  补齐: { tool: 'retry_candidate', input: { kind: 'scene', round: 1, candidate: 1 } },
-  补齐背景: { tool: 'retry_candidate', input: { kind: 'backdrop', round: 1, candidate: 1 } },
+  // 补齐只放卡片，用户点了才补（技术写法 14.6）
+  补齐: { tool: 'propose_retry', input: { kind: 'scene', round: 1, candidate: 1 } },
+  补齐背景: { tool: 'propose_retry', input: { kind: 'backdrop', round: 1, candidate: 1 } },
   后续: { tool: 'note_followup', input: { text: '真人佩戴图' } },
   换模型: { tool: 'set_image_model', input: { model: 'gpt-image-2' } },
   比例: { tool: 'set_ratio', input: { ratio: '3:4' } },
+  /* 小间的操作权限（技术写法 14）。用户回「同意」（卡片上的按钮也是发这两个字）时照抄原话代点，见 fakeTurn */
+  问三视图: {
+    tool: 'ask_confirm',
+    input: { items: [{ type: 'confirm_view', angle: 'front' }, { type: 'confirm_view', angle: 'side' }, { type: 'confirm_view', angle: 'back' }] },
+  },
+  问信息: {
+    tool: 'ask_confirm',
+    input: { items: [{ type: 'accept_info', field: 'category' }, { type: 'accept_info', field: 'material' }, { type: 'accept_info', field: 'size' }] },
+  },
+  问选背景: { tool: 'ask_confirm', input: { items: [{ type: 'pick_backdrop', round: 1, candidate: 1 }, { type: 'save_backdrop', name: '苔绿晨光' }] } },
+  问验收: { tool: 'ask_confirm', input: { items: [{ type: 'verdict', round: 1, candidate: 2, real: 'ok', style: 'ok' }] } },
+  部分同意: { tool: 'confirm_for_user', input: { quote: '正面和背面可以', only: [1, 3] } },
+  推进商品: { tool: 'next_step', input: { step: 'product' } },
+  推进信息: { tool: 'next_step', input: { step: 'info' } },
+  自己生成: { tool: 'set_backdrop_mode', input: { mode: 'generate' } },
+  // 编号由作品状态里取（fakeTurn 换掉 $ 开头的占位）：模板库里最新沉淀的背景图、第一张未分类的照片
+  删背景: { tool: 'request_delete', input: { target: 'backdrop', id: '$saved' } },
+  删作品: { tool: 'request_delete', input: { target: 'work' } },
+  设成正面: { tool: 'set_photo_kind', input: { assetId: '$unsorted', kind: 'front' } },
 };
+
+// 剧本里的占位换成作品状态（系统指令末尾）里的编号；找不到就原样留着，执行器会如实拒绝
+const PLACEHOLDERS: Record<string, RegExp> = {
+  $saved: /[：；](\S+) [^（；：]+（用户沉淀的/,
+  $unsorted: /\d+\. (\S+)（未分类）/,
+};
+function fill(input: Record<string, unknown>, system: string): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(input).map(([k, v]) => [k, typeof v === 'string' && PLACEHOLDERS[v] ? (system.match(PLACEHOLDERS[v])?.[1] ?? v) : v]));
+}
 
 const MARK = /【测试：([^】]+)】/g;
 
@@ -122,7 +149,14 @@ export function fakeTurn(prompt: Prompt): { text: string; calls: { tool: string;
       calls: [],
     };
   }
-  const calls = [...text.matchAll(MARK)].map((m) => FAKE_SCRIPT[m[1]]).filter((c): c is (typeof FAKE_SCRIPT)[string] => !!c);
+  // 用户回「同意」（卡片上的「同意」按钮也是发这两个字）：照抄原话代点
+  if (text.replaceAll(MARK, '').trim() === '同意') return { text: '', calls: [{ tool: 'confirm_for_user', input: { quote: '同意' } }] };
+  const sys = prompt.find((m) => m.role === 'system');
+  const systemText = sys?.role === 'system' ? sys.content : '';
+  const calls = [...text.matchAll(MARK)]
+    .map((m) => FAKE_SCRIPT[m[1]])
+    .filter((c): c is (typeof FAKE_SCRIPT)[string] => !!c)
+    .map((c) => ({ ...c, input: fill(c.input, systemText) }));
   if (calls.length) return { text: '', calls };
   return { text: `（测试对话模型，不是 AI）收到：${text.replaceAll(MARK, '').slice(0, 40) || '照片'}`, calls: [] };
 }
