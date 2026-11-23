@@ -1,4 +1,5 @@
 import { BACKDROP_MODE_NAMES } from '@/config/backdrops';
+import { BUDGET } from '@/config/budget';
 import { INFO_FIELDS, INFO_KEYS } from '@/config/info';
 import type { ChatModel } from '@/config/models';
 import { FLOW_NAMES, STEP_NAMES, stepsOf } from '@/config/steps';
@@ -59,6 +60,16 @@ const promptText = (ps: PromptStatus, name: string) =>
 
 const refText = (r: BackdropRef) =>
   `${r.id} ${r.name}（${r.builtin ? `内置模板${r.placeholder ? '，图还没提供，用色块示意' : ''}` : '用户沉淀的'}；${paramsText(r.params)}）`;
+
+// 模板库里可选的背景图（顺序见 libraryList）：沉淀的只列最近几张，其余写个数，免得作品状态超过对话接口的长度上限（评审第 9 条）；
+// 内置模板都列。use_backdrop 照样认没列出的编号（用户在对话里给出编号时）
+function libraryLine(library: readonly BackdropRef[]): string {
+  if (!library.length) return '模板库里可选的背景图：没有';
+  const saved = library.filter((r) => !r.builtin);
+  const shown = [...saved.slice(0, BUDGET.chat.libraryInState), ...library.filter((r) => r.builtin)];
+  const more = saved.length - Math.min(saved.length, BUDGET.chat.libraryInState);
+  return `模板库里可选的背景图（use_backdrop 用编号）：${shown.map(refText).join('；')}${more ? `；另有 ${more} 张沉淀的背景图没列出，用户想用其中一张时，请他在「背景」的模板库里点` : ''}`;
+}
 
 function approvalText(name: string, status: ApprovalStatus, a: { version: number; usedRound: number | null } | null, phase: ReturnType<typeof approvedPhase>, where: string) {
   if (status.kind === 'none' || !a) return `${name}：还没有`;
@@ -213,7 +224,7 @@ export function stateSummary(i: SummaryInput): string {
     lines.push('合成：还没有生成');
   }
 
-  lines.push(`模板库里可选的背景图（use_backdrop 用编号）：${i.library.length ? i.library.map(refText).join('；') : '没有'}`);
+  lines.push(libraryLine(i.library));
   if (i.photoLabels?.length) lines.push(`这次附上的图：${i.photoLabels.map((l, n) => `${n + 1}. ${l}`).join('；')}`);
   if (i.missingPhotos?.length) lines.push(`本地读不出来、没附上的图：${i.missingPhotos.join('；')}`);
   const cm = i.chatModel;

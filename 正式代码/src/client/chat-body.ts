@@ -1,11 +1,10 @@
 import { stateSummary } from '@/agent/state';
-import { listedBuiltins } from '@/config/backdrops';
 import { chatModel, DEFAULT_CHAT_MODEL, imageModel } from '@/config/models';
 import { ASSET_KINDS } from '@/config/upload';
 import { VIEW_ANGLES, VIEW_NAMES } from '@/config/views';
 import { getBlob, listSavedBackdrops } from '@/data/repo';
 import { activeUploads, angleUpload, currentView } from '@/domain/assets';
-import { refOfBackdrop, refOfBuiltin } from '@/domain/backdrops';
+import { libraryList } from '@/domain/backdrops';
 import type { BackdropRef } from '@/domain/types';
 import { backdropImage } from './backdrops';
 import { blobToDataUrl, prepareDerived } from './images';
@@ -14,6 +13,7 @@ import { loadContext, type WorkContext } from './work-store';
 const MAX_PHOTOS = 6;
 
 export interface ChatPhoto {
+  id: string; // 图的编号（三视图、照片是素材编号，背景图、结果是各自的编号）：同一张图只附一次
   label: string; // 在作品状态里写明每张是什么
   blob: () => Promise<Blob | undefined>;
 }
@@ -25,28 +25,29 @@ async function backdropThumb(ref: BackdropRef): Promise<Blob> {
 }
 
 // 小间能看到的图（技术写法 13.9）：三视图（还没生成的角度用原图）、选定的背景图，剩下的位置给细节照和未分类的照片
-// （AC-02.3a：细节照只给小间看，不进合成）。first 是要排在最前面的图，比如生成通知里这次的结果
+// （AC-02.3a：细节照只给小间看，不进合成）。first 是要排在最前面的图，比如生成通知里这次的结果；
+// 已经排在最前面的那几张不再加第二遍，免得挤掉背景图和细节照（评审第 3 条）
 export function chatPhotos(ctx: WorkContext, first: readonly ChatPhoto[] = []): ChatPhoto[] {
-  const list: ChatPhoto[] = [...first];
+  const list: ChatPhoto[] = [];
+  const add = (p: ChatPhoto) => void (list.some((x) => x.id === p.id) || list.push(p));
+  first.forEach(add);
   const { work } = ctx;
   for (const angle of VIEW_ANGLES) {
     const v = currentView(ctx.assets, work.id, angle);
     const p = angleUpload(ctx.assets, work.id, angle);
-    if (v) list.push({ label: `${VIEW_NAMES[angle]}三视图${v.confirmed ? '' : '（用户还没确认）'}`, blob: () => getBlob(v.thumbId) });
-    else if (p) list.push({ label: `${VIEW_NAMES[angle]}原图（还没有三视图）`, blob: () => getBlob(p.thumbId) });
+    if (v) add({ id: v.id, label: `${VIEW_NAMES[angle]}三视图${v.confirmed ? '' : '（用户还没确认）'}`, blob: () => getBlob(v.thumbId) });
+    else if (p) add({ id: p.id, label: `${VIEW_NAMES[angle]}原图（还没有三视图）`, blob: () => getBlob(p.thumbId) });
   }
   const bd = ctx.backdrop;
-  if (bd) list.push({ label: `选定的背景图「${bd.name}」${bd.placeholder ? '（内置模板的示意色块，图还没提供）' : ''}`, blob: () => backdropThumb(bd) });
+  if (bd) add({ id: bd.id, label: `选定的背景图「${bd.name}」${bd.placeholder ? '（内置模板的示意色块，图还没提供）' : ''}`, blob: () => backdropThumb(bd) });
   for (const a of activeUploads(ctx.assets, work.id).filter((x) => x.kind === 'detail' || x.kind === 'unsorted')) {
-    list.push({ label: `${ASSET_KINDS[a.kind]}照片`, blob: () => getBlob(a.thumbId) });
+    add({ id: a.id, label: `${ASSET_KINDS[a.kind]}照片`, blob: () => getBlob(a.thumbId) });
   }
   return list.slice(0, MAX_PHOTOS);
 }
 
-// 模板库里可选的背景图：内置模板加上沉淀过、没删除的
-export async function libraryRefs(): Promise<BackdropRef[]> {
-  return [...listedBuiltins().map((b) => refOfBuiltin(b.id)!), ...(await listSavedBackdrops()).map(refOfBackdrop)];
-}
+// 模板库里可选的背景图，顺序和画布、首页一样（libraryList）
+export const libraryRefs = async (): Promise<BackdropRef[]> => libraryList(await listSavedBackdrops());
 
 // 每次发给小间的附加内容：作品状态和图片在发送时从本地数据库现读，保证是最新的
 export async function chatRequestBody(workId: string, first: readonly ChatPhoto[] = []) {

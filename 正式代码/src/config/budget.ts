@@ -13,6 +13,10 @@ export const BUDGET = {
     // 超时：本机网络慢时一轮要 14—70 秒（交接文档第 10 节），留足余量；超时后如实报错，可重试
     firstChunkMs: 75_000,
     totalMs: 150_000,
+    // 每次发给小间的作品状态最长多少字（/api/chat 按它校验，超了整轮对话都会被拒）
+    stateMaxChars: 20_000,
+    // 作品状态里只列最近沉淀的这么多张背景图，其余写个数；use_backdrop 照样认没列出的编号（评审第 9 条）
+    libraryInState: 10,
   },
 };
 

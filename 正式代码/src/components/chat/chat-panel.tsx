@@ -2,13 +2,13 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { executeTool } from '@/agent/executors';
 import type { AgentUIMessage, ToolName } from '@/agent/tools';
 import { BUDGET } from '@/config/budget';
 import type { StepId } from '@/config/steps';
 import { errorText } from '@/client/api';
-import { setFirstPhotos, takeFirstPhotos, takeQueue } from '@/client/agent-queue';
+import { hasHeld, queueDue, sendQueued, setFirstPhotos, takeFirstPhotos, type QueuedMessage } from '@/client/agent-queue';
 import { chatErrorMessage, chatRequestBody } from '@/client/chat-body';
 import { turnProblem, userTextsOf, withoutLastStep, type TurnProblem } from '@/client/chat-turn';
 import { takeFirstMessage } from '@/client/first-message';
@@ -132,24 +132,43 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   const [draftEmpty, setDraftEmpty] = useState(true);
   const [queueTick, setQueueTick] = useState(0);
   const idle = status === 'ready' && !lastAssistantMessageIsCompleteWithToolCalls({ messages }) && !error && !capHit && !problem && draftEmpty;
+  // 取到消息那一刻对话还空不空闲（评审第 4 条）：提交时就记下，卸载时记为不空闲；不空闲时取到的消息先留着
+  const idleRef = useRef(false);
+  useLayoutEffect(() => {
+    idleRef.current = idle;
+    return () => {
+      idleRef.current = false;
+    };
+  }, [idle]);
   useEffect(() => {
     if (!idle) return;
+    // 先用现成的数据看有没有要发的，没有就不去读库认领（评审第 12 条）；验收通知还要等的，到点再看一次
+    const due = queueDue(ctx, Date.now());
+    if (!due.ready && !hasHeld(workId)) {
+      if (due.waitMs == null) return;
+      const wait = setTimeout(() => setQueueTick((t) => t + 1), due.waitMs + 50);
+      return () => clearTimeout(wait);
+    }
+    let live = true;
     let again: ReturnType<typeof setTimeout> | undefined;
+    const send = (m: QueuedMessage) => {
+      setFirstPhotos(workId, m.photos);
+      autoSteps.current = 0; // 系统消息各自算新的一轮
+      void sendMessage({ parts: [{ type: 'text', text: m.text }], metadata: { system: m.system } });
+    };
     // 推迟到下一轮：开发模式的严格模式会先演练一次卸载；认领在事务里，重复取也只发一次
     const timer = setTimeout(() => {
-      takeQueue(workId)
-        .then(({ message, retryInMs }) => {
-          if (message) {
-            setFirstPhotos(workId, message.photos);
-            autoSteps.current = 0; // 系统消息各自算新的一轮
-            void sendMessage({ parts: [{ type: 'text', text: message.text }], metadata: { system: message.system } });
-          } else if (retryInMs != null) {
-            again = setTimeout(() => setQueueTick((t) => t + 1), retryInMs + 50);
-          }
+      sendQueued(workId, () => idleRef.current, send)
+        .then(({ sent, retryInMs, recheck }) => {
+          if (sent) return;
+          // 跑的时候又有数据变化：再看一次。清理之后（live 为假）新一轮副作用会自己算等多久，不再建定时器
+          if (recheck) setQueueTick((t) => t + 1);
+          else if (retryInMs != null && live) again = setTimeout(() => setQueueTick((t) => t + 1), retryInMs + 50);
         })
         .catch((e: unknown) => console.error('给小间的交接或通知没发出去', e));
     }, 0);
     return () => {
+      live = false;
       clearTimeout(timer);
       if (again) clearTimeout(again);
     };

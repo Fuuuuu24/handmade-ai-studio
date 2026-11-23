@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { backdrop, backdropPromptedWork, BUILTIN, stateOf } from '@/test/fixtures';
-import { agentPickProblem, backdropCandidates, backdropDone, backdropLag, backdropModeOf, refOfBackdrop, refOfBuiltin, usedBy, userPickProblem } from './backdrops';
+import { listedBuiltins } from '@/config/backdrops';
+import { agentPickProblem, backdropCandidates, backdropDone, backdropLag, backdropModeOf, libraryList, refOfBackdrop, refOfBuiltin, usedBy, userPickProblem } from './backdrops';
 import type { SceneApproval } from './types';
 import { approveBackdrop, chooseBackdrop, confirmSummary, draftSummary, editSummary, newWork, setImageModel, startBackdropRound } from './work';
 
@@ -48,6 +49,15 @@ describe('背景图与模板库（PRD FR-06）', () => {
     expect(userPickProblem(refOfBackdrop(gone), { ...w, backdropId: gone.id })).toBeNull();
     // 这件作品自己的：沉淀后又删除也能重选（评审第 10 条）
     expect(userPickProblem(refOfBackdrop(backdrop(w.id, 1, 1, { savedAt: 1, deletedAt: 2 })), w)).toBeNull();
+  });
+
+  it('模板库列表：沉淀的在前、新沉淀的在前，内置在后；没沉淀的、删除的不列（评审第 13 条）', () => {
+    const older = backdrop('a', 1, 0, { savedAt: 10 });
+    const newer = backdrop('b', 1, 0, { savedAt: 20 });
+    const gone = backdrop('c', 1, 0, { savedAt: 30, deletedAt: 31 });
+    const unsaved = backdrop('d', 1, 0);
+    expect(libraryList([older, unsaved, gone, newer]).map((r) => r.id)).toEqual([newer.id, older.id, ...listedBuiltins().map((b) => b.id)]);
+    expect(libraryList([]).every((r) => r.builtin)).toBe(true);
   });
 
   it('背景做法跟着来源走：自家的是自己生成，内置和别的作品沉淀的是用模板库里的', () => {

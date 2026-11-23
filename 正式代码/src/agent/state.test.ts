@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { CHAT_MODELS } from '@/config/models';
 import { listedBuiltins } from '@/config/backdrops';
 import { deriveContext } from '@/client/work-store';
-import { refOfBackdrop, refOfBuiltin } from '@/domain/backdrops';
+import { libraryList, refOfBackdrop, refOfBuiltin } from '@/domain/backdrops';
+import { BUDGET } from '@/config/budget';
+import { INFO_KEYS } from '@/config/info';
+import { backdropBasisOf } from '@/domain/snapshot';
 import type { Asset, Work, WorkState } from '@/domain/types';
-import { approveScene, chooseBackdrop, confirmSummary, draftSummary, editSummary, reviseFrom, setRatio, startSceneRound, suggestInfo } from '@/domain/work';
-import { backdrop, backdropPromptedWork, backdropWork, product, promptedWork, readyWork, result, stateOf, task, upload, view } from '@/test/fixtures';
+import { approveScene, chooseBackdrop, confirmSummary, draftSummary, editSummary, reviseFrom, setRatio, startSceneRound, suggestInfo, writePrompt } from '@/domain/work';
+import { backdrop, backdropPromptedWork, backdropWork, currentBasis, product, promptedWork, readyWork, result, stateOf, task, upload, view } from '@/test/fixtures';
 import { factsOf } from '@/domain/handoff';
 import { setInfo } from '@/domain/work';
 import { stateSummary } from './state';
@@ -51,6 +54,30 @@ describe('stateSummary（技术写法 13.12）', () => {
     expect(text).toContain('模板库里可选的背景图（use_backdrop 用编号）：builtin:moss@1 雨后清晨（内置模板，图还没提供，用色块示意；示意模板，无参数');
     expect(text).not.toContain('背景风格');
     expect(text).toContain('合成批准前还缺：合成提示词还没写');
+  });
+
+  it('模板库攒了很多背景：只列最近沉淀的几张，状态不超过对话接口的上限（评审第 9 条）', () => {
+    const { work, assets } = promptedWork();
+    const long = (n: number) => '字'.repeat(n);
+    let w = writePrompt(work, 'scene', long(2000), currentBasis(work, assets));
+    w = writePrompt(w, 'backdrop', long(2000), backdropBasisOf(w));
+    for (const k of INFO_KEYS) w = setInfo(w, k, long(200));
+    const params = { tone: long(120), background: long(120), light: long(120), props: long(120), bannedBackdrop: long(120) };
+    const saved = Array.from({ length: 100 }, (_, n) => backdrop(`work_${n}`, 1, 0, { name: `第${n}张${long(15)}`, params, savedAt: n + 1 }));
+    const text = stateSummary({
+      ...deriveContext(stateOf(w, assets)),
+      library: libraryList(saved),
+      chatModel: CHAT_MODELS[0],
+      imageModelLabel: 'Seedream 5.0 Lite',
+    });
+    expect(text.length).toBeLessThanOrEqual(BUDGET.chat.stateMaxChars);
+    const line = text.split('\n').find((l) => l.startsWith('模板库里可选的背景图'))!;
+    // 新沉淀的在前：列出第 99—90 张，第 89 张起不列
+    expect(line).toContain(saved[99].id);
+    expect(line).toContain(saved[90].id);
+    expect(line).not.toContain(saved[89].id);
+    expect(line).toContain(`另有 ${100 - BUDGET.chat.libraryInState} 张沉淀的背景图没列出`);
+    for (const b of listedBuiltins()) expect(line).toContain(b.id);
   });
 
   it('自己生成：写明共创、背景风格、背景提示词和背景批准；候选待用户选定、不能代选', () => {

@@ -21,7 +21,7 @@ import { reserve, settle } from '@/server/ledger';
 const Body = z.object({
   messages: z.array(z.unknown()).min(1).max(400),
   chatModel: z.string(),
-  state: z.string().max(20_000),
+  state: z.string().max(BUDGET.chat.stateMaxChars),
   photos: z.array(z.string().startsWith('data:image/')).max(6),
 });
 

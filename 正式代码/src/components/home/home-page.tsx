@@ -4,15 +4,13 @@ import { useRouter } from 'next/navigation';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { use, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { browser } from 'react-dom';
-import { listedBuiltins } from '@/config/backdrops';
 import { UPLOAD } from '@/config/upload';
 import { createWork } from '@/client/create-work';
 import { setFirstMessage } from '@/client/first-message';
 import { checkFile } from '@/client/images';
 import { addPhotos } from '@/client/uploads';
 import { deleteWork, listSavedBackdrops } from '@/data/repo';
-import { refOfBackdrop, refOfBuiltin } from '@/domain/backdrops';
-import type { BackdropRef } from '@/domain/types';
+import { libraryList } from '@/domain/backdrops';
 import { BackdropThumb } from '@/components/ui/backdrop-thumb';
 import { Icon } from '@/components/ui/icon';
 
@@ -58,7 +56,7 @@ export function HomePage() {
 
   // 模板库：自己沉淀的在前，内置模板在后
   const saved = useLiveQuery(() => listSavedBackdrops(), []);
-  const templates: BackdropRef[] = [...(saved ?? []).map(refOfBackdrop), ...listedBuiltins().map((b) => refOfBuiltin(b.id)!)].slice(0, 8);
+  const templates = libraryList(saved ?? []).slice(0, 8);
 
   const start = async (backdropId?: string) => {
     if (starting) return;

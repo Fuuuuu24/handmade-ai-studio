@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
-import { BACKDROP_MODE_NAMES, listedBuiltins } from '@/config/backdrops';
+import { BACKDROP_MODE_NAMES } from '@/config/backdrops';
 import { BACKDROP_KEYS } from '@/config/style';
 import { pickBackdrop, saveToLibrary } from '@/client/backdrops';
 import { retrySlot } from '@/client/generation';
@@ -11,7 +11,7 @@ import { mutateWork } from '@/client/work-store';
 import { listSavedBackdrops, logEvent } from '@/data/repo';
 import { backdropConflicts } from '@/domain/conflicts';
 import { backdropApprovalStatus } from '@/domain/approval';
-import { backdropCandidates, backdropDone, backdropLag, refOfBackdrop, refOfBuiltin } from '@/domain/backdrops';
+import { backdropCandidates, backdropDone, backdropLag, libraryList, refOfBackdrop } from '@/domain/backdrops';
 import { lastSlotTask, retryCheck, slotsOf, slotState } from '@/domain/generation';
 import { backdropStyleOf } from '@/domain/snapshot';
 import type { Backdrop, BackdropMode, BackdropRef, StorySummary } from '@/domain/types';
@@ -110,7 +110,7 @@ function Library({ locked }: { locked: boolean }) {
   const { ctx, workId } = useWorkspace();
   const saved = useLiveQuery(() => listSavedBackdrops(), []);
   const [problem, setProblem] = useState<string | null>(null);
-  const refs: BackdropRef[] = [...(saved ?? []).map(refOfBackdrop), ...listedBuiltins().map((b) => refOfBuiltin(b.id)!)];
+  const refs = libraryList(saved ?? []);
   return (
     <section className="flex flex-col gap-2.5" aria-label="模板库里的背景图">
       <div className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-3.5">

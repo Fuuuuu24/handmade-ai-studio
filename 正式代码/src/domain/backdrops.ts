@@ -1,4 +1,4 @@
-import { builtinBackdrop } from '@/config/backdrops';
+import { builtinBackdrop, listedBuiltins } from '@/config/backdrops';
 import { BACKDROP_KEYS, NO_PROPS, STYLE_LABELS } from '@/config/style';
 import { backdropBasisOf, basisOfBackdropSnapshot, diffBackdropBasis } from './snapshot';
 import type { Approval, Backdrop, BackdropMode, BackdropParams, BackdropRef, Id, Work, WorkState } from './types';
@@ -41,6 +41,13 @@ export function refOfBuiltin(id: Id): BackdropRef | null {
     image: b.image,
     colors: b.colors,
   };
+}
+
+// 模板库列表（PRD FR-06）：沉淀的在前（新沉淀的在前），内置模板在后；从模板库删除的不列。
+// 画布的「用模板库里的」、首页、给小间的作品状态都按这个顺序（评审第 13 条）
+export function libraryList(saved: readonly Backdrop[]): BackdropRef[] {
+  const listed = saved.filter((b) => b.savedAt != null && b.deletedAt == null).sort((a, b) => b.savedAt! - a.savedAt!);
+  return [...listed.map(refOfBackdrop), ...listedBuiltins().map((b) => refOfBuiltin(b.id)!)];
 }
 
 // 这件作品某一轮的背景候选，按张排
