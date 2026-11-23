@@ -84,7 +84,8 @@ function DbNoticeBar() {
   );
 }
 
-// 图标栏（沿用 v2／v3）：收起 60px 只显示图标，悬停或键盘聚焦时展开到 196px、盖在内容上
+// 图标栏（沿用 v2／v3）：收起 60px 只显示图标，悬停或键盘聚焦时展开到 196px、盖在内容上（宽度见 globals.css 的 --spacing-rail*）。
+// 作品、模板库、历史结果的内容区左边留够了展开后的宽度，不会被盖住（page-frame.tsx）；工作区左边是对话，展开时会盖住一点
 export function AppShell({ children }: { children: ReactNode }) {
   const [help, setHelp] = useState(false);
   const [resumeProblem, setResumeProblem] = useState<string | null>(null);
@@ -100,7 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="h-full">
             <aside
               aria-label="侧边栏"
-              className="group/rail fixed inset-y-0 left-0 z-30 flex w-[60px] flex-col gap-0.5 overflow-hidden bg-rail p-3 shadow-[inset_-1px_0_0_var(--color-line)] transition-[width,box-shadow] duration-200 ease-soft hover:w-[196px] hover:shadow-[inset_-1px_0_0_var(--color-line),var(--shadow-pop)] hover:delay-100 has-[:focus-visible]:w-[196px]"
+              className="group/rail fixed inset-y-0 left-0 z-30 flex w-rail flex-col gap-0.5 overflow-hidden bg-rail p-3 shadow-[inset_-1px_0_0_var(--color-line)] transition-[width,box-shadow] duration-200 ease-soft hover:w-rail-open hover:shadow-[inset_-1px_0_0_var(--color-line),var(--shadow-pop)] hover:delay-100 has-[:focus-visible]:w-rail-open"
             >
               <Link href="/" aria-label="一间，回到首页" className="mb-3 flex h-9 items-center gap-2.5 whitespace-nowrap rounded-sm px-1">
                 <span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-sm bg-black text-body font-semibold text-white">
@@ -122,7 +123,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <span className={label}>使用说明</span>
               </button>
             </aside>
-            <main className="ml-[60px] flex h-full min-w-0 flex-col">
+            <main className="ml-rail flex h-full min-w-0 flex-col">
               <DbNoticeBar />
               {resumeProblem && (
                 <p role="alert" className="bg-bad-bg px-5 py-2 text-aux text-bad">
