@@ -16,7 +16,6 @@ import {
   listAssets,
   listResults,
   listSavedBackdrops,
-  listWorks,
   loadMessages,
   patchBackdrop,
   patchResult,
@@ -51,12 +50,11 @@ beforeEach(() => {
 });
 
 describe('作品', () => {
-  it('按最近更新排序；写入成功后显示已保存', async () => {
+  it('写入成功后显示已保存，读出来和存的一样', async () => {
     const a = { ...fresh(), name: 'A', updatedAt: 1 };
     const b = { ...fresh(), name: 'B', updatedAt: 2 };
     await saveWork(a);
     await saveWork(b);
-    expect((await listWorks()).map((w) => w.name)).toEqual(['B', 'A']);
     expect(getSaveStatus().state).toBe('saved');
     expect(await getWork(a.id)).toEqual(a);
   });

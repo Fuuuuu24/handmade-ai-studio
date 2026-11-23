@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { upload, view, viewTask } from '@/test/fixtures';
-import { activeUploads, angleState, anglesToGenerate, assetLabel, currentView, missingAngles, viewCheck, viewRefs, viewsDone, viewSources } from './assets';
+import { activeUploads, angleState, anglesToGenerate, currentView, missingAngles, viewCheck, viewRefs, viewsDone, viewSources } from './assets';
 
 const idle = { views: false, backdrop: false, scene: false };
 
@@ -80,12 +80,5 @@ describe('三视图（PRD AC-02.3、技术写法 13.3）', () => {
     const [front, side, back] = photos();
     const tasks = [viewTask('w', 'side', side.id, 'running')];
     expect(anglesToGenerate([front, side, back, view(front)], tasks, 'w')).toEqual(['back']);
-  });
-
-  it('叫法：原图按类型，三视图按角度', () => {
-    const [front] = photos();
-    expect(assetLabel(front)).toBe('正面照片');
-    expect(assetLabel(view(front))).toBe('正面三视图');
-    expect(assetLabel(upload('w', 'unsorted'))).toBe('未分类照片');
   });
 });

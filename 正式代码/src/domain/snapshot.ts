@@ -1,6 +1,6 @@
 import { BACKDROP } from '@/config/backdrops';
 import { CANDIDATES_PER_ROUND } from '@/config/budget';
-import { BACKDROP_KEYS, SCENE_KEYS, STYLE_KEYS, STYLE_LABELS, type StyleKey } from '@/config/style';
+import { BACKDROP_KEYS, SCENE_KEYS, STYLE_LABELS, type StyleKey } from '@/config/style';
 import { viewRefs } from './assets';
 import { backdropInfoOf, coreInfoOf } from './info';
 import type { Asset, BackdropBasis, BackdropParams, BackdropSnapshot, SceneBasis, SceneParams, SceneSnapshot, StorySummary, Work } from './types';
@@ -8,9 +8,6 @@ import { same } from './util';
 
 /* 两种批准的依据和快照（PRD AC-07.3，技术写法 13.4、13.5）。提示词由这些内容决定：依据变了提示词就可能过期，
    快照变了批准就失效。背景比例固定，不进快照；合成快照不含背景五项，只记用的是哪张背景图。 */
-
-export const styleValuesOf = (work: Work) =>
-  Object.fromEntries(STYLE_KEYS.map((k) => [k, work.style[k].value.trim()])) as Record<StyleKey, string>;
 
 export const backdropStyleOf = (work: Work): BackdropParams =>
   Object.fromEntries(BACKDROP_KEYS.map((k) => [k, work.style[k].value.trim()])) as BackdropParams;

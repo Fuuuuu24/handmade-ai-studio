@@ -9,7 +9,6 @@ import { tracked } from './save';
 
 /* ---------- 作品 ---------- */
 
-export const listWorks = () => db().works.orderBy('updatedAt').reverse().toArray();
 export const getWork = (id: Id) => db().works.get(id);
 export const saveWork = (work: Work) => tracked(`work:${work.id}`, () => db().works.put(work));
 
@@ -34,7 +33,6 @@ export async function getSceneApproval(id: Id | null | undefined): Promise<Scene
   return a?.kind === 'scene' ? a : undefined;
 }
 
-export const listApprovals = (workId: Id) => db().approvals.where('workId').equals(workId).toArray();
 
 // 删除作品：用户确认后才调用（PRD 4.2 第 5 条），连同素材、图片、对话、任务和结果一起删。
 // 这件作品生成、没沉淀的背景图一起删；已沉淀的留在模板库，别的作品可能在用（技术写法 13.6）
@@ -193,7 +191,6 @@ export const patchResult = (id: Id, fn: (r: Result) => void) =>
   tracked(`result:${id}`, () => db().results.where('id').equals(id).modify(fn));
 export const getResult = (id: Id) => db().results.get(id);
 export const listResults = (workId: Id) => db().results.where('workId').equals(workId).toArray();
-export const allResults = () => db().results.orderBy('createdAt').reverse().toArray();
 
 /* ---------- 背景图与模板库 ---------- */
 
@@ -220,7 +217,6 @@ export function saveBackdropResult(task: Task, backdrop: Backdrop, image: Blob, 
 
 export const getBackdrop = (id: Id) => db().backdrops.get(id);
 export const listWorkBackdrops = (workId: Id) => db().backdrops.where('workId').equals(workId).toArray();
-export const allBackdrops = () => db().backdrops.toArray();
 
 // 模板库里自己沉淀的背景图：沉淀过、没删除的，新沉淀的在前
 export async function listSavedBackdrops(): Promise<Backdrop[]> {

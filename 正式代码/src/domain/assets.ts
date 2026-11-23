@@ -1,4 +1,3 @@
-import { ASSET_KINDS } from '@/config/upload';
 import { VIEW_ANGLES, VIEW_NAMES, VIEWS, type ViewAngle } from '@/config/views';
 import { isActive, type Busy } from './generation';
 import type { Asset, AssetKind, Id, Task } from './types';
@@ -102,6 +101,3 @@ export function viewCheck(assets: readonly Asset[], tasks: readonly Task[], work
   }
   return { ok: true };
 }
-
-// 照片和三视图在界面、对话里的叫法
-export const assetLabel = (a: Asset) => (a.origin === 'view' && a.view ? `${VIEW_NAMES[a.view]}三视图` : `${ASSET_KINDS[a.kind]}照片`);

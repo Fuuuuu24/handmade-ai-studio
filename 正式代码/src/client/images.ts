@@ -77,10 +77,3 @@ export async function referenceDataUrl(blob: Blob): Promise<string> {
     bitmap.close();
   }
 }
-
-export async function imageSize(blob: Blob) {
-  const bitmap = await decode(blob);
-  const size = { width: bitmap.width, height: bitmap.height };
-  bitmap.close();
-  return size;
-}

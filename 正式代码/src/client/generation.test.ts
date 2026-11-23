@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('./images', () => ({
   // 按文件大小区分是哪张图：原图 100 字节，三视图 80，背景图 60，生成结果 3
   referenceDataUrl: vi.fn(async (blob: Blob) => `data:image/jpeg;base64,${blob.size}`),
-  imageSize: vi.fn(async () => ({ width: 1024, height: 1024 })),
   prepareDerived: vi.fn(async (blob: Blob) => ({ blob, thumb: blob, width: 1024, height: 1024 })),
 }));
 
