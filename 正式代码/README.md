@@ -2,7 +2,7 @@
 
 产品的正式实现（M2）。Next.js 项目，包名 `yijian`。
 
-- **状态（2026-11-23）**：按 [技术写法](../docs/tech-design.md) 第 13 节改造为 PRD v0.6（两套流程、三视图、背景图＋合成两步出图、模板库、小间跟上画布），在本地分支 `feat/v0.6-two-step`，只用假对话、假生图验证。2026-11-22 代码评审发现的问题已于 2026-11-23 修完（[交接文档](../docs/handoff.md) 第 0 节）；「小间的操作权限」已按技术写法第 14 节实现（同样只用假模式验证），之后在产品里用真实饰品测模型（花钱，待发起人同意）。已做／待做／未做见交接文档第 4—6 节。
+- **状态（2026-11-23）**：按 [技术写法](../docs/tech-design.md) 第 13 节改造为 PRD v0.6（两套流程、三视图、背景图＋合成两步出图、模板库、小间跟上画布），在本地分支 `feat/v0.6-two-step`，只用假对话、假生图验证。2026-11-22 代码评审发现的问题已于 2026-11-23 修完；「小间的操作权限」已按技术写法第 14 节实现（同样只用假模式验证），之后在产品里用真实饰品测模型（花钱，待发起人同意）。已做／待做／未做见交接文档第 4—6 节。
 - **技术栈**：Next.js 16 + React 19 + TypeScript + Tailwind 4 + motion + Vercel AI SDK 7；Dexie（IndexedDB）；Vitest、Playwright、ESLint、Prettier（装了、未配置）。界面组件来自 React Bits，手动拷在 `src/components/bits/`（第三方许可，见该目录 LICENSE 与 README；shadcn 没初始化）。版本见技术写法第 1 节。
 - **注意**：Next.js 16 与 AI SDK 7 有破坏性变化，写法以 `node_modules/next/dist/docs/`、`node_modules/ai/docs/` 的本地文档为准。`AGENTS.md` 由 Next.js 自动生成，`next dev` 会重新写入，不要删。
 
