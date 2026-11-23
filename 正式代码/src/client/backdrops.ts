@@ -1,3 +1,5 @@
+import { BACKDROP } from '@/config/backdrops';
+import { ratioHeight } from '@/config/ratios';
 import { getBackdrop, getBlob, logEvent, patchBackdrop } from '@/data/repo';
 import { backdropNameProblem, ownBackdrop, userPickProblem } from '@/domain/backdrops';
 import type { BackdropRef, Id } from '@/domain/types';
@@ -9,8 +11,11 @@ export { resolveBackdrop };
 /* 背景图（技术写法 13.4、13.6）：内置模板只写在配置里，其余存在 backdrops 表；这里统一成 BackdropRef。
    沉淀、改名、删除只由界面按钮在用户点了之后调用（PRD 4.2 第 2 条），小间没有对应工具。 */
 
-// 内置模板的图还没提供时，用它的示意色块渲染一张 3:4 的图（和界面上的色块一样的渐变），合成时作参考图
-async function placeholderImage(colors: readonly string[], width = 768, height = 1024): Promise<Blob> {
+// 内置模板的图还没提供时，用它的示意色块渲染一张背景比例的图（和界面上的色块一样的渐变），合成时作参考图。
+// 尺寸见 config/backdrops.ts
+async function placeholderImage(colors: readonly string[], which: 'full' | 'thumb'): Promise<Blob> {
+  const width = BACKDROP.placeholderWidth[which];
+  const height = ratioHeight(BACKDROP.ratio, width);
   const canvas = new OffscreenCanvas(width, height);
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('浏览器不支持图片处理');
@@ -35,7 +40,7 @@ export async function backdropImage(ref: BackdropRef, which: 'full' | 'thumb' = 
     if (!res?.ok) throw new Error(`内置模板「${ref.name}」的图片读不出来`);
     return res.blob();
   }
-  return placeholderImage(ref.colors ?? ['#eeeeee', '#dddddd', '#cccccc'], which === 'thumb' ? 384 : 768, which === 'thumb' ? 512 : 1024);
+  return placeholderImage(ref.colors ?? ['#eeeeee', '#dddddd', '#cccccc'], which);
 }
 
 export type PickOutcome = { ok: true } | { ok: false; reason: string };

@@ -331,6 +331,18 @@ describe('改故事后风格推荐可能要跟着变（AC-04.6）', () => {
     expect(styleLagsSummary(setStyle(w, 'tone', '暖调', 'recommend'))).toBe(false);
   });
 
+  it('推荐摆放或构图不算重新检查过背景风格，提示还在（评审第 8 条）', () => {
+    let w = setStyle(confirmSummary(draftSummary(fresh(), sum)), 'light', '清冷晨光', 'recommend');
+    w = editSummary(w, { ...sum, feel: '温暖、像礼物' });
+    for (const k of ['placement', 'composition', 'bannedScene'] as const) {
+      const after = setStyle(w, k, '平铺', 'recommend');
+      expect(after.styleSummary).toEqual(sum);
+      expect(styleLagsSummary(after)).toBe(true);
+    }
+    // 背景五项任一项按新总结推荐过：不再提示
+    expect(styleLagsSummary(setStyle(w, 'bannedBackdrop', '花', 'recommend'))).toBe(false);
+  });
+
   it('风格不是小间推荐的（用户自己选）时不提示', () => {
     let w = confirmSummary(draftSummary(fresh(), sum));
     w = setStyle(w, 'light', '清冷晨光', 'user');

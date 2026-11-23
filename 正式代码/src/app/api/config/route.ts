@@ -14,7 +14,7 @@ export async function GET() {
       credential,
       fake: fakeGateway(),
       fakeChat: fakeChat(), // 假对话模型：小间的回复是剧本，界面要标明 // 假生图网关：界面要标明结果是测试图（AC-08.6）
-      operator: process.env.TRIAL_OPERATOR === '1', // 试用操作员：资产页显示 A/B 路线开关（PRD 4.3，不给商家看）
+      operator: process.env.TRIAL_OPERATOR === '1', // 试用操作员：顶栏显示预算余量（不给商家看）
       chatModels: CHAT_MODELS.map(({ id, label, vision }) => ({ id, label, vision })),
       imageModels: IMAGE_MODELS.map(({ id, label, perImageUSD }) => ({ id, label, perImageUSD })),
       defaults: { chatModel: DEFAULT_CHAT_MODEL, imageModel: DEFAULT_IMAGE_MODEL },

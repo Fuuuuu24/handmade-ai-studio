@@ -2,7 +2,7 @@ import { isBuiltinBackdrop } from '@/config/backdrops';
 import type { InfoKey } from '@/config/info';
 import type { Ratio } from '@/config/ratios';
 import type { StepId } from '@/config/steps';
-import { SCENE_KEYS, STYLE_KEYS, type SceneKey, type StyleKey } from '@/config/style';
+import { isBackdropKey, SCENE_KEYS, STYLE_KEYS, type SceneKey, type StyleKey } from '@/config/style';
 import {
   backdropApprovalBlockers,
   backdropGenerationBlockers,
@@ -174,12 +174,13 @@ const trimSummary = (s: StorySummary): StorySummary => ({
 
 /* ---------- 风格、比例、模型 ---------- */
 
-// 小间推荐时记下依据的共创总结，总结之后改了就能提示风格可能要跟着变（AC-04.6）。
+// 小间推荐背景风格时记下依据的共创总结，总结之后改了就能提示风格可能要跟着变（AC-04.6）。
+// 摆放三项不按总结推荐，推荐它们不算重新检查过背景风格，不记（评审第 8 条）。
 // quote 只在 said 时有：执行器核对过的用户原话（BC-013）
 export const setStyle = (w: Work, key: StyleKey, value: string, source: StyleSource, reason?: string, quote?: string) =>
   touch(w, {
     style: { ...w.style, [key]: { value: value.trim(), source, reason, ...(source === 'said' && quote ? { quote } : {}) } },
-    ...(source === 'recommend' ? { styleSummary: w.story.summary } : {}),
+    ...(source === 'recommend' && isBackdropKey(key) ? { styleSummary: w.story.summary } : {}),
   });
 
 const sameSummary = (a: StorySummary, b: StorySummary) => a.express === b.express && a.feel === b.feel && a.avoid === b.avoid;

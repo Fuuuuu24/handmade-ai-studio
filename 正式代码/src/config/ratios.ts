@@ -9,3 +9,9 @@ export const RATIO_NOTES: Record<Ratio, string> = {
 };
 
 export const isRatio = (v: unknown): v is Ratio => typeof v === 'string' && (RATIOS as readonly string[]).includes(v);
+
+// 按比例从宽算高（像素取整），比如 3:4、宽 768 → 高 1024
+export function ratioHeight(ratio: Ratio, width: number): number {
+  const [w, h] = ratio.split(':').map(Number);
+  return Math.round((width * h) / w);
+}

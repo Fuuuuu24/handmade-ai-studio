@@ -5,6 +5,8 @@ import type { Ratio } from './ratios';
 export const BACKDROP = {
   ratio: '3:4' as Ratio,
   count: 2,
+  // 内置模板的图还没提供时，用示意色块渲染成图的宽度（合成参考图、给小间看的小图）；高度按 ratio 算
+  placeholderWidth: { full: 768, thumb: 384 },
 };
 
 // 内置模板背景图：图片由发起人准备（放 public/backdrops/），参数先留空（2026-11-22 发起人定）。

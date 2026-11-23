@@ -95,3 +95,6 @@ export const imageEstimate = (m: ImageModel, refs: number) => m.perImageUSD + m.
 
 // 模型被移出配置后，旧作品按默认模型算参考图上限
 export const maxRefsOf = (id: string) => imageModel(id)?.maxRefs ?? imageModel(DEFAULT_IMAGE_MODEL)!.maxRefs;
+
+// 生图接口最多收几张参考图：各模型上限里最大的（v0.6 合成最多 4 张：背景图＋三视图）；部署时请求体上限按它估
+export const MAX_REFS = Math.max(...IMAGE_MODELS.map((m) => m.maxRefs));
