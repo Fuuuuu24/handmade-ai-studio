@@ -9,4 +9,5 @@
 - 图标换成项目自己的线条图标（`components/ui/icon.tsx`），不引入 Hugeicons。
 - 默认配色改成项目的颜色变量（`app/globals.css`）。
 - 修上游缺陷：卸载时 `cancelAnimationFrame` 后把编号清零，StrictMode／热更新重新挂载后动画才能重新启动。
+- 组件自带的样式不在 Tailwind 的层里，会盖掉全局样式：焦点描边要各自补；Refine Frame 的「补齐这一张」按钮另补了禁用样式（2026-11-23，不能补齐时置灰）。
 - 去掉用不上的功能，只保留本项目用到的部分；具体见各文件开头的注释。

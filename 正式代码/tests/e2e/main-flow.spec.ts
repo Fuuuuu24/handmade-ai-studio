@@ -354,6 +354,30 @@ test.describe('摆放与合成（PRD FR-07—FR-10，技术写法 13.5）', () =
     await canvas(page).getByRole('button', { name: '补齐这一张' }).click();
     await expect(canvas(page).getByRole('img', { name: /^候选 \d$/ })).toHaveCount(2, { timeout: 60_000 });
   });
+
+  test('补齐到上限：按钮不能点，并写明原因（代码评审第 7 条）', async ({ page }) => {
+    await readyForPlacement(page);
+    await say(page, '平铺就好【测试：摆放】【测试：提示词】');
+    await step(page, '摆放').click();
+    const prompt = canvas(page).getByRole('textbox', { name: '完整合成提示词' });
+    await prompt.click();
+    await prompt.press('End');
+    await page.keyboard.type('【测试：全部失败】');
+    await page.keyboard.press('Tab');
+    await canvas(page).getByRole('button', { name: '我已核对，两者一致' }).click();
+    await approveBy(canvas(page).getByRole('slider', { name: /滑动批准并生成两张/ }));
+
+    // 每张最多补 2 次（config/budget.ts）：补两次都失败后，按钮不能点，并在原位写明原因
+    const failed = canvas(page).getByRole('img', { name: '候选 1：没有生成出来' });
+    const retry = failed.getByRole('button', { name: '补齐这一张' });
+    for (let i = 0; i < 2; i++) {
+      await expect(retry).toBeEnabled({ timeout: 60_000 });
+      await retry.click();
+      await expect(failed).toHaveCount(0, { timeout: 10_000 });
+    }
+    await expect(retry).toBeDisabled({ timeout: 60_000 });
+    await expect(canvas(page).getByText('现在不能补齐：这一张已经补齐过 2 次，先改方案再重新生成')).toBeVisible();
+  });
 });
 
 test.describe('小间跟上画布（PRD AC-11.3a—c，技术写法 13.12）', () => {

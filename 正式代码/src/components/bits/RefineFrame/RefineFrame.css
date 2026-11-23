@@ -224,6 +224,12 @@
   outline-offset: 2px;
 }
 
+/* 不能补齐时（次数用完、别的生成在跑）要看得出来：这里的样式不在 Tailwind 的层里，会盖掉全局的 button:disabled，所以单独写 */
+.refine-frame__retry:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .refine-frame__retry:not(:disabled):hover {
     box-shadow: inset 0 0 0 1px var(--color-line-hover);
