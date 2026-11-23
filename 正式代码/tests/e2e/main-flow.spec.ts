@@ -119,6 +119,7 @@ test.describe('商品：正面、侧面、背面和三视图（PRD FR-02、4.3�
     await expect(angle(page, '侧面').getByText('重做中…')).toBeVisible();
     await expect(angle(page, '侧面').getByText('待确认')).toBeVisible({ timeout: 60_000 });
     await expect(canvas(page).getByText('三视图 2/3 已确认')).toBeVisible();
+    await page.screenshot({ path: info.outputPath('ask-partial.png') });
     await confirmView(page, '侧面');
     await expect(canvas(page).getByText('三视图 3/3 已确认')).toBeVisible();
   });
@@ -445,7 +446,7 @@ test.describe('流程二（PRD 5.2）', () => {
 const askCard = (page: Page) => chat(page).getByText('要我替你点吗？').last().locator('xpath=ancestor::div[contains(@class,"rounded-[14px]")]');
 
 test.describe('小间的操作权限（技术写法 14）', () => {
-  test('三视图问过再代点：只同意一部分、卡片上点「同意」；点错了能取消确认；小间推进下一步，画布跟着走、不发交接', async ({ page }) => {
+  test('三视图问过再代点：只同意一部分、卡片上点「同意」；点错了能取消确认；小间推进下一步，画布跟着走、不发交接', async ({ page }, info) => {
     await startHome(page);
     await uploadAngles(page);
     await canvas(page).getByRole('button', { name: '生成三视图' }).click();
@@ -456,6 +457,7 @@ test.describe('小间的操作权限（技术写法 14）', () => {
     await say(page, '帮我把三视图确认了【测试：问三视图】');
     await expect(askCard(page).getByText('侧面三视图可以用')).toBeVisible();
     await expect(canvas(page).getByText('三视图 0/3 已确认')).toBeVisible();
+    await page.screenshot({ path: info.outputPath('ask-card.png') });
     // 卡片上的「对照」打开和商品画布同一个对照弹窗
     await askCard(page).getByRole('button', { name: '对照' }).first().click();
     await expect(page.getByRole('dialog', { name: '对照正面三视图' })).toBeVisible();
@@ -476,6 +478,7 @@ test.describe('小间的操作权限（技术写法 14）', () => {
     await step(page, '商品').click();
     await angle(page, '正面').getByRole('button', { name: '对照正面三视图' }).click();
     const dialog = page.getByRole('dialog', { name: '对照正面三视图' });
+    await page.screenshot({ path: info.outputPath('cancel-confirm.png') });
     await dialog.getByRole('button', { name: '取消确认' }).click();
     await expect(dialog.getByRole('button', { name: '可以用' })).toBeVisible();
     await dialog.getByRole('button', { name: '可以用' }).click();
@@ -488,7 +491,7 @@ test.describe('小间的操作权限（技术写法 14）', () => {
     await expect(chat(page).getByText('交接：商品 · 已告诉小间')).toHaveCount(0);
   });
 
-  test('信息建议问过再代点；背景候选选定并沉淀；小间发起从模板库删除，取消和确认各一次', async ({ page }) => {
+  test('信息建议问过再代点；背景候选选定并沉淀；小间发起从模板库删除，取消和确认各一次', async ({ page }, info) => {
     await startHome(page);
     await say(page, '是 925 银的耳饰，长 3 厘米【测试：信息】【测试：问信息】');
     await expect(askCard(page).getByText('材料用建议「925 银」')).toBeVisible();
@@ -501,6 +504,7 @@ test.describe('小间的操作权限（技术写法 14）', () => {
     await expect(chat(page).getByText(/我理解的现状：收到「背景图」的通知/)).toBeVisible();
     await say(page, '用第一张，存进模板库【测试：问选背景】');
     await expect(askCard(page).getByText('图里不能有饰品，请先看一眼')).toBeVisible();
+    await page.screenshot({ path: info.outputPath('ask-backdrop.png') });
     await askCard(page).getByRole('button', { name: '同意' }).click();
     await expect(chat(page).getByText(/替你点了：用第 1 轮背景 1；第 1 轮背景 1 沉淀进模板库，起名「苔绿晨光」/)).toBeVisible();
     await step(page, '背景').click();
@@ -509,6 +513,8 @@ test.describe('小间的操作权限（技术写法 14）', () => {
     // 删除要用户在确认框里点（PRD 4.2 第 5 条）：取消就不删
     await say(page, '把苔绿晨光从模板库删掉【测试：删背景】', { settle: false });
     const confirmBox = page.getByRole('dialog', { name: '小间想从模板库删除「苔绿晨光」？' });
+    await expect(confirmBox).toBeVisible();
+    await page.screenshot({ path: info.outputPath('agent-delete-confirm.png') });
     await confirmBox.getByRole('button', { name: '取消' }).click();
     await expect(chat(page).getByText('用户取消了，「苔绿晨光」还在模板库里')).toBeVisible();
     await say(page, '还是删掉吧【测试：删背景】', { settle: false });
