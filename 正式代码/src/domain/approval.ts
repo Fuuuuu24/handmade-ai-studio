@@ -5,7 +5,7 @@ import { VIEW_ANGLES } from '@/config/views';
 import { angleNames, missingAngles, viewsDone } from './assets';
 import { backdropDone } from './backdrops';
 import { backdropConflicts, sceneConflicts } from './conflicts';
-import { busyOf } from './generation';
+import { busyOf, crossBusy } from './generation';
 import { BACKDROP_INFO, infoLabels, infoMissing, pendingCore } from './info';
 import {
   backdropBasisOf,
@@ -181,8 +181,8 @@ export function backdropGenerationBlockers(s: WorkState, approval: BackdropAppro
   const busy = busyOf(s.tasks, s.work.id);
   const out = roundBlockers(backdropApprovalStatus(s, approval), approval, '背景方案还没批准');
   if (busy.backdrop) out.push('背景正在生成中');
-  if (busy.scene) out.push('正在合成这一轮候选，等结束后再生成背景');
-  return out;
+  const cross = crossBusy(s.tasks, s.work.id, 'backdrop');
+  return cross ? [...out, cross] : out;
 }
 
 // 发起合成的条件（PRD 4.2 第 1 条）
@@ -190,6 +190,6 @@ export function sceneGenerationBlockers(s: WorkState, approval: SceneApproval | 
   const busy = busyOf(s.tasks, s.work.id);
   const out = roundBlockers(sceneApprovalStatus(s, approval), approval, '方案还没批准');
   if (busy.scene) out.push('已有任务在生成中');
-  if (busy.views) out.push('三视图还在生成');
-  return out;
+  const cross = crossBusy(s.tasks, s.work.id, 'scene');
+  return cross ? [...out, cross] : out;
 }

@@ -23,7 +23,7 @@ import {
 import { activeUploads, angleStates } from '@/domain/assets';
 import { backdropCandidates, paramsText } from '@/domain/backdrops';
 import { changeText, diffFacts, factsOf } from '@/domain/handoff';
-import { roundResults, slotsOf, slotState } from '@/domain/generation';
+import { lastSlotTask, roundResults, slotsOf, slotState } from '@/domain/generation';
 import { currentStep, stepStates, workStatus } from '@/domain/status';
 import type { BackdropRef, StyleSource } from '@/domain/types';
 import { styleLagsSummary, summaryEdits } from '@/domain/work';
@@ -150,7 +150,7 @@ export function stateSummary(i: SummaryInput): string {
         const st = slotState(i.tasks, work.id, 'backdrop', round, s);
         const c = cands.find((b) => b.slot === s);
         if (c) return `背景 ${s + 1}：已生成（${c.id}${work.backdropId === c.id ? '，用户选定了这张' : ''}${c.savedAt ? '，已沉淀进模板库' : ''}）`;
-        const lastFail = [...i.tasks].reverse().find((t) => t.kind === 'backdrop' && t.round === round && t.slot === s && t.status === 'failed');
+        const lastFail = lastSlotTask(i.tasks, work.id, 'backdrop', round, s);
         return `背景 ${s + 1}：${{ empty: '未开始', active: '生成中', succeeded: '已完成', failed: `失败（${lastFail?.error ?? '原因未知'}）` }[st]}`;
       });
       lines.push(`第 ${round} 轮背景：${slots.join('；')}${cands.length && !work.backdropId ? '。选哪张要用户在画布上点「用这张」，你不能代选；图里不能有饰品，请用户把关' : ''}`);
@@ -205,7 +205,7 @@ export function stateSummary(i: SummaryInput): string {
         const v = `像不像实物：${VERDICT_SHORT.real[res.verdict.real]}，风格对不对：${VERDICT_SHORT.style[res.verdict.style]}`;
         return `候选 ${s + 1}：已出图（${v}${res.issues.length ? `；问题：${res.issues.join('、')}` : ''}${res.note ? `；用户说：${res.note}` : ''}）`;
       }
-      const lastFail = [...i.tasks].reverse().find((t) => t.kind === 'scene' && t.round === r && t.slot === s && t.status === 'failed');
+      const lastFail = lastSlotTask(i.tasks, work.id, 'scene', r, s);
       return `候选 ${s + 1}：${{ empty: '未开始', active: '生成中', succeeded: '已完成', failed: `失败（${lastFail?.error ?? '原因未知'}）` }[sst]}`;
     });
     lines.push(`第 ${r} 轮合成：${slotText.join('；')}`);

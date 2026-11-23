@@ -15,7 +15,7 @@ import { logEvent, patchResult } from '@/data/repo';
 import { exportResult } from '@/client/export';
 import { sceneApprovalStatus } from '@/domain/approval';
 import { activeUploads } from '@/domain/assets';
-import { passed, roundSlots, slotState } from '@/domain/generation';
+import { lastSlotTask, passed, retryCheck, roundSlots, slotState } from '@/domain/generation';
 import { diffSceneSnapshot } from '@/domain/snapshot';
 import type { Approval, Asset, Result, SceneApproval, Verdict } from '@/domain/types';
 import { reviseFrom } from '@/domain/work';
@@ -297,10 +297,13 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
   );
 }
 
+// 补齐这一张：能不能补和 retrySlot 同一套条件（retryCheck），不能补时写明原因
 function FailedSlot({ round, slot, error, ratio }: { round: number; slot: number; error?: string; ratio: Ratio }) {
-  const { workId } = useWorkspace();
+  const { ctx, workId } = useWorkspace();
   const [pending, setPending] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
+  const check = retryCheck(ctx.tasks, workId, 'scene', round, slot);
+  const blocked = check.ok ? null : check.reason;
   return (
     <div className="flex flex-col gap-2">
       <RefineFrame
@@ -310,7 +313,7 @@ function FailedSlot({ round, slot, error, ratio }: { round: number; slot: number
         radius={8}
         ariaLabel={`候选 ${slot + 1}：没有生成出来`}
         retryLabel={pending ? '提交中…' : '补齐这一张'}
-        retryDisabled={pending}
+        retryDisabled={pending || !!blocked}
         onRetry={async () => {
           setPending(true);
           const r = await retrySlot(workId, 'scene', round, slot);
@@ -319,7 +322,7 @@ function FailedSlot({ round, slot, error, ratio }: { round: number; slot: number
         }}
       />
       <p className="text-aux text-bad">候选 {slot + 1} 没有生成出来：{error ?? '原因未知'}</p>
-      {reason && <p className="text-aux text-warn">{reason}</p>}
+      {(blocked ?? reason) && <p className="text-aux text-warn">{blocked ? `现在不能补齐：${blocked}` : reason}</p>}
     </div>
   );
 }
@@ -380,7 +383,7 @@ function Round({ round, approval, isCurrent, compare, toggleCompare }: { round: 
           const result = ctx.results.find((r) => r.round === round && r.slot === slot);
           if (result) return <Candidate key={slot} result={result} ratio={ratio} approval={approval} comparing={compare.includes(result.id)} onCompare={() => toggleCompare(result.id)} />;
           const st = slotState(ctx.tasks, workId, 'scene', round, slot);
-          const last = ctx.tasks.filter((t) => t.kind === 'scene' && t.round === round && t.slot === slot).sort((a, b) => a.attempt - b.attempt).at(-1);
+          const last = lastSlotTask(ctx.tasks, workId, 'scene', round, slot);
           if (st === 'failed') return <FailedSlot key={slot} round={round} slot={slot} error={last?.error} ratio={ratio} />;
           // 生成中（React Bits Refine Frame）：还没有图，只显示扫光和状态；结果出来后在 Candidate 里用真实结果做细化动画
           return (

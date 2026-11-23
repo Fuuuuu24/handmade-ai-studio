@@ -1,7 +1,7 @@
 import { VIEW_NAMES } from '@/config/views';
 import { VERDICT_SHORT } from '@/config/verdict';
 import { backdropCandidates } from './backdrops';
-import { isActive, roundResults, slotsOf, slotState } from './generation';
+import { isActive, lastSlotTask, roundResults, slotsOf, slotState } from './generation';
 import type { Result, Task, WorkState } from './types';
 
 /* 生成完成和验收的通知（PRD AC-11.3a、AC-11.3c，技术写法 13.12 第 4 条）：浏览器代用户告诉小间。
@@ -31,8 +31,9 @@ export function pendingNotices(s: WorkState): NoticeBatch[] {
   return out;
 }
 
+// 这一张最后一次失败的原因（只在这一张的状态是失败时用，最后一次就是失败的那次）
 const failText = (s: WorkState, kind: 'backdrop' | 'scene', round: number, slot: number) =>
-  [...s.tasks].reverse().find((t) => t.kind === kind && t.round === round && t.slot === slot && t.status === 'failed')?.error ?? '原因未知';
+  lastSlotTask(s.tasks, s.work.id, kind, round, slot)?.error ?? '原因未知';
 
 // 通知的文字：按这一批（或这一轮）现在的样子写，补齐后再通知时说的也是整轮的情况
 export function noticeText(s: WorkState, b: NoticeBatch): string {

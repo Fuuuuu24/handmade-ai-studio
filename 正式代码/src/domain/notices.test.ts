@@ -37,6 +37,22 @@ describe('生成通知（PRD AC-11.3c，技术写法 13.12）', () => {
     expect(noticeText(stateOf(w, [], { tasks: [s0, s1], results: r }), scene)).toBe('【通知：候选】第 2 轮：候选 1 生成好了；候选 2 生成好了。两项验收要用户自己点。');
   });
 
+  it('补齐后又失败：通知写最后一次的原因，不看任务在数组里的顺序（评审第 11 条）', () => {
+    const second = done({ ...task(w.id, 1, 0, 'failed', 2, 'scene'), error: '第二次：内容被拦截' });
+    const first = { ...task(w.id, 1, 0, 'failed', 1, 'scene'), notifiedAt: 5, error: '第一次：超时' };
+    const ok = { ...task(w.id, 1, 1, 'succeeded'), notifiedAt: 5 };
+    const r = [result(w.id, 1, 1)];
+    for (const tasks of [[second, first, ok], [first, second, ok]]) {
+      const [b] = pendingNotices(stateOf(w, [], { tasks, results: r }));
+      expect(noticeText(stateOf(w, [], { tasks, results: r }), b)).toContain('候选 1 没生成出来（第二次：内容被拦截），可以补齐');
+    }
+    const bd2 = done({ ...task(w.id, 1, 0, 'failed', 2, 'backdrop'), error: '第二次：内容被拦截' });
+    const bd1 = { ...task(w.id, 1, 0, 'failed', 1, 'backdrop'), notifiedAt: 5, error: '第一次：超时' };
+    const bdOk = { ...task(w.id, 1, 1, 'succeeded', 1, 'backdrop'), notifiedAt: 5 };
+    const [bb] = pendingNotices(stateOf(w, [], { tasks: [bd2, bd1, bdOk] }));
+    expect(noticeText(stateOf(w, [], { tasks: [bd2, bd1, bdOk] }), bb)).toContain('背景 1 没生成出来（第二次：内容被拦截）');
+  });
+
   it('补齐的那张结束后，只通知它，但说整轮的情况', () => {
     const first = { ...task(w.id, 1, 0, 'failed', 1, 'scene'), notifiedAt: 5, error: '超时' };
     const ok = { ...task(w.id, 1, 1, 'succeeded'), notifiedAt: 5 };

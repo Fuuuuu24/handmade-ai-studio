@@ -12,7 +12,7 @@ import { listSavedBackdrops, logEvent } from '@/data/repo';
 import { backdropConflicts } from '@/domain/conflicts';
 import { backdropApprovalStatus } from '@/domain/approval';
 import { backdropCandidates, backdropDone, backdropLag, refOfBackdrop, refOfBuiltin } from '@/domain/backdrops';
-import { slotsOf, slotState } from '@/domain/generation';
+import { lastSlotTask, retryCheck, slotsOf, slotState } from '@/domain/generation';
 import { backdropStyleOf } from '@/domain/snapshot';
 import type { Backdrop, BackdropMode, BackdropRef, StorySummary } from '@/domain/types';
 import { clearBackdrop, confirmSummary, editSummary, keepStyleForSummary, setBackdropMode, setNoStory, styleLagsSummary } from '@/domain/work';
@@ -308,7 +308,7 @@ function Candidates({ locked }: { locked: boolean }) {
           const b = cands.find((c) => c.slot === slot);
           if (b) return <CandidateCard key={slot} backdrop={b} locked={locked} />;
           const st = slotState(ctx.tasks, workId, 'backdrop', round, slot);
-          const last = ctx.tasks.filter((t) => t.kind === 'backdrop' && t.round === round && t.slot === slot).sort((a, b2) => a.attempt - b2.attempt).at(-1);
+          const last = lastSlotTask(ctx.tasks, workId, 'backdrop', round, slot);
           if (st === 'failed') return <FailedBackdrop key={slot} round={round} slot={slot} error={last?.error} />;
           return (
             <RefineFrame
@@ -327,10 +327,13 @@ function Candidates({ locked }: { locked: boolean }) {
   );
 }
 
+// 补齐这一张：能不能补和 retrySlot 同一套条件（retryCheck），不能补时写明原因
 function FailedBackdrop({ round, slot, error }: { round: number; slot: number; error?: string }) {
-  const { workId } = useWorkspace();
+  const { ctx, workId } = useWorkspace();
   const [pending, setPending] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
+  const check = retryCheck(ctx.tasks, workId, 'backdrop', round, slot);
+  const blocked = check.ok ? null : check.reason;
   return (
     <div className="flex flex-col gap-2">
       <RefineFrame
@@ -340,7 +343,7 @@ function FailedBackdrop({ round, slot, error }: { round: number; slot: number; e
         radius={8}
         ariaLabel={`背景 ${slot + 1}：没有生成出来`}
         retryLabel={pending ? '提交中…' : '补齐这一张'}
-        retryDisabled={pending}
+        retryDisabled={pending || !!blocked}
         onRetry={async () => {
           setPending(true);
           const r = await retrySlot(workId, 'backdrop', round, slot);
@@ -349,7 +352,7 @@ function FailedBackdrop({ round, slot, error }: { round: number; slot: number; e
         }}
       />
       <p className="text-aux text-bad">背景 {slot + 1} 没有生成出来：{error ?? '原因未知'}</p>
-      {reason && <p className="text-aux text-warn">{reason}</p>}
+      {(blocked ?? reason) && <p className="text-aux text-warn">{blocked ? `现在不能补齐：${blocked}` : reason}</p>}
     </div>
   );
 }

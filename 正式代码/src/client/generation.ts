@@ -18,10 +18,10 @@ import {
 } from '@/data/repo';
 import { backdropApprovalStatus, sceneApprovalStatus } from '@/domain/approval';
 import { anglesToGenerate, viewCheck, viewSources, viewTasksOf } from '@/domain/assets';
-import { retryCheck, slotsOf } from '@/domain/generation';
-import type { Approval, Backdrop, BackdropApproval, Id, Result, SceneApproval, Task, TaskKind } from '@/domain/types';
+import { lastSlotTask, retryCheck, slotsOf } from '@/domain/generation';
+import type { Approval, Backdrop, BackdropApproval, Id, Result, SceneApproval, Task, TaskKind, WorkState } from '@/domain/types';
 import { newId } from '@/domain/util';
-import { addCost, approveBackdrop, approveScene, startBackdropRound, startSceneRound } from '@/domain/work';
+import { addCost, approveBackdrop, approveScene, startBackdropRound, startSceneRound, type ApproveResult, type RoundResult } from '@/domain/work';
 import { ApiCallError, downloadImageResult, errorText, getImageTaskStatus, submitImageTask } from './api';
 import { backdropImage } from './backdrops';
 import { prepareDerived, referenceDataUrl } from './images';
@@ -113,7 +113,7 @@ export function generateViews(workId: Id, angles?: readonly ViewAngle[]): Promis
   });
 }
 
-/* ---------- 背景图（技术写法 13.4） ---------- */
+/* ---------- 背景图与合成（技术写法 13.4、13.5）：批准、发起一轮、补齐的写法相同，按种类查表（ROUNDS） ---------- */
 
 const backdropRequest = (approval: BackdropApproval): ImageRequest => ({
   kind: 'backdrop',
@@ -121,37 +121,6 @@ const backdropRequest = (approval: BackdropApproval): ImageRequest => ({
   ratio: BACKDROP.ratio,
   images: async () => [],
 });
-
-// 用户滑动「批准并生成两张背景」：批准和发起生成是同一个明确操作（AC-07.5）
-export function approveAndGenerateBackdrop(workId: Id): Promise<GenOutcome> {
-  return serial(workId, async () => {
-    const ctx = await loadContext(workId);
-    const a = approveBackdrop(ctx);
-    if (!a.ok) return { ok: false, reasons: a.blockers.map((b) => b.text) };
-    await saveApproval(a.work, a.approval);
-    void logEvent('approve_backdrop', workId, { version: a.approval.version });
-    return launchBackdrop(workId, a.approval);
-  });
-}
-
-// 小间的 start_backdrop_generation：只在已有有效且未用过的背景批准时执行
-export function startBackdropGeneration(workId: Id): Promise<GenOutcome> {
-  return serial(workId, () => launchBackdrop(workId, null));
-}
-
-async function launchBackdrop(workId: Id, fresh: BackdropApproval | null): Promise<GenOutcome> {
-  const ctx = await loadContext(workId);
-  const s = startBackdropRound(ctx, fresh ?? ctx.backdropApproval);
-  if (!s.ok) return s;
-  const tasks = slotsOf('backdrop').map((slot) => roundTask(workId, 'backdrop', s.approval, s.round, slot, 1));
-  await saveApproval(s.work, s.approval);
-  for (const t of tasks) await putTask(t);
-  void logEvent('generate_backdrop', workId, { round: s.round, model: s.approval.snapshot.imageModel });
-  for (const t of tasks) void submit(t, backdropRequest(s.approval));
-  return { ok: true, round: s.round };
-}
-
-/* ---------- 合成（技术写法 13.5） ---------- */
 
 // 合成参考图固定为 1 张背景图＋3 张三视图（AC-02.3a）；原图和细节照不进合成。各张图的用途由小间写进提示词
 async function backdropReference(id: Id | null): Promise<string> {
@@ -170,64 +139,106 @@ const sceneRequest = (approval: SceneApproval): ImageRequest => ({
   ],
 });
 
+type RoundKind = 'backdrop' | 'scene';
+type ApprovalOf<K extends RoundKind> = { backdrop: BackdropApproval; scene: SceneApproval }[K];
+
+interface RoundSpec<K extends RoundKind> {
+  approve(s: WorkState): ApproveResult<ApprovalOf<K>>;
+  start(s: WorkState, approval: ApprovalOf<K> | null): RoundResult<ApprovalOf<K>>; // 校验有效批准，并把它标为已用
+  current(s: WorkState): ApprovalOf<K> | null; // 作品最近一次的这种批准
+  load(id: Id | null | undefined): Promise<ApprovalOf<K> | undefined>;
+  valid(s: WorkState, approval: ApprovalOf<K>): boolean;
+  request(approval: ApprovalOf<K>): ImageRequest;
+  events: { approve: string; generate: string };
+  detail(approval: ApprovalOf<K>): Record<string, unknown>; // 发起一轮时记进试用事件
+  missing: string; // 补齐时找不到那一轮的批准
+  changed: string; // 补齐时那一轮的批准已经失效
+}
+
+const ROUNDS: { [K in RoundKind]: RoundSpec<K> } = {
+  backdrop: {
+    approve: approveBackdrop,
+    start: startBackdropRound,
+    current: (s) => s.backdropApproval,
+    load: getBackdropApproval,
+    valid: (s, a) => backdropApprovalStatus(s, a).kind === 'valid',
+    request: backdropRequest,
+    events: { approve: 'approve_backdrop', generate: 'generate_backdrop' },
+    detail: (a) => ({ model: a.snapshot.imageModel }),
+    missing: '找不到这一轮背景的批准记录',
+    changed: '批准后背景方案改过了，补齐需要重新批准',
+  },
+  scene: {
+    approve: approveScene,
+    start: startSceneRound,
+    current: (s) => s.approval,
+    load: getSceneApproval,
+    valid: (s, a) => sceneApprovalStatus(s, a).kind === 'valid',
+    request: sceneRequest,
+    events: { approve: 'approve', generate: 'generate' },
+    detail: (a) => ({ model: a.snapshot.imageModel, ratio: a.snapshot.ratio }),
+    missing: '找不到这一轮的批准记录',
+    changed: '批准后方案改过了，补齐需要重新批准',
+  },
+};
+
+const specOf = <K extends RoundKind>(kind: K) => ROUNDS[kind] as RoundSpec<K>;
+
 // 用户滑动「批准并生成两张」：批准和发起生成是同一个明确操作（AC-07.5）
-export function approveAndGenerate(workId: Id): Promise<GenOutcome> {
+function approveAndLaunch<K extends RoundKind>(kind: K, workId: Id): Promise<GenOutcome> {
   return serial(workId, async () => {
+    const spec = specOf(kind);
     const ctx = await loadContext(workId);
-    const a = approveScene(ctx);
+    const a = spec.approve(ctx);
     if (!a.ok) return { ok: false, reasons: a.blockers.map((b) => b.text) };
     await saveApproval(a.work, a.approval);
-    void logEvent('approve', workId, { version: a.approval.version });
-    return launchScene(workId, a.approval);
+    void logEvent(spec.events.approve, workId, { version: a.approval.version });
+    return launch(kind, workId, a.approval);
   });
 }
 
-// 小间的 start_generation：只在已有有效且未用过的合成批准时执行
-export function startGeneration(workId: Id): Promise<GenOutcome> {
-  return serial(workId, () => launchScene(workId, null));
-}
+export const approveAndGenerateBackdrop = (workId: Id) => approveAndLaunch('backdrop', workId);
+export const approveAndGenerate = (workId: Id) => approveAndLaunch('scene', workId);
 
-async function launchScene(workId: Id, fresh: SceneApproval | null): Promise<GenOutcome> {
+// 小间的 start_backdrop_generation／start_generation：只在已有有效且未用过的批准时执行
+export const startBackdropGeneration = (workId: Id) => serial(workId, () => launch('backdrop', workId, null));
+export const startGeneration = (workId: Id) => serial(workId, () => launch('scene', workId, null));
+
+// 发起一轮：fresh 是刚批准的；为空时用作品最近一次的批准
+async function launch<K extends RoundKind>(kind: K, workId: Id, fresh: ApprovalOf<K> | null): Promise<GenOutcome> {
+  const spec = specOf(kind);
   const ctx = await loadContext(workId);
-  const s = startSceneRound(ctx, fresh ?? ctx.approval);
+  const s = spec.start(ctx, fresh ?? spec.current(ctx));
   if (!s.ok) return s;
-  const tasks = slotsOf('scene').map((slot) => roundTask(workId, 'scene', s.approval, s.round, slot, 1));
+  const tasks = slotsOf(kind).map((slot) => roundTask(workId, kind, s.approval, s.round, slot, 1));
   await saveApproval(s.work, s.approval);
   for (const t of tasks) await putTask(t);
-  const snap = s.approval.snapshot;
-  void logEvent('generate', workId, { round: s.round, model: snap.imageModel, ratio: snap.ratio });
-  for (const t of tasks) void submit(t, sceneRequest(s.approval));
+  void logEvent(spec.events.generate, workId, { round: s.round, ...spec.detail(s.approval) });
+  for (const t of tasks) void submit(t, spec.request(s.approval));
   return { ok: true, round: s.round };
 }
 
 /* ---------- 补齐 ---------- */
 
-// 补齐失败的一张（背景或合成）：沿用那一轮的批准，但批准必须仍然有效（PRD 4.2 第 1 条），次数受上限约束
-export function retrySlot(workId: Id, kind: 'backdrop' | 'scene', round: number, slot: number): Promise<GenOutcome> {
-  return serial(workId, async () => {
-    const ctx = await loadContext(workId);
-    const check = retryCheck(ctx.tasks, workId, kind, round, slot);
-    if (!check.ok) return { ok: false, reasons: [check.reason] };
-    const prev = ctx.tasks.find((t) => t.kind === kind && t.round === round && t.slot === slot);
-    if (kind === 'backdrop') {
-      const approval = await getBackdropApproval(prev?.approvalId);
-      if (!approval || approval.usedRound !== round) return { ok: false, reasons: ['找不到这一轮背景的批准记录'] };
-      if (backdropApprovalStatus(ctx, approval).kind !== 'valid') return { ok: false, reasons: ['批准后背景方案改过了，补齐需要重新批准'] };
-      const task = roundTask(workId, 'backdrop', approval, round, slot, check.attempt);
-      await putTask(task);
-      void logEvent('retry', workId, { kind, round, slot, attempt: check.attempt });
-      void submit(task, backdropRequest(approval));
-      return { ok: true, round };
-    }
-    const approval = await getSceneApproval(prev?.approvalId);
-    if (!approval || approval.usedRound !== round) return { ok: false, reasons: ['找不到这一轮的批准记录'] };
-    if (sceneApprovalStatus(ctx, approval).kind !== 'valid') return { ok: false, reasons: ['批准后方案改过了，补齐需要重新批准'] };
-    const task = roundTask(workId, 'scene', approval, round, slot, check.attempt);
-    await putTask(task);
-    void logEvent('retry', workId, { kind, round, slot, attempt: check.attempt });
-    void submit(task, sceneRequest(approval));
-    return { ok: true, round };
-  });
+// 补齐失败的一张（背景或合成）：能不能补看 retryCheck（别的种类在生成时不能补、次数有上限），和画布上的补齐按钮是同一套条件；
+// 沿用那一轮的批准，但批准必须仍然有效（PRD 4.2 第 1 条）
+export function retrySlot(workId: Id, kind: RoundKind, round: number, slot: number): Promise<GenOutcome> {
+  return serial(workId, () => retry(kind, workId, round, slot));
+}
+
+async function retry<K extends RoundKind>(kind: K, workId: Id, round: number, slot: number): Promise<GenOutcome> {
+  const spec = specOf(kind);
+  const ctx = await loadContext(workId);
+  const check = retryCheck(ctx.tasks, workId, kind, round, slot);
+  if (!check.ok) return { ok: false, reasons: [check.reason] };
+  const approval = await spec.load(lastSlotTask(ctx.tasks, workId, kind, round, slot)?.approvalId);
+  if (!approval || approval.usedRound !== round) return { ok: false, reasons: [spec.missing] };
+  if (!spec.valid(ctx, approval)) return { ok: false, reasons: [spec.changed] };
+  const task = roundTask(workId, kind, approval, round, slot, check.attempt);
+  await putTask(task);
+  void logEvent('retry', workId, { kind, round, slot, attempt: check.attempt });
+  void submit(task, spec.request(approval));
+  return { ok: true, round };
 }
 
 /* ---------- 提交、查询、取回 ---------- */

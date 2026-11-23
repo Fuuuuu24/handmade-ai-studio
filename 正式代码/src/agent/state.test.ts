@@ -96,6 +96,23 @@ describe('stateSummary（技术写法 13.12）', () => {
     expect(text).toContain('候选 1：生成中');
   });
 
+  it('补齐后又失败：写最后一次的原因，不看任务在数组里的顺序（评审第 11 条）', () => {
+    const { work, assets } = promptedWork();
+    const a = approveScene(stateOf(work, assets));
+    if (!a.ok) throw new Error('应当可以批准');
+    const s = startSceneRound(stateOf(a.work, assets, { approval: a.approval }), a.approval);
+    if (!s.ok) throw new Error('应当可以生成');
+    const second = { ...task(work.id, 1, 0, 'failed', 2), error: '第二次：内容被拦截' };
+    const first = { ...task(work.id, 1, 0, 'failed', 1), error: '第一次：超时' };
+    for (const tasks of [[second, first], [first, second]]) {
+      expect(summarize(s.work, assets, { approval: s.approval, tasks })).toContain('候选 1：失败（第二次：内容被拦截）');
+    }
+    const bw = { ...backdropWork(), backdropRound: 1 };
+    const b2 = { ...task(bw.id, 1, 0, 'failed', 2, 'backdrop'), error: '第二次：内容被拦截' };
+    const b1 = { ...task(bw.id, 1, 0, 'failed', 1, 'backdrop'), error: '第一次：超时' };
+    expect(summarize(bw, [], { tasks: [b2, b1] })).toContain('背景 1：失败（第二次：内容被拦截）');
+  });
+
   it('从某张结果修改时：写明问题出在背景时回背景这一步', () => {
     const { work, assets } = promptedWork();
     const a = approveScene(stateOf(work, assets));

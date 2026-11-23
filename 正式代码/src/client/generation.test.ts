@@ -11,7 +11,7 @@ vi.mock('./images', () => ({
 
 import { GENERATION } from '@/config/budget';
 import { db, useTestDb } from '@/data/db';
-import { addUpload, confirmView, getSceneApproval, getWork, listAssets, listResults, listTasks, listWorkBackdrops, saveBackdropResult, saveViewResult, saveWork } from '@/data/repo';
+import { addUpload, confirmView, getSceneApproval, getWork, listAssets, listResults, listTasks, listWorkBackdrops, putTask, saveBackdropResult, saveViewResult, saveWork } from '@/data/repo';
 import type { ViewAngle } from '@/domain/types';
 import { newId } from '@/domain/util';
 import { refOfBackdrop } from '@/domain/backdrops';
@@ -254,5 +254,22 @@ describe('背景图（技术写法 13.4）', () => {
     await settle(w.id);
     expect(await listWorkBackdrops(w.id)).toHaveLength(2);
     expect(await retrySlot(w.id, 'backdrop', 1, failed.slot!)).toEqual({ ok: false, reasons: ['这一张已经成功了'] });
+  });
+
+  it('补齐被别的种类挡住：合成中不能补背景，三视图生成中不能补合成（评审第 7 条）', async () => {
+    stubServer(async () => Response.json({ error: { code: 'artifact_expired', message: '结果已过期' } }, { status: 410 }));
+    const w = backdropPromptedWork();
+    await saveWork(w);
+    await approveAndGenerateBackdrop(w.id);
+    await settle(w.id);
+    await putTask(task(w.id, 1, 0, 'running'));
+    expect(await retrySlot(w.id, 'backdrop', 1, 0)).toEqual({ ok: false, reasons: ['正在合成这一轮候选，等结束后再生成背景'] });
+
+    const { workId } = await seedReady();
+    await approveAndGenerate(workId);
+    await settle(workId);
+    await putTask(viewTask(workId, 'front', 'asset_x', 'running'));
+    expect(await retrySlot(workId, 'scene', 1, 0)).toEqual({ ok: false, reasons: ['三视图还在生成'] });
+    expect((await listTasks(workId)).filter((t) => t.kind === 'scene')).toHaveLength(2);
   });
 });
