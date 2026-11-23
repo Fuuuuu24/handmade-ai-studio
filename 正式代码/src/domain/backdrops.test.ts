@@ -39,7 +39,10 @@ describe('背景图与模板库（PRD FR-06）', () => {
     // 这件作品的候选：先问用户再代点（技术写法 14.4）；别的作品没沉淀的选不了
     expect(agentPickProblem(refOfBackdrop(backdrop('w', 1, 0)), 'x', 'w')).toContain('用 ask_confirm（pick_backdrop）问用户');
     expect(agentPickProblem(refOfBackdrop(backdrop('other', 1, 0)), 'x', 'w')).toBe('这张背景图还没沉淀进模板库，不能选');
-    expect(agentPickProblem(refOfBackdrop(backdrop('w', 1, 0, { savedAt: 1, deletedAt: 2 })), 'x', 'w')).toBe('这张背景图已经从模板库删除，不能再选');
+    // 这件作品沉淀过的也算自己的候选，同样先问（代码评审 2026-11-23）
+    expect(agentPickProblem(refOfBackdrop(backdrop('w', 1, 0, { savedAt: 1 })), 'x', 'w')).toContain('用 ask_confirm（pick_backdrop）问用户');
+    expect(agentPickProblem(refOfBackdrop(backdrop('other', 1, 0, { savedAt: 1, deletedAt: 2 })), 'x', 'w')).toBe('这张背景图已经从模板库删除，不能再选');
+    expect(agentPickProblem(refOfBackdrop(backdrop('other', 1, 0, { savedAt: 1 })), 'x', 'w')).toBeNull();
   });
 
   it('用户能选模板库里的和这件作品的候选；删掉的不能再被新选，但正在用的照常（AC-06.4）', () => {

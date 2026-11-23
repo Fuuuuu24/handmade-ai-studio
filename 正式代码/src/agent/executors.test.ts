@@ -261,22 +261,24 @@ describe('小间的工具：三视图和背景图（技术写法 13.7）', () =>
     expect((await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:rose@1' }, deps)).message).toBe('已选用背景图「温柔礼物」（内置模板，暂无参数）；背景做法仍是「用模板库里的」');
     expect((await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:rose@1' }, deps)).message).toBe('背景本来就是「温柔礼物」');
     await putTask(task(b.id, 1, 0, 'running'));
-    expect(await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:moss@1' }, deps)).toEqual({ ok: false, message: LOCK_SCENE });
+    expect(await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:moss@1' }, deps)).toEqual({ ok: false, message: '正在合成这一轮候选，等结束后再换背景' });
   });
 
-  it('use_backdrop：背景生成中拒绝；选这件作品沉淀过的背景，做法跟着变成「自己生成」（评审第 1、2 条）', async () => {
+  it('use_backdrop：背景生成中拒绝；这件作品沉淀过的背景不能直接选，要先问（代码评审 2026-11-23）；别的作品沉淀的可以', async () => {
     const b = setBackdropMode(backdropWork(), 'generate');
     await saveWork(b);
     const own = backdrop(b.id, 1, 0, { savedAt: 1, name: '苔绿晨光' });
     await saveBackdropResult({ ...task(b.id, 1, 0, 'succeeded', 1, 'backdrop'), id: own.taskId }, own, new Blob([new Uint8Array(4)]), new Blob([new Uint8Array(2)]));
     await putTask(task(b.id, 2, 0, 'running', 1, 'backdrop'));
-    expect(await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:cream@1' }, deps)).toEqual({ ok: false, message: LOCK_BACKDROP });
+    expect(await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:cream@1' }, deps)).toEqual({ ok: false, message: '背景正在生成中，等两张背景出来后再换' });
     expect((await getWork(b.id))?.backdropId).toBeNull();
     await db().tasks.clear();
-    await saveWork({ ...(await getWork(b.id))!, backdropMode: 'library' });
-    const out = await executeTool(b.id, 'use_backdrop', { backdropId: own.id }, deps);
-    expect(out.message).toBe('已选用背景图「苔绿晨光」（这件作品生成的）；背景做法从「用模板库里的」换成了「自己生成」');
-    expect(await getWork(b.id)).toMatchObject({ backdropId: own.id, backdropMode: 'generate', flow: 'home' });
+    expect((await executeTool(b.id, 'use_backdrop', { backdropId: own.id }, deps)).message).toContain('用 ask_confirm（pick_backdrop）问用户');
+    const other = backdrop('other', 1, 0, { savedAt: 1, name: '雨后小径' });
+    await saveBackdropResult({ ...task('other', 1, 0, 'succeeded', 1, 'backdrop'), id: other.taskId }, other, new Blob([new Uint8Array(4)]), new Blob([new Uint8Array(2)]));
+    const out = await executeTool(b.id, 'use_backdrop', { backdropId: other.id }, deps);
+    expect(out.message).toBe('已选用背景图「雨后小径」（模板库里沉淀的）；背景做法从「自己生成」换成了「用模板库里的」');
+    expect(await getWork(b.id)).toMatchObject({ backdropId: other.id, backdropMode: 'library' });
   });
 
   it('show_step 切换画布，步骤用编号', async () => {

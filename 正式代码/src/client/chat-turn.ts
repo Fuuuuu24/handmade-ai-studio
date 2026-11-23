@@ -30,10 +30,13 @@ export const userTextsOf = (messages: readonly AgentUIMessage[]) =>
   messages.filter((m) => m.role === 'user' && !m.metadata?.system).flatMap((m) => m.parts.flatMap((p) => (p.type === 'text' ? [p.text] : [])));
 
 // 某次工具调用之后用户说过的话（核对同意的原话用，技术写法 14.4）：从含这次调用的那条回复往后数，
-// 浏览器代发的交接和通知不算；对话里找不到那次调用时为空
-export function userTextsAfterCall(messages: readonly AgentUIMessage[], callId: string): string[] {
+// 浏览器代发的交接和通知不算。那次调用在对话里找不到、或者没有成功的结果（卡片没放出来，比如中途停下了）时为空值
+export function userTextsAfterCall(messages: readonly AgentUIMessage[], callId: string): string[] | null {
   const i = messages.findIndex((m) => m.role === 'assistant' && m.parts.some((p) => isToolUIPart(p) && p.toolCallId === callId));
-  return i < 0 ? [] : userTextsOf(messages.slice(i + 1));
+  if (i < 0) return null;
+  const part = messages[i].parts.find((p) => isToolUIPart(p) && p.toolCallId === callId);
+  const shown = !!part && isToolUIPart(part) && part.state === 'output-available' && (part.output as { ok?: boolean } | undefined)?.ok === true;
+  return shown ? userTextsOf(messages.slice(i + 1)) : null;
 }
 
 const settled = new Set(['output-available', 'output-error', 'output-denied']);

@@ -107,6 +107,8 @@ export async function sendQueued(
     send(m);
     return { ...idleNow, sent: true };
   }
+  // 不空闲就先不认领：认领会改数据库，取到又发不出去的话只能留在内存里，刷新就丢了（代码评审 2026-11-23）
+  if (!isIdle()) return idleNow;
   r.running = true;
   r.again = false;
   let got: Taken;

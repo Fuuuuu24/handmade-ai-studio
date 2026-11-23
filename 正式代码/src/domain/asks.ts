@@ -2,7 +2,7 @@ import { INFO_CORE, INFO_FIELDS, INFO_REQUIRED, type InfoKey } from '@/config/in
 import { VIEW_NAMES } from '@/config/views';
 import { VERDICT_SHORT } from '@/config/verdict';
 import { angleState, currentView } from './assets';
-import { backdropCandidates, backdropNameProblem, refOfBackdrop, userPickProblem } from './backdrops';
+import { backdropCandidates, backdropNameProblem, pickLockProblem, refOfBackdrop, userPickProblem } from './backdrops';
 import { busyOf } from './generation';
 import { plain } from './said';
 import type { Ask, AskAction, AskItem, Id, Work, WorkState } from './types';
@@ -112,12 +112,13 @@ function checkOne(s: WorkState, a: AskAction, planned: Id | null): Check {
     case 'pick_backdrop': {
       if (work.backdropMode !== 'generate') return no('背景用的是模板库里的；选模板库里的背景用 use_backdrop');
       if (!work.backdropRound) return no('还没有生成过背景');
-      if (a.round !== work.backdropRound) return no(`只能选最新一轮（第 ${work.backdropRound} 轮）的背景`);
       const b = candidateOf(s, a.round, a.candidate);
       if (!b) return no(`第 ${a.round} 轮背景 ${a.candidate} 还没有生成出来`);
+      // 和画布一样：候选区只显示最新一轮；更早的轮次，沉淀进模板库（没删）的在模板库里能点
+      if (a.round !== work.backdropRound && (b.savedAt == null || b.deletedAt != null)) return no(`只能选最新一轮（第 ${work.backdropRound} 轮）的背景，或模板库里沉淀的`);
       if (work.backdropId === b.id) return no(`第 ${a.round} 轮背景 ${a.candidate} 已经选定了`);
-      if (busy.scene) return no('正在合成这一轮候选，等结束后再换背景');
-      if (busy.backdrop) return no('背景正在生成中，等两张背景出来后再选');
+      const locked = pickLockProblem(busy);
+      if (locked) return no(locked);
       const problem = userPickProblem(refOfBackdrop(b), work);
       if (problem) return no(problem);
       return yes(`用第 ${a.round} 轮背景 ${a.candidate}`, b.id);
@@ -185,10 +186,19 @@ export function checkActions(s: WorkState, actions: readonly AskAction[]): { ok:
 // 正在等用户回复的请求（同一时间只有一条）
 export const waitingAsk = (w: Work): Ask | undefined => Object.values(w.asks ?? {}).find((a) => a.state === 'waiting');
 
-// 用户表示同意的原话：要在请求之后用户发过的消息里逐字找到（去掉空格和标点再比，浏览器代发的交接和通知不算，由调用方排除）
+// 原话前面紧挨着这些字时是在拒绝（「不同意」「不好」「别点」），不算同意。只挡最直白的否定，别的意思仍由小间理解（代码评审 2026-11-23）
+const NEGATIONS = new Set(['不', '没', '别', '未', '非', '勿']);
+
+// 用户表示同意的原话：要在请求之后用户发过的消息里逐字找到（去掉空格和标点再比，浏览器代发的交接和通知不算，由调用方排除），
+// 而且找到的那一处前面不是否定词
 export function consentFound(quote: string, textsAfter: readonly string[]): boolean {
   const q = plain(quote);
-  return q.length > 0 && textsAfter.some((t) => plain(t).includes(q));
+  if (!q.length || NEGATIONS.has(q[0])) return false;
+  return textsAfter.some((t) => {
+    const p = plain(t);
+    for (let i = p.indexOf(q); i >= 0; i = p.indexOf(q, i + 1)) if (i === 0 || !NEGATIONS.has(p[i - 1])) return true;
+    return false;
+  });
 }
 
 // 问过之后变了的几样：用户自己点过、改过，或者又生成了新的

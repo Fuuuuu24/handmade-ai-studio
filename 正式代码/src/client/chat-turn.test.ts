@@ -72,7 +72,10 @@ describe('userTextsAfterCall：同意的原话只认问过之后用户说的（�
     const list = [user('帮我把三视图确认了'), reply([step, asking]), user('【通知：三视图】…', 'notice'), user('同意')];
     expect(userTextsAfterCall(list, 'call_ask')).toEqual(['同意']);
     expect(userTextsAfterCall(list.slice(0, 2), 'call_ask')).toEqual([]);
-    expect(userTextsAfterCall(list, 'call_nope')).toEqual([]);
+    expect(userTextsAfterCall(list, 'call_nope')).toBeNull();
+    // 卡片没放出来（中途停下、补上的结果不是成功的）：不能拿之后的话去代点
+    const dangling = [reply([step, { ...asking, output: DANGLING_OUTPUT } as Part]), user('同意')];
+    expect(userTextsAfterCall(dangling, 'call_ask')).toBeNull();
   });
 });
 

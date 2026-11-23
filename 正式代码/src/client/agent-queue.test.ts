@@ -40,9 +40,18 @@ describe('代发排队的消息（评审第 4 条）', () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
-  it('取到时对话已经不空闲：先留着，不再认领新的；下次空闲时先发它', async () => {
-    let idle = false;
+  it('不空闲时不认领（认领了发不出去，刷新就丢了）', async () => {
     const take = vi.fn(async (): Promise<Taken> => ({ message: msg('三视图好了'), retryInMs: null }));
+    expect(await sendQueued('w_busy', () => false, vi.fn(), take)).toEqual({ sent: false, retryInMs: null, recheck: false });
+    expect(take).not.toHaveBeenCalled();
+  });
+
+  it('取的过程中对话变忙了：先留着，不再认领新的；下次空闲时先发它', async () => {
+    let idle = true;
+    const take = vi.fn(async (): Promise<Taken> => {
+      idle = false; // 认领的那一会儿用户开始打字了
+      return { message: msg('三视图好了'), retryInMs: null };
+    });
     const send = vi.fn();
     expect(await sendQueued('w_held', () => idle, send, take)).toEqual({ sent: false, retryInMs: null, recheck: false });
     expect(hasHeld('w_held')).toBe(true);

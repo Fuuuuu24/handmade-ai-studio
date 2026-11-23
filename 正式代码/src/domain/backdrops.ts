@@ -1,6 +1,7 @@
 import { builtinBackdrop, listedBuiltins } from '@/config/backdrops';
 import { BACKDROP_KEYS, NO_PROPS, STYLE_LABELS } from '@/config/style';
 import { backdropBasisOf, basisOfBackdropSnapshot, diffBackdropBasis } from './snapshot';
+import type { Busy } from './generation';
 import type { Approval, Backdrop, BackdropMode, BackdropParams, BackdropRef, Id, Work, WorkState } from './types';
 
 /* 背景图与模板库（PRD FR-06，技术写法 13.4）。内置模板只写在配置里；生成的背景图存在 backdrops 表，
@@ -66,16 +67,23 @@ export const backdropModeOf = (work: Pick<Work, 'id'>, ref: Pick<BackdropRef, 'b
 export const backdropDone = (work: Work, ref: BackdropRef | null) =>
   !!ref && (!ownBackdrop(work, ref) || work.story.summaryState === 'confirmed');
 
-// 小间的 use_backdrop 能选什么：内置模板、已沉淀且没删除的。这件作品的背景候选要先问用户（ask_confirm），
-// 用户同意后代点，图里有没有饰品要用户把关（技术写法 14.4）；别的作品没沉淀的选不了
+// 两种生成进行中都不能换背景图：合成时背景图锁进了快照；背景生成时两张出来要在候选里选（技术写法 13.6）。
+// 画布按钮、小间的 use_backdrop、问过后代点都查它
+export function pickLockProblem(busy: Busy): string | null {
+  if (busy.scene) return '正在合成这一轮候选，等结束后再换背景';
+  if (busy.backdrop) return '背景正在生成中，等两张背景出来后再换';
+  return null;
+}
+
+// 小间的 use_backdrop 能选什么：内置模板、别的作品沉淀且没删除的。这件作品自己生成的背景图（沉淀没沉淀都算）
+// 是选定背景候选，要先问用户（ask_confirm），用户同意后代点，图里有没有饰品要用户把关（技术写法 14.4）
 export function agentPickProblem(ref: BackdropRef | null, id: Id, workId: Id): string | null {
   if (!ref) return `没有编号为 ${id} 的背景图`;
-  if (ref.deleted) return '这张背景图已经从模板库删除，不能再选';
-  if (!ref.builtin && !ref.saved) {
-    return ref.workId === workId
-      ? '这是这件作品的背景候选，不用 use_backdrop 选：用 ask_confirm（pick_backdrop）问用户，用户同意后代点；图里不能有饰品，要用户把关'
-      : '这张背景图还没沉淀进模板库，不能选';
+  if (!ref.builtin && ref.workId === workId) {
+    return '这是这件作品自己生成的背景图，不用 use_backdrop 选：用 ask_confirm（pick_backdrop）问用户，用户同意后代点；图里不能有饰品，要用户把关';
   }
+  if (ref.deleted) return '这张背景图已经从模板库删除，不能再选';
+  if (!ref.builtin && !ref.saved) return '这张背景图还没沉淀进模板库，不能选';
   return null;
 }
 

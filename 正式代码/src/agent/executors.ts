@@ -19,7 +19,7 @@ import {
   type Blocker,
 } from '@/domain/approval';
 import { activeUploads, angleNames, angleUpload, anglesToGenerate, viewCheck } from '@/domain/assets';
-import { agentPickProblem, ownBackdrop } from '@/domain/backdrops';
+import { agentPickProblem } from '@/domain/backdrops';
 import { passed } from '@/domain/generation';
 import { factsOf, handoffBlocker, nextStepOf, pageText } from '@/domain/handoff';
 import { saidQuoteFound } from '@/domain/said';
@@ -28,7 +28,6 @@ import {
   addFollowup,
   addStoryNote,
   advanceStep,
-  chooseBackdrop,
   clearBackdrop,
   dismissSuggestion,
   draftSummary,
@@ -45,9 +44,10 @@ import {
 } from '@/domain/work';
 import { getSceneApproval, logEvent, patchResult, removeAsset, setPhotoKind } from '@/data/repo';
 import { openAskFor, proxyConfirm } from '@/client/asks';
-import { chooseBackdropMode, deleteFromLibrary, renameBackdrop } from '@/client/backdrops';
+import { chooseBackdropMode, deleteFromLibrary, pickBackdrop, renameBackdrop } from '@/client/backdrops';
 import { retryProblem } from '@/client/generation';
 import { loadContext, mutateWork, removeWork, resolveBackdrop, type WorkContext } from '@/client/work-store';
+import type { ConfirmOptions } from '@/components/ui/dialog';
 import type { AgentTools, AskItemInput, ToolName, ToolOutput } from './tools';
 
 /* 小间工具的浏览器端执行器（技术写法第 6 节、13.7、14）。硬规则在这里检查：违反时不执行，把原因作为结果交还模型，
@@ -59,18 +59,13 @@ import type { AgentTools, AskItemInput, ToolName, ToolOutput } from './tools';
 
 type Input<N extends ToolName> = InferToolInput<AgentTools[N]>;
 
-// 确认框的内容（和画布上同一个框，components/ui/dialog.tsx）。标题以「小间想」开头，看得出是小间发起的
-export interface ConfirmRequest {
-  title: string;
-  body: string;
-  ok: string;
-  danger?: boolean;
-}
+// 确认框的内容和画布上同一个框（components/ui/dialog.tsx）；小间发起的，标题以「小间想」开头
+type ConfirmRequest = ConfirmOptions;
 
 export interface ExecDeps {
   showStep: (step: StepId) => void;
   userTexts: () => readonly string[]; // 用户在对话里发过的文字（不含系统代发的交接和通知），核对「你说的」用（BC-013）
-  userTextsAfter: (callId: string) => readonly string[]; // 那次工具调用之后用户发过的文字（同样不含系统代发的），核对同意的原话用（技术写法 14.4）
+  userTextsAfter: (callId: string) => readonly string[] | null; // 那次工具调用之后用户发过的文字（同样不含系统代发的），核对同意的原话用；卡片没放出来时为空值（技术写法 14.4）
   confirm: (r: ConfirmRequest) => Promise<boolean>; // 弹确认框，用户点完才返回；点「确认」为真
   leave: () => void; // 这件作品删掉了：回作品页，对话不再继续
 }
@@ -161,6 +156,7 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
     }
     case 'rename_work': {
       const n = (rawInput as Input<'rename_work'>).name.trim();
+      if (!n) return refuse('名字是空的，没改');
       if (n === ctx.work.name) return done(`作品本来就叫「${n}」`);
       await change(workId, (c) => renameWork(c.work, n));
       return done(`作品改名为「${n}」`, [`作品名「${n}」`]);
@@ -264,25 +260,18 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
       return done(`背景做法改成「${name}」${had ? `；原来选的背景图「${had}」清掉了，之后可以再选回来` : ''}`, [`背景做法「${name}」`]);
     }
     case 'use_backdrop': {
-      // 两种生成进行中都不能换背景：合成时背景图锁进了快照；背景生成时两张出来要在候选里选（技术写法 13.6）
+      // 能选什么见 agentPickProblem；选的过程（生成中锁定、做法跟着来源走、试用事件）和画布上点一张同一个函数
       const { backdropId } = rawInput as Input<'use_backdrop'>;
-      if (busy.scene) return refuse(LOCK_SCENE);
-      if (busy.backdrop) return refuse(LOCK_BACKDROP);
       const ref = await resolveBackdrop(backdropId);
       const problem = agentPickProblem(ref, backdropId, workId);
       if (problem) return refuse(problem);
       const b = ref!;
+      if (ctx.work.backdropId === b.id) return done(`背景本来就是「${b.name}」`);
       const before = ctx.work.backdropMode;
-      let changed = false;
-      const w = await change(workId, (c) => {
-        const next = chooseBackdrop(c.work, b);
-        changed = next !== c.work;
-        return next;
-      });
-      if (!changed) return done(`背景本来就是「${b.name}」`);
-      const own = ownBackdrop(w, b);
-      void logEvent(own ? 'pick_backdrop' : 'use_template', workId, { builtin: b.builtin, by: 'agent' });
-      const from = b.builtin ? '内置模板，暂无参数' : own ? '这件作品生成的' : '模板库里沉淀的';
+      const r = await pickBackdrop(workId, b.id, 'agent');
+      if (!r.ok) return refuse(r.reason);
+      const w = (await loadContext(workId)).work;
+      const from = b.builtin ? '内置模板，暂无参数' : '模板库里沉淀的';
       const mode = BACKDROP_MODE_NAMES[w.backdropMode!];
       const modeText = before === w.backdropMode ? `背景做法仍是「${mode}」` : `背景做法${before ? `从「${BACKDROP_MODE_NAMES[before]}」` : ''}换成了「${mode}」`;
       return done(`已选用背景图「${b.name}」（${from}）；${modeText}`, [`背景图「${b.name}」`]);

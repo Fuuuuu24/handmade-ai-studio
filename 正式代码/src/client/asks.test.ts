@@ -74,6 +74,15 @@ describe('问过再代点：三条核对（技术写法 14.4）', () => {
     expect((await proxyConfirm(w.id, '同意', undefined, after)).ok).toBe(false);
   });
 
+  it('卡片没放出来（中途停下了）：不代点，请求作废', async () => {
+    const w = await seedViews();
+    await openAskFor(w.id, 'call_1', VIEWS);
+    const r = await proxyConfirm(w.id, '同意', undefined, () => null);
+    expect(!r.ok && r.reason).toBe('卡片没放出来，用户没看到要点什么，这条请求作废了；请重新问');
+    expect((await getWork(w.id))?.asks?.call_1.state).toBe('expired');
+    expect(await confirmedAngles(w.id)).toEqual([]);
+  });
+
   it('只同意一部分：只点那几样', async () => {
     const w = await seedViews();
     await openAskFor(w.id, 'call_1', VIEWS);

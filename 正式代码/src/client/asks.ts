@@ -69,12 +69,23 @@ export type ProxyOutcome = { ok: true; done: AskItem[]; failed: { item: AskItem;
    2. 请求之后用户发过消息（浏览器代发的交接和通知不算，textsAfter 已排除），原话能在里面逐字找到；
    3. 要点的每样东西和问的时候一样；变了整条请求作废，请小间重新问。
    only 是用户只同意的那几样（卡片上的序号，从 1 开始），不填就是全部。 */
-export async function proxyConfirm(workId: Id, quote: string, only: readonly number[] | undefined, textsAfter: (askId: Id) => readonly string[]): Promise<ProxyOutcome> {
+export async function proxyConfirm(
+  workId: Id,
+  quote: string,
+  only: readonly number[] | undefined,
+  textsAfter: (askId: Id) => readonly string[] | null,
+): Promise<ProxyOutcome> {
   const no = (reason: string): ProxyOutcome => ({ ok: false, reason });
   const ctx = await loadContext(workId);
   const ask = waitingAsk(ctx.work);
   if (!ask) return no('没有在等用户回复的请求；要替用户点，先用 ask_confirm 问');
   const after = textsAfter(ask.id);
+  // 卡片没放出来（对话里没有这次调用，或中途停下、没拿到成功的结果）：用户没看到要点什么，这条请求作废
+  if (!after) {
+    const reason = '卡片没放出来，用户没看到要点什么';
+    await mutateWork(workId, (c) => closeAsk(c.work, ask.id, { state: 'expired', reason }));
+    return no(`${reason}，这条请求作废了；请重新问`);
+  }
   if (!after.length) return no('问过之后用户还没回复，等他回复了再说');
   if (!consentFound(quote, after)) return no(`问过之后用户发的消息里找不到「${quote.trim()}」，没有代点；请逐字照抄用户表示同意的那句话`);
 

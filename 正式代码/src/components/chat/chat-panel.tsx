@@ -81,6 +81,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   const messagesRef = useRef<AgentUIMessage[]>(initialMessages);
   // 小间发起的「删除这件作品」用户确认了：回作品页，这段对话不再保存、不再继续（技术写法 14.5）
   const leavingRef = useRef(false);
+  const stoppedRef = useRef(false);
   const confirm = useConfirm();
   const toast = useToast();
   const router = useRouter();
@@ -97,6 +98,8 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
     transport,
     // 工具结果齐了自动继续；单轮连续操作有上限（技术写法第 6 节，config/budget.ts）
     sendAutomaticallyWhen: ({ messages: list }) => {
+      // 用户点了停止：等确认框的工具之后才出结果，也不自己续一轮（代码评审 2026-11-23）
+      if (stoppedRef.current) return false;
       if (!lastAssistantMessageIsCompleteWithToolCalls({ messages: list })) return false;
       if (autoSteps.current >= BUDGET.chat.maxSteps) {
         setCapHit(true);
@@ -237,6 +240,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
       setCapHit(false);
       setRetries(0);
       setUserStopped(false);
+      stoppedRef.current = false;
       onUserSend();
       post(text, assetIds);
     },
@@ -248,6 +252,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
     setRetries((r) => r + 1);
     setCapHit(false);
     setUserStopped(false);
+    stoppedRef.current = false;
     clearError();
     autoSteps.current = 0;
     const last = messages.at(-1);
@@ -331,7 +336,9 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
           onFiles={onFiles}
           onStop={() => {
             setUserStopped(true);
-            void stop();
+            stoppedRef.current = true;
+            // 停在半路的工具调用（参数还没收全）补上结果，不然交接发不出去、下一条消息也会因为缺结果出错
+            void stop().then(() => setMessages((list) => closeDanglingCalls(list)));
           }}
         />
       </div>

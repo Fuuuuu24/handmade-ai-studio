@@ -1,7 +1,7 @@
 import { BACKDROP } from '@/config/backdrops';
 import { ratioHeight } from '@/config/ratios';
 import { getBackdrop, getBlob, logEvent, patchBackdrop } from '@/data/repo';
-import { backdropNameProblem, ownBackdrop, userPickProblem } from '@/domain/backdrops';
+import { backdropNameProblem, ownBackdrop, pickLockProblem, userPickProblem } from '@/domain/backdrops';
 import type { BackdropMode, BackdropRef, Id } from '@/domain/types';
 import { chooseBackdrop, setBackdropMode } from '@/domain/work';
 import { loadContext, mutateWork, resolveBackdrop } from './work-store';
@@ -54,8 +54,8 @@ const byOf = (by: By): Record<string, string> => (by ? { by } : {});
 // 做法跟着背景图的来源走（chooseBackdrop）；两种生成进行中都不能换，和画布上锁住的按钮一致
 export async function pickBackdrop(workId: Id, id: Id, by?: By): Promise<PickOutcome> {
   const ctx = await loadContext(workId);
-  if (ctx.busy.scene) return { ok: false, reason: '正在合成这一轮候选，等结束后再换背景' };
-  if (ctx.busy.backdrop) return { ok: false, reason: '背景正在生成中，等两张背景出来后再换' };
+  const locked = pickLockProblem(ctx.busy);
+  if (locked) return { ok: false, reason: locked };
   const ref = await resolveBackdrop(id);
   const problem = userPickProblem(ref, ctx.work);
   if (problem) return { ok: false, reason: problem };
