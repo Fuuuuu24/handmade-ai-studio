@@ -2,7 +2,7 @@
 
 产品的正式实现（M2）。Next.js 项目，包名 `yijian`。
 
-- **状态（2026-11-22）**：按 [技术写法](../docs/tech-design.md) 第 13 节改造为 PRD v0.6（两套流程、三视图、背景图＋合成两步出图、模板库、小间跟上画布），在本地分支 `feat/v0.6-two-step`，只用假对话、假生图验证。下一步是在产品里用真实饰品测模型（花钱，待发起人同意）。已做／待做／未做见 [交接文档](../docs/handoff.md) 第 0—6 节。
+- **状态（2026-11-23）**：按 [技术写法](../docs/tech-design.md) 第 13 节改造为 PRD v0.6（两套流程、三视图、背景图＋合成两步出图、模板库、小间跟上画布），在本地分支 `feat/v0.6-two-step`，只用假对话、假生图验证。2026-11-22 代码评审发现的问题已于 2026-11-23 修完（[交接文档](../docs/handoff.md) 第 0 节）；下一步先出「小间的操作权限」的写法（发起人确认后再写代码），之后在产品里用真实饰品测模型（花钱，待发起人同意）。已做／待做／未做见交接文档第 4—6 节。
 - **技术栈**：Next.js 16 + React 19 + TypeScript + Tailwind 4 + motion + Vercel AI SDK 7；Dexie（IndexedDB）；Vitest、Playwright、ESLint、Prettier（装了、未配置）。界面组件来自 React Bits，手动拷在 `src/components/bits/`（第三方许可，见该目录 LICENSE 与 README；shadcn 没初始化）。版本见技术写法第 1 节。
 - **注意**：Next.js 16 与 AI SDK 7 有破坏性变化，写法以 `node_modules/next/dist/docs/`、`node_modules/ai/docs/` 的本地文档为准。`AGENTS.md` 由 Next.js 自动生成，`next dev` 会重新写入，不要删。
 
@@ -20,7 +20,7 @@ npm run typecheck && npm run lint
 npm run e2e                    # 全流程测试（Playwright，用本机 Chrome；自己起 3100 端口的开发服务器）
 ```
 
-密钥写在本目录 `.env.local`：`AIHUBMIX_API_KEY=...`（抠图暂不接，接了再加对应密钥）。该文件不入库，也不要写进代码、文档或对话。服务端花费账本在 `data/ledger.json`（运行时生成，不入库）。
+密钥写在本目录 `.env.local`：`AIHUBMIX_API_KEY=...`。该文件不入库，也不要写进代码、文档或对话。服务端花费账本在 `data/ledger.json`（运行时生成，不入库）。
 
 凭据来源用 `CREDENTIAL_SOURCE` 选，三种互不回退（[技术写法](../docs/tech-design.md)第 12 节）：
 

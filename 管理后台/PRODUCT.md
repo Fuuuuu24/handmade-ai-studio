@@ -28,4 +28,4 @@ web
 
 ## Evidence on Hand
 
-主项目 instructions.ts、white.ts、models.ts；用户提供的 CBI Admin 截图及 cbi-lite/apps/admin 源码。
+主项目 instructions.ts、views.ts（主产品 v0.6 前是 white.ts）、models.ts；用户提供的 CBI Admin 截图及 cbi-lite/apps/admin 源码。
