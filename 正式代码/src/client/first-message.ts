@@ -1,4 +1,4 @@
-// 首页、布景页带过去的第一句话和照片：新建作品后在工作区里自动发出一次
+// 首页、模板库「套用」带过去的第一句话和照片：新建作品后在工作区里自动发出一次
 const key = (workId: string) => `yijian:first:${workId}`;
 
 export function setFirstMessage(workId: string, text: string, assetIds: string[]) {

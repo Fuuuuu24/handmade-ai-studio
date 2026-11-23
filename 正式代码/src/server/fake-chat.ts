@@ -122,7 +122,8 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
 
 // 剧本里的占位换成作品状态（系统指令末尾）里的编号；找不到就原样留着，执行器会如实拒绝
 const PLACEHOLDERS: Record<string, RegExp> = {
-  $saved: /[：；](\S+) [^（；：]+（用户沉淀的/,
+  // 模板库列表（agent/state.ts 的 libraryLine）：别的作品沉淀的写「用户沉淀的」，这件作品自己沉淀的写「这件作品第 N 轮背景 M」
+  $saved: /[：；](\S+) [^（；：]+（(?:用户沉淀的|这件作品第)/,
   $unsorted: /\d+\. (\S+)（未分类）/,
 };
 function fill(input: Record<string, unknown>, system: string): Record<string, unknown> {

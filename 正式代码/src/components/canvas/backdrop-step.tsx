@@ -226,11 +226,12 @@ function StoryChangedNote({ locked }: { locked: boolean }) {
 }
 
 // 选定的背景候选：可以沉淀进模板库（起个名字），别的作品就能套用（AC-06.4）
+// 沉淀过、后来从模板库删了的，可以再放回去（名字先填上次的）
 function SaveToLibrary({ backdrop }: { backdrop: Backdrop }) {
   const toast = useToast();
-  const [name, setName] = useState('');
+  const [name, setName] = useState(backdrop.deletedAt ? backdrop.name : '');
   const [problem, setProblem] = useState<string | null>(null);
-  if (backdrop.savedAt) return <p className="text-aux text-muted">已沉淀进模板库「{backdrop.name}」</p>;
+  if (backdrop.savedAt && !backdrop.deletedAt) return <p className="text-aux text-muted">已沉淀进模板库「{backdrop.name}」</p>;
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">

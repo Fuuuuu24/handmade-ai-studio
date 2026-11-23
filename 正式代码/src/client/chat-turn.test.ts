@@ -72,7 +72,10 @@ describe('userTextsAfterCall：同意的原话只认问过之后用户说的（�
     const list = [user('帮我把三视图确认了'), reply([step, asking]), user('【通知：三视图】…', 'notice'), user('同意')];
     expect(userTextsAfterCall(list, 'call_ask')).toEqual(['同意']);
     expect(userTextsAfterCall(list.slice(0, 2), 'call_ask')).toEqual([]);
-    expect(userTextsAfterCall(list, 'call_nope')).toBeNull();
+    // 界面还没更新到这次调用（同一步里刚问完就代点）、或调用还在执行：当作还没回复，不作废请求
+    expect(userTextsAfterCall(list, 'call_nope')).toEqual([]);
+    const inFlight = [reply([step, { ...asking, state: 'input-available', output: undefined } as Part])];
+    expect(userTextsAfterCall(inFlight, 'call_ask')).toEqual([]);
     // 卡片没放出来（中途停下、补上的结果不是成功的）：不能拿之后的话去代点
     const dangling = [reply([step, { ...asking, output: DANGLING_OUTPUT } as Part]), user('同意')];
     expect(userTextsAfterCall(dangling, 'call_ask')).toBeNull();

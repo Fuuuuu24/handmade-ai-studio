@@ -27,7 +27,7 @@ import { backdropCandidates, paramsText } from '@/domain/backdrops';
 import { changeText, diffFacts, factsOf } from '@/domain/handoff';
 import { lastSlotTask, roundResults, slotsOf, slotState } from '@/domain/generation';
 import { currentStep, stepStates, workStatus } from '@/domain/status';
-import type { BackdropRef, StyleSource } from '@/domain/types';
+import type { Backdrop, BackdropRef, StyleSource } from '@/domain/types';
 import { DEFAULT_WORK_NAME, styleLagsSummary, summaryEdits } from '@/domain/work';
 import type { WorkContext } from '@/client/work-store';
 
@@ -59,17 +59,25 @@ const promptText = (ps: PromptStatus, name: string) =>
     ok: '有效',
   })[ps.kind];
 
-const refText = (r: BackdropRef) =>
-  `${r.id} ${r.name}（${r.builtin ? `内置模板${r.placeholder ? '，图还没提供，用色块示意' : ''}` : '用户沉淀的'}；${paramsText(r.params)}）`;
+// 这件作品自己生成、沉淀过的背景图不用 use_backdrop 选，要先问用户（ask_confirm 的 pick_backdrop，写明第几轮第几张）
+function refText(r: BackdropRef, own: Backdrop | undefined): string {
+  const from = r.builtin
+    ? `内置模板${r.placeholder ? '，图还没提供，用色块示意' : ''}`
+    : own
+      ? `这件作品第 ${own.round} 轮背景 ${own.slot + 1}，沉淀过的；选它要先问用户：ask_confirm 的 pick_backdrop`
+      : '用户沉淀的';
+  return `${r.id} ${r.name}（${from}；${paramsText(r.params)}）`;
+}
 
 // 模板库里可选的背景图（顺序见 libraryList）：沉淀的只列最近几张，其余写个数，免得作品状态超过对话接口的长度上限（评审第 9 条）；
 // 内置模板都列。use_backdrop 照样认没列出的编号（用户在对话里给出编号时）
-function libraryLine(library: readonly BackdropRef[]): string {
+function libraryLine(library: readonly BackdropRef[], own: readonly Backdrop[]): string {
   if (!library.length) return '模板库里可选的背景图：没有';
   const saved = library.filter((r) => !r.builtin);
   const shown = [...saved.slice(0, BUDGET.chat.libraryInState), ...library.filter((r) => r.builtin)];
   const more = saved.length - Math.min(saved.length, BUDGET.chat.libraryInState);
-  return `模板库里可选的背景图（use_backdrop 用编号）：${shown.map(refText).join('；')}${more ? `；另有 ${more} 张沉淀的背景图没列出，用户想用其中一张时，请他在「背景」的模板库里点` : ''}`;
+  const list = shown.map((r) => refText(r, own.find((b) => b.id === r.id))).join('；');
+  return `模板库里可选的背景图（use_backdrop 用编号）：${list}${more ? `；另有 ${more} 张沉淀的背景图没列出，用户想用其中一张时，请他在「背景」的模板库里点` : ''}`;
 }
 
 function approvalText(name: string, status: ApprovalStatus, a: { version: number; usedRound: number | null } | null, phase: ReturnType<typeof approvedPhase>, where: string) {
@@ -231,7 +239,7 @@ export function stateSummary(i: SummaryInput): string {
   // 在等用户回复的「要我替你点吗」（技术写法 14.4）：用户回复同意后用 confirm_for_user 代点
   const ask = waitingAsk(work);
   if (ask) lines.push(`在等用户回复的「要我替你点吗」：${ask.items.map((it, n) => `${n + 1}. ${it.text}`).join('；')}。用户同意后用 confirm_for_user 代点；他没同意就不要点`);
-  lines.push(libraryLine(i.library));
+  lines.push(libraryLine(i.library, i.backdrops));
   if (i.photoLabels?.length) lines.push(`这次附上的图：${i.photoLabels.map((l, n) => `${n + 1}. ${l}`).join('；')}`);
   if (i.missingPhotos?.length) lines.push(`本地读不出来、没附上的图：${i.missingPhotos.join('；')}`);
   const cm = i.chatModel;

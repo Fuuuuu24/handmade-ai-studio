@@ -29,17 +29,22 @@ export function withoutLastStep(m: AgentUIMessage): AgentUIMessage | null {
 export const userTextsOf = (messages: readonly AgentUIMessage[]) =>
   messages.filter((m) => m.role === 'user' && !m.metadata?.system).flatMap((m) => m.parts.flatMap((p) => (p.type === 'text' ? [p.text] : [])));
 
-// 某次工具调用之后用户说过的话（核对同意的原话用，技术写法 14.4）：从含这次调用的那条回复往后数，
-// 浏览器代发的交接和通知不算。那次调用在对话里找不到、或者没有成功的结果（卡片没放出来，比如中途停下了）时为空值
+// 工具调用已经结束（有结果，成功或失败）的几种状态
+const settled = new Set(['output-available', 'output-error', 'output-denied']);
+
+// 某次工具调用之后用户说过的话（核对同意的原话用，技术写法 14.4）：从含这次调用的那条回复往后数，浏览器代发的交接和通知不算。
+// 那次调用已经结束、却没有成功的结果（卡片没放出来，比如中途停下了、补上了「没有结果」）时为空值。
+// 还在执行中、或界面还没更新到这次调用（同一步里刚问完就代点）时，当作用户还没回复：返回空列表，不作废请求
 export function userTextsAfterCall(messages: readonly AgentUIMessage[], callId: string): string[] | null {
   const i = messages.findIndex((m) => m.role === 'assistant' && m.parts.some((p) => isToolUIPart(p) && p.toolCallId === callId));
-  if (i < 0) return null;
+  if (i < 0) return [];
   const part = messages[i].parts.find((p) => isToolUIPart(p) && p.toolCallId === callId);
-  const shown = !!part && isToolUIPart(part) && part.state === 'output-available' && (part.output as { ok?: boolean } | undefined)?.ok === true;
-  return shown ? userTextsOf(messages.slice(i + 1)) : null;
+  if (part && isToolUIPart(part) && settled.has(part.state)) {
+    const shown = part.state === 'output-available' && (part.output as { ok?: boolean } | undefined)?.ok === true;
+    if (!shown) return null;
+  }
+  return userTextsOf(messages.slice(i + 1));
 }
-
-const settled = new Set(['output-available', 'output-error', 'output-denied']);
 
 // 最后一条回复里有工具调用还没出结果（技术写法 14.5）：不算空闲，交接和通知先不发。
 // 工具执行时（比如在等用户点确认框）AI SDK 的状态本来就是「回复中」，这里再兜一层：中途被停下时留下的调用也挡住

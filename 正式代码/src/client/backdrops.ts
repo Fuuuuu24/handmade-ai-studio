@@ -2,9 +2,9 @@ import { BACKDROP } from '@/config/backdrops';
 import { ratioHeight } from '@/config/ratios';
 import { getBackdrop, getBlob, logEvent, patchBackdrop } from '@/data/repo';
 import { backdropNameProblem, ownBackdrop, pickLockProblem, userPickProblem } from '@/domain/backdrops';
-import type { BackdropMode, BackdropRef, Id } from '@/domain/types';
+import type { BackdropMode, BackdropRef, Id, Work } from '@/domain/types';
 import { chooseBackdrop, setBackdropMode } from '@/domain/work';
-import { loadContext, mutateWork, resolveBackdrop } from './work-store';
+import { mutateWork, resolveBackdrop } from './work-store';
 
 export { resolveBackdrop };
 
@@ -51,17 +51,21 @@ type By = 'agent' | undefined;
 const byOf = (by: By): Record<string, string> => (by ? { by } : {});
 
 // 在画布上选背景图：模板库里的，或这件作品的背景候选（候选由用户点，或问过用户后小间代点，技术写法 14.4）。
-// 做法跟着背景图的来源走（chooseBackdrop）；两种生成进行中都不能换，和画布上锁住的按钮一致
-export async function pickBackdrop(workId: Id, id: Id, by?: By): Promise<PickOutcome> {
-  const ctx = await loadContext(workId);
-  const locked = pickLockProblem(ctx.busy);
-  if (locked) return { ok: false, reason: locked };
+// 做法跟着背景图的来源走（chooseBackdrop）；两种生成进行中都不能换，和画布上锁住的按钮一致。
+// 锁定和能不能选在作品的排队里查（和「批准并生成」排在同一条队上，刚发起的生成也挡得住，代码评审 2026-11-23）；返回选完的作品
+export async function pickBackdrop(workId: Id, id: Id, by?: By): Promise<{ ok: true; work: Work } | { ok: false; reason: string }> {
   const ref = await resolveBackdrop(id);
-  const problem = userPickProblem(ref, ctx.work);
+  let problem: string | null = null;
+  let own = false;
+  const work = await mutateWork(workId, (c) => {
+    problem = pickLockProblem(c.busy) ?? userPickProblem(ref, c.work);
+    if (problem) return c.work;
+    own = ownBackdrop(c.work, ref!);
+    return chooseBackdrop(c.work, ref!);
+  });
   if (problem) return { ok: false, reason: problem };
-  await mutateWork(workId, (c) => chooseBackdrop(c.work, ref!));
-  void logEvent(ownBackdrop(ctx.work, ref!) ? 'pick_backdrop' : 'use_template', workId, { builtin: ref!.builtin, ...byOf(by) });
-  return { ok: true };
+  void logEvent(own ? 'pick_backdrop' : 'use_template', workId, { builtin: ref!.builtin, ...byOf(by) });
+  return { ok: true, work };
 }
 
 // 沉淀进模板库：起个名字；沉淀后别的作品可以套用（AC-06.4）

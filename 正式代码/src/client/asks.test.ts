@@ -55,7 +55,7 @@ describe('问过再代点：三条核对（技术写法 14.4）', () => {
     said = ['我再看看'];
     const r = await proxyConfirm(w.id, '同意', undefined, after);
     expect(r).toMatchObject({ ok: false });
-    expect(!r.ok && r.reason).toContain('找不到「同意」');
+    expect(!r.ok && r.reason).toContain('没有整句是「同意」的');
     expect(await confirmedAngles(w.id)).toEqual([]);
     expect((await getWork(w.id))?.asks?.call_1.state).toBe('waiting');
   });

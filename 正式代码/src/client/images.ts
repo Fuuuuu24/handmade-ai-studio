@@ -49,7 +49,7 @@ export async function prepareUpload(file: File): Promise<PreparedUpload> {
   }
 }
 
-// 生成结果、白底图这类派生图片也做一张缩略图
+// 三视图、背景图、候选这类生成的图片也做一张缩略图
 export async function prepareDerived(blob: Blob): Promise<ImageInput> {
   const bitmap = await decode(blob);
   try {

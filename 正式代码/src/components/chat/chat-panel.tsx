@@ -157,11 +157,12 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   }, [messages]);
 
   // 小间跟上画布（技术写法 13.12）：空闲时把排队的「下一步」交接、生成通知、验收通知合成一条代用户发出。
-  // 空闲和自动续步用同一个条件；上一轮出错、撞上单轮上限、有工具调用还没结果（技术写法 14.5）或用户正在打字时先不发
+  // 空闲和自动续步用同一个条件；上一轮出错、撞上单轮上限、有工具调用还没结果（技术写法 14.5）或用户正在打字时先不发。
+  // 用户点了停止：不会再自动续步，工具结果齐了也算空闲，不然交接和通知要等用户再打字才发（代码评审 2026-11-23）
   const [draftEmpty, setDraftEmpty] = useState(true);
   const [queueTick, setQueueTick] = useState(0);
-  const idle =
-    status === 'ready' && !lastAssistantMessageIsCompleteWithToolCalls({ messages }) && !pendingToolCall(messages) && !error && !capHit && !problem && draftEmpty;
+  const waitingAutoStep = lastAssistantMessageIsCompleteWithToolCalls({ messages }) && !userStopped;
+  const idle = status === 'ready' && !waitingAutoStep && !pendingToolCall(messages) && !error && !capHit && !problem && draftEmpty;
   // 取到消息那一刻对话还空不空闲（评审第 4 条）：提交时就记下，卸载时记为不空闲；不空闲时取到的消息先留着
   const idleRef = useRef(false);
   useLayoutEffect(() => {
@@ -183,7 +184,9 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
     let again: ReturnType<typeof setTimeout> | undefined;
     const send = (m: QueuedMessage) => {
       setFirstPhotos(workId, m.photos);
-      autoSteps.current = 0; // 系统消息各自算新的一轮
+      autoSteps.current = 0; // 系统消息各自算新的一轮：之前点过的停止不再管这一轮
+      stoppedRef.current = false;
+      setUserStopped(false);
       void sendMessage({ parts: [{ type: 'text', text: m.text }], metadata: { system: m.system } });
     };
     // 推迟到下一轮：开发模式的严格模式会先演练一次卸载；认领在事务里，重复取也只发一次
@@ -267,7 +270,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
     registerSend((text) => send(text));
   }, [registerSend, send]);
 
-  // 首页、布景页带过来的第一条消息只发一次。推迟到下一轮再取：开发模式的严格模式会先演练一次卸载，
+  // 首页、模板库「套用」带过来的第一条消息只发一次。推迟到下一轮再取：开发模式的严格模式会先演练一次卸载，
   // 卸载时 useChat 会中止进行中的请求；推迟后演练卸载会取消定时器，消息留到真正挂载后再发
   useEffect(() => {
     const timer = setTimeout(() => {

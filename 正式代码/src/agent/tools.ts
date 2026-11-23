@@ -142,7 +142,7 @@ export const agentTools = {
   use_backdrop: tool({
     outputSchema: toolOutput,
     description:
-      '选用模板库里的一张背景图（作品状态里列出了可选的背景图及编号）：内置模板或已沉淀进模板库的。这件作品自己生成、还没沉淀的背景候选不用它选：先用 ask_confirm（pick_backdrop）问用户，用户同意后代点。',
+      '选用模板库里的一张背景图（作品状态里列出了可选的背景图及编号）：内置模板或已沉淀进模板库的。这件作品自己生成的背景图（沉淀进模板库的也算）不用它选：先用 ask_confirm（pick_backdrop，第几轮第几张见作品状态）问用户，用户同意后代点。',
     inputSchema: z.object({ backdropId: z.string().min(1) }),
   }),
   redesign_backdrop: tool({
@@ -238,7 +238,7 @@ export const agentTools = {
   confirm_for_user: tool({
     outputSchema: toolOutput,
     description:
-      '用户回复同意后，替他点 ask_confirm 卡片上的那几样（效果和画布上的按钮一样）。quote 逐字照抄用户表示同意的那句话（或其中几个字）；代码会到你问过之后用户发的消息里核对，找不到就不代点。用户只同意一部分时，only 填卡片上的序号；用户没同意、说再看看、或者还没回复时不要调用。问过之后那几样变了（用户自己点了、改了，或者又生成了新的），这次请求作废，要重新问。',
+      '用户回复同意后，替他点 ask_confirm 卡片上的那几样（效果和画布上的按钮一样）。quote 逐字照抄用户表示同意的那一小句的全文（以标点或空格分开的一小句，比如「好的，同意」里的「同意」，「没问题，都点吧」里的「没问题」）；代码会到你问过之后用户发的消息里核对，不是整句的不算，就不代点。用户只同意一部分时，only 填卡片上的序号；用户没同意、说再看看、或者还没回复时不要调用。问过之后那几样变了（用户自己点了、改了，或者又生成了新的），这次请求作废，要重新问。',
     inputSchema: z.object({
       quote: z.string().min(1).max(60),
       only: z.array(z.number().int().min(1).max(8)).max(8).optional(),

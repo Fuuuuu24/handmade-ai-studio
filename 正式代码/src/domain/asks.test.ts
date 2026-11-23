@@ -61,7 +61,7 @@ describe('每样能不能点：和画布按钮同一个条件（技术写法 14.
     const old = backdrop(w.id, 1, 0);
     const b1 = backdrop(w.id, 2, 0);
     const s = stateOf(w, [], { backdrops: [old, b1] });
-    expect(reasons(s, { type: 'pick_backdrop', round: 1, candidate: 1 })).toEqual(['只能选最新一轮（第 2 轮）的背景，或模板库里沉淀的']);
+    expect(reasons(s, { type: 'pick_backdrop', round: 1, candidate: 1 })).toEqual(['只能选最新一轮（第 2 轮）的背景，或沉淀进模板库的']);
     // 更早一轮、沉淀进模板库的可以
     expect(ok({ ...s, backdrops: [{ ...old, savedAt: 3 }, b1] }, { type: 'pick_backdrop', round: 1, candidate: 1 })).toHaveLength(1);
     expect(reasons(s, { type: 'pick_backdrop', round: 2, candidate: 2 })).toEqual(['第 2 轮背景 2 还没有生成出来']);
@@ -75,7 +75,7 @@ describe('每样能不能点：和画布按钮同一个条件（技术写法 14.
     // 已经选定的不用再选；已经沉淀过的不能再沉淀
     const picked = stateOf(pickOwn(w, b1.id), [], { backdrops: [old, { ...b1, savedAt: 5 }], backdrop: refOfBackdrop(b1) });
     expect(reasons(picked, { type: 'pick_backdrop', round: 2, candidate: 1 })).toEqual(['第 2 轮背景 1 已经选定了']);
-    expect(reasons(picked, { type: 'save_backdrop', name: '苔绿晨光' })).toEqual(['第 2 轮背景 1 已经沉淀过了']);
+    expect(reasons(picked, { type: 'save_backdrop', name: '苔绿晨光' })).toEqual(['第 2 轮背景 1 已经沉淀进模板库了']);
     // 背景生成中不能选
     expect(reasons({ ...s, tasks: [task(w.id, 3, 0, 'running', 1, 'backdrop')] }, { type: 'pick_backdrop', round: 2, candidate: 1 })).toEqual(['背景正在生成中，等两张背景出来后再换']);
   });
@@ -141,21 +141,24 @@ describe('问过之后变了的就作废（技术写法 14.4 第 3 条）', () =
 });
 
 describe('同意的原话（技术写法 14.4 第 2 条）', () => {
-  it('去掉空格和标点后逐字比对；一个字也行；找不到、空的不算', () => {
+  it('要是用户某一小句（或连着的几小句）的全文；不管标点、空格和大小写；一个字也行；找不到、空的不算', () => {
     expect(consentFound('同意！', ['同意'])).toBe(true);
     expect(consentFound('正面和背面可以', ['嗯，正面 和 背面可以，侧面我再看看'])).toBe(true);
+    expect(consentFound('好的，同意', ['好的，同意！'])).toBe(true);
+    expect(consentFound('OK', ['ok 都点吧'])).toBe(true);
     expect(consentFound('好', ['好'])).toBe(true);
     expect(consentFound('都可以', ['先不用'])).toBe(false);
     expect(consentFound('  ', ['同意'])).toBe(false);
     expect(consentFound('同意', [])).toBe(false);
   });
 
-  it('紧挨着否定词的不算：「不同意」「不好」「别点」；同一句里另有一处不带否定的照样算', () => {
+  it('不是整句的不算：「不同意」「不太好」里的「同意」「好」；「没问题」「不错」这类同意照样算（代码评审 2026-11-23）', () => {
     expect(consentFound('同意', ['不同意，侧面不像'])).toBe(false);
-    expect(consentFound('好', ['不好'])).toBe(false);
-    expect(consentFound('不同意', ['不同意'])).toBe(false);
-    expect(consentFound('点', ['别点'])).toBe(false);
-    expect(consentFound('同意', ['侧面不同意，正面同意'])).toBe(true);
+    expect(consentFound('好', ['不太好'])).toBe(false);
+    expect(consentFound('同意', ['侧面不同意，正面同意'])).toBe(false);
+    expect(consentFound('正面同意', ['侧面不同意，正面同意'])).toBe(true);
+    expect(consentFound('没问题', ['没问题，都点吧'])).toBe(true);
+    expect(consentFound('不错', ['不错'])).toBe(true);
   });
 
   it('正在等回复的只有一条', () => {

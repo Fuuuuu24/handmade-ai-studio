@@ -9,5 +9,5 @@ export const UPLOAD = {
 };
 
 // 照片类型（PRD AC-02.1）：正面、侧面、背面三张必须有，细节照可另传。首页和对话里上传的先进「未分类」，
-// 用户在商品画布里选类型（小间可以建议，不能代选）
+// 用户在商品画布里选类型，小间也能选（set_photo_kind；会顶掉或移走某个角度的照片时弹确认框，技术写法 14.5）
 export const ASSET_KINDS = { front: '正面', side: '侧面', back: '背面', detail: '细节', unsorted: '未分类' } as const;

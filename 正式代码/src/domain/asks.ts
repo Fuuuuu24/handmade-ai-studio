@@ -110,13 +110,20 @@ function checkOne(s: WorkState, a: AskAction, planned: Id | null): Check {
       return yes(`确认共创总结：表达「${sum.express}」；感受「${sum.feel || '未写'}」；避免「${sum.avoid || '未写'}」`);
     }
     case 'pick_backdrop': {
-      if (work.backdropMode !== 'generate') return no('背景用的是模板库里的；选模板库里的背景用 use_backdrop');
       if (!work.backdropRound) return no('还没有生成过背景');
       const b = candidateOf(s, a.round, a.candidate);
       if (!b) return no(`第 ${a.round} 轮背景 ${a.candidate} 还没有生成出来`);
-      // 和画布一样：候选区只显示最新一轮；更早的轮次，沉淀进模板库（没删）的在模板库里能点
-      if (a.round !== work.backdropRound && (b.savedAt == null || b.deletedAt != null)) return no(`只能选最新一轮（第 ${work.backdropRound} 轮）的背景，或模板库里沉淀的`);
       if (work.backdropId === b.id) return no(`第 ${a.round} 轮背景 ${a.candidate} 已经选定了`);
+      // 画布上能点到的：「自己生成」时候选区里最新一轮的；沉淀过、没删的在模板库里（这件作品自己生成的背景，use_backdrop 不选，都走这里）
+      const inLibrary = b.savedAt != null && b.deletedAt == null;
+      const inCandidates = work.backdropMode === 'generate' && a.round === work.backdropRound;
+      if (!inLibrary && !inCandidates) {
+        return no(
+          work.backdropMode === 'generate'
+            ? `只能选最新一轮（第 ${work.backdropRound} 轮）的背景，或沉淀进模板库的`
+            : '背景用的是模板库里的，画布上看不到这件作品的背景候选；要选它，先用 set_backdrop_mode 换成「自己生成」',
+        );
+      }
       const locked = pickLockProblem(busy);
       if (locked) return no(locked);
       const problem = userPickProblem(refOfBackdrop(b), work);
@@ -130,8 +137,10 @@ function checkOne(s: WorkState, a: AskAction, planned: Id | null): Check {
       if (!id) return no('还没选定背景图，要先选定一张再沉淀');
       const b = s.backdrops.find((x) => x.id === id && x.workId === work.id);
       if (!b) return no('选定的不是这件作品生成的背景图，只有自己生成的才能沉淀进模板库');
-      if (b.savedAt != null) return no(`第 ${b.round} 轮背景 ${b.slot + 1} 已经沉淀过了${b.deletedAt ? '（后来从模板库删除了）' : ''}`);
-      return yes(`第 ${b.round} 轮背景 ${b.slot + 1} 沉淀进模板库，起名「${a.name.trim()}」`, b.id);
+      if (b.savedAt != null && b.deletedAt == null) return no(`第 ${b.round} 轮背景 ${b.slot + 1} 已经沉淀进模板库了`);
+      // 沉淀过、后来从模板库删了的，可以再放回去（和画布一样，saveToLibrary 会清掉删除标记）
+      const again = b.deletedAt != null ? '重新' : '';
+      return yes(`第 ${b.round} 轮背景 ${b.slot + 1} ${again}沉淀进模板库，起名「${a.name.trim()}」`, b.id);
     }
     case 'verdict': {
       const name = `第 ${a.round} 轮候选 ${a.candidate}`;
@@ -186,17 +195,24 @@ export function checkActions(s: WorkState, actions: readonly AskAction[]): { ok:
 // 正在等用户回复的请求（同一时间只有一条）
 export const waitingAsk = (w: Work): Ask | undefined => Object.values(w.asks ?? {}).find((a) => a.state === 'waiting');
 
-// 原话前面紧挨着这些字时是在拒绝（「不同意」「不好」「别点」），不算同意。只挡最直白的否定，别的意思仍由小间理解（代码评审 2026-11-23）
-const NEGATIONS = new Set(['不', '没', '别', '未', '非', '勿']);
+// 用户的一条消息切成一小句一小句：以标点、符号和空格分开，比对时不分大小写
+const clausesOf = (t: string) => t.split(/[\s\p{P}\p{S}]+/u).map(plain).filter(Boolean);
 
-// 用户表示同意的原话：要在请求之后用户发过的消息里逐字找到（去掉空格和标点再比，浏览器代发的交接和通知不算，由调用方排除），
-// 而且找到的那一处前面不是否定词
+// 用户表示同意的原话：要是请求之后用户某条消息里一小句（或连着的几小句）的全文。「好的，同意」里的「同意」「好的，同意」都算，
+// 「没问题，都点吧」里的「没问题」也算；「不同意」「不太好」里的「同意」「好」不算，因为不是整句（2026-11-23 代码评审后定）。
+// 只认整句，不判断意思：是不是同意由小间理解。浏览器代发的交接和通知不算，由调用方排除
 export function consentFound(quote: string, textsAfter: readonly string[]): boolean {
   const q = plain(quote);
-  if (!q.length || NEGATIONS.has(q[0])) return false;
+  if (!q) return false;
   return textsAfter.some((t) => {
-    const p = plain(t);
-    for (let i = p.indexOf(q); i >= 0; i = p.indexOf(q, i + 1)) if (i === 0 || !NEGATIONS.has(p[i - 1])) return true;
+    const cs = clausesOf(t);
+    for (let i = 0; i < cs.length; i++) {
+      let joined = '';
+      for (let j = i; j < cs.length && joined.length < q.length; j++) {
+        joined += cs[j];
+        if (joined === q) return true;
+      }
+    }
     return false;
   });
 }

@@ -59,14 +59,12 @@ import type { AgentTools, AskItemInput, ToolName, ToolOutput } from './tools';
 
 type Input<N extends ToolName> = InferToolInput<AgentTools[N]>;
 
-// 确认框的内容和画布上同一个框（components/ui/dialog.tsx）；小间发起的，标题以「小间想」开头
-type ConfirmRequest = ConfirmOptions;
 
 export interface ExecDeps {
   showStep: (step: StepId) => void;
   userTexts: () => readonly string[]; // 用户在对话里发过的文字（不含系统代发的交接和通知），核对「你说的」用（BC-013）
   userTextsAfter: (callId: string) => readonly string[] | null; // 那次工具调用之后用户发过的文字（同样不含系统代发的），核对同意的原话用；卡片没放出来时为空值（技术写法 14.4）
-  confirm: (r: ConfirmRequest) => Promise<boolean>; // 弹确认框，用户点完才返回；点「确认」为真
+  confirm: (r: ConfirmOptions) => Promise<boolean>; // 弹和画布上同一个确认框（标题以「小间想」开头），用户点完才返回；点「确认」为真
   leave: () => void; // 这件作品删掉了：回作品页，对话不再继续
 }
 
@@ -116,7 +114,7 @@ function toAction(it: AskItemInput): AskAction | string {
 }
 
 // 改照片类型会顶掉或移走某个角度的照片：按替换弹确认框（技术写法 14.5）
-function photoKindConfirm(from: AssetKind, to: AssetKind, displaces: boolean): ConfirmRequest {
+function photoKindConfirm(from: AssetKind, to: AssetKind, displaces: boolean): ConfirmOptions {
   const emptied = isViewAngle(from) ? VIEW_NAMES[from] : null;
   if (displaces && isViewAngle(to)) {
     return {
@@ -270,7 +268,7 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
       const before = ctx.work.backdropMode;
       const r = await pickBackdrop(workId, b.id, 'agent');
       if (!r.ok) return refuse(r.reason);
-      const w = (await loadContext(workId)).work;
+      const w = r.work;
       const from = b.builtin ? '内置模板，暂无参数' : '模板库里沉淀的';
       const mode = BACKDROP_MODE_NAMES[w.backdropMode!];
       const modeText = before === w.backdropMode ? `背景做法仍是「${mode}」` : `背景做法${before ? `从「${BACKDROP_MODE_NAMES[before]}」` : ''}换成了「${mode}」`;

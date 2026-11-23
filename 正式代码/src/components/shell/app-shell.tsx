@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <strong className="text-ink">先有背景，再放进饰品。</strong>三张照片各生成一张白底三视图，逐张对照确认；背景用模板库里的，或者自己生成两张选一张；最后用背景图和三视图合成两张主图。满意的背景可以沉淀进模板库，下一件作品直接套用。
               </li>
               <li>
-                <strong className="text-ink">小间写的都是建议。</strong>商品信息、共创总结要你接受或确认才生效；三视图、背景图、主图都要你点按钮或滑动批准才生成，小间不能代你批准。
+                <strong className="text-ink">要你拍板的事，小间会先问你。</strong>商品信息、共创总结、三视图、选哪张背景和验收，都要你确认：自己在画布上点，或者在对话里回「同意」让小间替你点。三视图、背景图、主图只能你自己点按钮或滑动批准才生成；删除也要你在确认框里点。
               </li>
               <li>
                 <strong className="text-ink">每张图分别看两件事：</strong>像不像实物、风格对不对，两项都满意才算完成，才能导出。

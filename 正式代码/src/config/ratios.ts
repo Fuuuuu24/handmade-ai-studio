@@ -8,7 +8,6 @@ export const RATIO_NOTES: Record<Ratio, string> = {
   '9:16': '三个平台主图都不用，可用于其他展示',
 };
 
-
 // 按比例从宽算高（像素取整），比如 3:4、宽 768 → 高 1024
 export function ratioHeight(ratio: Ratio, width: number): number {
   const [w, h] = ratio.split(':').map(Number);

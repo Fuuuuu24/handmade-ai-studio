@@ -39,5 +39,8 @@ describe('假对话模型（只给开发和测试用）', () => {
     const system = { role: 'system' as const, content: '照片编号：1. asset_a（正面）；2. asset_b（未分类）\n模板库里可选的背景图（use_backdrop 用编号）：bd_x 苔绿晨光（用户沉淀的；色调「苔绿」）；builtin:moss@1 雨后清晨（内置模板）' };
     expect(fakeTurn([system, user('删掉它【测试：删背景】')]).calls).toEqual([{ tool: 'request_delete', input: { target: 'backdrop', id: 'bd_x' } }]);
     expect(fakeTurn([system, user('这张是正面【测试：设成正面】')]).calls[0].input).toEqual({ assetId: 'asset_b', kind: 'front' });
+    // 这件作品自己沉淀的背景图，列表里写的是第几轮第几张
+    const own = { role: 'system' as const, content: '模板库里可选的背景图（use_backdrop 用编号）：bd_own 苔绿晨光（这件作品第 1 轮背景 1，沉淀过的；选它要先问用户：ask_confirm 的 pick_backdrop；色调「苔绿」）' };
+    expect(fakeTurn([own, user('删掉它【测试：删背景】')]).calls[0].input).toEqual({ target: 'backdrop', id: 'bd_own' });
   });
 });

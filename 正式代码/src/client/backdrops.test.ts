@@ -6,6 +6,7 @@ import { newId } from '@/domain/util';
 import { newWork, setBackdropMode } from '@/domain/work';
 import { backdrop, task } from '@/test/fixtures';
 import { deleteFromLibrary, pickBackdrop, renameBackdrop, resolveBackdrop, saveToLibrary } from './backdrops';
+import { serial } from './work-store';
 
 const blob = () => new Blob([new Uint8Array(4)], { type: 'image/jpeg' });
 
@@ -29,9 +30,9 @@ describe('选背景图、沉淀、改名、删除（画布按钮和小间共用�
   it('这件作品的候选选定后做法不变；模板库里的选定后做法是「用模板库里的」', async () => {
     const w = await seed();
     const own = await store(w.id);
-    expect(await pickBackdrop(w.id, own.id)).toEqual({ ok: true });
+    expect(await pickBackdrop(w.id, own.id)).toMatchObject({ ok: true });
     expect(await getWork(w.id)).toMatchObject({ backdropId: own.id, backdropMode: 'generate' });
-    expect(await pickBackdrop(w.id, 'builtin:cream@1')).toEqual({ ok: true });
+    expect(await pickBackdrop(w.id, 'builtin:cream@1')).toMatchObject({ ok: true });
     expect(await getWork(w.id)).toMatchObject({ backdropId: 'builtin:cream@1', backdropMode: 'library' });
   });
 
@@ -40,11 +41,11 @@ describe('选背景图、沉淀、改名、删除（画布按钮和小间共用�
     const other = await store('work_other');
     expect(await pickBackdrop(w.id, other.id)).toEqual({ ok: false, reason: '这张背景图还没沉淀进模板库' });
     const saved = await store('work_other', { savedAt: 1 });
-    expect(await pickBackdrop(w.id, saved.id)).toEqual({ ok: true });
+    expect(await pickBackdrop(w.id, saved.id)).toMatchObject({ ok: true });
     await deleteFromLibrary(saved.id);
     expect((await resolveBackdrop(saved.id))?.deleted).toBe(true);
     // 正在用它：照常可用，也能重新点它
-    expect(await pickBackdrop(w.id, saved.id)).toEqual({ ok: true });
+    expect(await pickBackdrop(w.id, saved.id)).toMatchObject({ ok: true });
     const w2 = await seed();
     expect(await pickBackdrop(w2.id, saved.id)).toEqual({ ok: false, reason: '这张背景图已经从模板库删除，不能再选' });
     expect(await pickBackdrop(w2.id, 'builtin:nope@1')).toEqual({ ok: false, reason: '找不到这张背景图' });
@@ -63,20 +64,20 @@ describe('选背景图、沉淀、改名、删除（画布按钮和小间共用�
     const w = await seed();
     const a = await store(w.id);
     const b = await store(w.id, { slot: 1 });
-    expect(await pickBackdrop(w.id, a.id)).toEqual({ ok: true });
+    expect(await pickBackdrop(w.id, a.id)).toMatchObject({ ok: true });
     expect(await saveToLibrary(a.id, '苔绿晨光')).toEqual({ ok: true });
-    expect(await pickBackdrop(w.id, b.id)).toEqual({ ok: true });
-    expect(await pickBackdrop(w.id, a.id)).toEqual({ ok: true });
+    expect(await pickBackdrop(w.id, b.id)).toMatchObject({ ok: true });
+    expect(await pickBackdrop(w.id, a.id)).toMatchObject({ ok: true });
     expect(await getWork(w.id)).toMatchObject({ backdropId: a.id, backdropMode: 'generate' });
     // 换到「用模板库里的」（清掉已选），再在模板库里点自家沉淀的那张
     await saveWork(setBackdropMode((await getWork(w.id))!, 'library'));
-    expect(await pickBackdrop(w.id, a.id)).toEqual({ ok: true });
+    expect(await pickBackdrop(w.id, a.id)).toMatchObject({ ok: true });
     expect(await getWork(w.id)).toMatchObject({ backdropId: a.id, backdropMode: 'generate', flow: 'home' });
     // 别的作品沉淀的、内置模板：用模板库里的
     const other = await store('work_other', { savedAt: 1 });
-    expect(await pickBackdrop(w.id, other.id)).toEqual({ ok: true });
+    expect(await pickBackdrop(w.id, other.id)).toMatchObject({ ok: true });
     expect(await getWork(w.id)).toMatchObject({ backdropId: other.id, backdropMode: 'library' });
-    expect(await pickBackdrop(w.id, 'builtin:stone@1')).toEqual({ ok: true });
+    expect(await pickBackdrop(w.id, 'builtin:stone@1')).toMatchObject({ ok: true });
     expect(await getWork(w.id)).toMatchObject({ backdropId: 'builtin:stone@1', backdropMode: 'library' });
   });
 
@@ -86,8 +87,8 @@ describe('选背景图、沉淀、改名、删除（画布按钮和小间共用�
     const b = await store(w.id, { slot: 1 });
     await saveToLibrary(a.id, '苔绿晨光');
     await deleteFromLibrary(a.id);
-    expect(await pickBackdrop(w.id, b.id)).toEqual({ ok: true });
-    expect(await pickBackdrop(w.id, a.id)).toEqual({ ok: true });
+    expect(await pickBackdrop(w.id, b.id)).toMatchObject({ ok: true });
+    expect(await pickBackdrop(w.id, a.id)).toMatchObject({ ok: true });
     expect(await getWork(w.id)).toMatchObject({ backdropId: a.id, backdropMode: 'generate' });
     const w2 = await seed();
     expect(await pickBackdrop(w2.id, a.id)).toEqual({ ok: false, reason: '这张背景图已经从模板库删除，不能再选' });
@@ -105,5 +106,20 @@ describe('选背景图、沉淀、改名、删除（画布按钮和小间共用�
     await deleteFromLibrary(b.id);
     expect(await getBackdrop(b.id)).toMatchObject({ name: '晨光', savedAt: saved!.savedAt });
     expect((await getBackdrop(b.id))?.deletedAt).toBeGreaterThan(0);
+  });
+
+  it('「批准并生成」先排上了队，紧接着选背景：排在后面的选背景看得到刚发起的生成，被挡住（代码评审 2026-11-23）', async () => {
+    const w = await seed();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const launching = serial(w.id, async () => {
+      await gate;
+      await putTask(task(w.id, 1, 0, 'running'));
+    });
+    const picking = pickBackdrop(w.id, 'builtin:cream@1');
+    release();
+    await launching;
+    expect(await picking).toEqual({ ok: false, reason: '正在合成这一轮候选，等结束后再换背景' });
+    expect((await getWork(w.id))?.backdropId).toBeNull();
   });
 });

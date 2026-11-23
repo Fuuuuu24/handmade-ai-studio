@@ -33,7 +33,6 @@ export async function getSceneApproval(id: Id | null | undefined): Promise<Scene
   return a?.kind === 'scene' ? a : undefined;
 }
 
-
 // 删除作品：用户确认后才调用（PRD 4.2 第 5 条），连同素材、图片、对话、任务和结果一起删。
 // 这件作品生成、没沉淀的背景图一起删；已沉淀的留在模板库，别的作品可能在用（技术写法 13.6）
 export function deleteWork(id: Id) {

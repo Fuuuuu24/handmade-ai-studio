@@ -87,7 +87,7 @@ export async function proxyConfirm(
     return no(`${reason}，这条请求作废了；请重新问`);
   }
   if (!after.length) return no('问过之后用户还没回复，等他回复了再说');
-  if (!consentFound(quote, after)) return no(`问过之后用户发的消息里找不到「${quote.trim()}」，没有代点；请逐字照抄用户表示同意的那句话`);
+  if (!consentFound(quote, after)) return no(`问过之后用户发的消息里没有整句是「${quote.trim()}」的，没有代点；quote 要逐字照抄用户表示同意的那一小句（标点或空格之间）的全文`);
 
   const picked = only?.length ? [...new Set(only)].sort((a, b) => a - b) : ask.items.map((_, i) => i + 1);
   const outside = picked.filter((n) => !Number.isInteger(n) || n < 1 || n > ask.items.length);
