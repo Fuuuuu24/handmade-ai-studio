@@ -63,9 +63,20 @@ interface ConfirmRequest {
 
 const ConfirmCtx = createContext<((r: Omit<ConfirmRequest, 'resolve'>) => Promise<boolean>) | null>(null);
 
+// 小间发起的删除、替换也弹这个框（agent/executors.ts），工具等用户点完才往下走。
+// 框开着时又来一个（不该发生）：前一个按「取消」了结，免得那边一直等
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [req, setReq] = useState<ConfirmRequest | null>(null);
-  const ask = useCallback((r: Omit<ConfirmRequest, 'resolve'>) => new Promise<boolean>((resolve) => setReq({ ...r, resolve })), []);
+  const ask = useCallback(
+    (r: Omit<ConfirmRequest, 'resolve'>) =>
+      new Promise<boolean>((resolve) =>
+        setReq((prev) => {
+          prev?.resolve(false);
+          return { ...r, resolve };
+        }),
+      ),
+    [],
+  );
   const close = (v: boolean) => {
     req?.resolve(v);
     setReq(null);

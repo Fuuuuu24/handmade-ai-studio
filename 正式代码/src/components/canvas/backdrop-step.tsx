@@ -4,18 +4,18 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { BACKDROP_MODE_NAMES } from '@/config/backdrops';
 import { BACKDROP_KEYS } from '@/config/style';
-import { pickBackdrop, saveToLibrary } from '@/client/backdrops';
+import { chooseBackdropMode, pickBackdrop, saveToLibrary } from '@/client/backdrops';
 import { retrySlot } from '@/client/generation';
 import { useBlobUrl } from '@/client/hooks';
 import { mutateWork } from '@/client/work-store';
-import { listSavedBackdrops, logEvent } from '@/data/repo';
+import { listSavedBackdrops } from '@/data/repo';
 import { backdropConflicts } from '@/domain/conflicts';
 import { backdropApprovalStatus } from '@/domain/approval';
 import { backdropCandidates, backdropDone, backdropLag, libraryList, refOfBackdrop } from '@/domain/backdrops';
 import { lastSlotTask, retryCheck, slotsOf, slotState } from '@/domain/generation';
 import { backdropStyleOf } from '@/domain/snapshot';
 import type { Backdrop, BackdropMode, BackdropRef, StorySummary } from '@/domain/types';
-import { clearBackdrop, confirmSummary, editSummary, keepStyleForSummary, setBackdropMode, setNoStory, styleLagsSummary } from '@/domain/work';
+import { clearBackdrop, confirmSummary, editSummary, keepStyleForSummary, setNoStory, styleLagsSummary } from '@/domain/work';
 import { ApproveButton } from '@/components/plan/approve-button';
 import { BackdropPlanSummary, BlockerList } from '@/components/plan/plan-summary';
 import { PromptSection } from '@/components/plan/prompt-section';
@@ -58,8 +58,7 @@ function ModeSwitch({ locked }: { locked: boolean }) {
       });
       if (!ok) return;
     }
-    await mutateWork(workId, (c) => setBackdropMode(c.work, mode));
-    void logEvent('backdrop_mode', workId, { mode, flowChanged: toHome });
+    await chooseBackdropMode(workId, mode);
   };
   return (
     <div className="segmented self-start" role="group" aria-label="背景的做法">
@@ -143,7 +142,7 @@ function Library({ locked }: { locked: boolean }) {
   );
 }
 
-// 背景共创（PRD FR-04）：小间在对话里追问并起草三项总结，确认只能由用户点（PRD 4.2 第 3 条）
+// 背景共创（PRD FR-04）：小间在对话里追问并起草三项总结；确认由用户点，或问过用户、用户同意后小间代点（PRD 4.2 第 2 条）
 function StorySection({ locked }: { locked: boolean }) {
   const { ctx, workId, askAgent, busy } = useWorkspace();
   const { story } = ctx.work;

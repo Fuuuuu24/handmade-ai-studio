@@ -6,7 +6,7 @@ import { VIEW_ANGLES, VIEW_NAMES, VIEWS, type ViewAngle } from '@/config/views';
 import { generateViews } from '@/client/generation';
 import { useBlobFailed, useBlobUrl } from '@/client/hooks';
 import { addPhotos, replacePhoto } from '@/client/uploads';
-import { confirmView, removeAsset, setPhotoKind } from '@/data/repo';
+import { confirmView, removeAsset, setPhotoKind, unconfirmView } from '@/data/repo';
 import { activeUploads, angleState, anglesToGenerate, viewCheck, type AngleState } from '@/domain/assets';
 import type { Asset, AssetKind } from '@/domain/types';
 import { Modal, useConfirm } from '@/components/ui/dialog';
@@ -98,8 +98,23 @@ function Photo({ asset, locked, kindSelect = false }: { asset: Asset; locked: bo
   );
 }
 
-// 对照三视图（AC-02.3）：同角度的原图和三视图并排放大，逐张确认或重做
-function ViewCompare({ open, onClose, state, onRedo, redoProblem }: { open: boolean; onClose: () => void; state: AngleState; onRedo: () => void; redoProblem: string | null }) {
+// 对照三视图（AC-02.3）：同角度的原图和三视图并排放大，逐张确认或重做。确认点错了可以取消（技术写法 14.11 第 4 条），
+// 不用花钱重做；合成生成中三视图锁进了快照，不能取消
+function ViewCompare({
+  open,
+  onClose,
+  state,
+  onRedo,
+  redoProblem,
+  locked,
+}: {
+  open: boolean;
+  onClose: () => void;
+  state: AngleState;
+  onRedo: () => void;
+  redoProblem: string | null;
+  locked: boolean;
+}) {
   const a = useBlobUrl(open ? state.photo?.blobId : null);
   const b = useBlobUrl(open ? state.view?.blobId : null);
   const name = VIEW_NAMES[state.angle];
@@ -145,6 +160,11 @@ function ViewCompare({ open, onClose, state, onRedo, redoProblem }: { open: bool
             可以用
           </button>
         )}
+        {view?.confirmed && (
+          <button type="button" className="btn btn-outline btn-sm" disabled={locked} title={locked ? '正在合成，等这一轮结束再改' : '取消后要重新确认，才能合成'} onClick={() => void unconfirmView(view)}>
+            取消确认
+          </button>
+        )}
         <button type="button" className="btn btn-outline btn-sm" onClick={onRedo}>
           重做这张
         </button>
@@ -153,6 +173,21 @@ function ViewCompare({ open, onClose, state, onRedo, redoProblem }: { open: bool
       </div>
     </Modal>
   );
+}
+
+// 对话里「要我替你点吗」卡片上的「对照」：打开和商品画布同一个对照弹窗（技术写法 14.4）
+export function AngleCompare({ angle, open, onClose }: { angle: ViewAngle; open: boolean; onClose: () => void }) {
+  const { ctx, workId } = useWorkspace();
+  const [problem, setProblem] = useState<string | null>(null);
+  const s = angleState(ctx.assets, ctx.tasks, workId, angle);
+  if (!s.view) return null;
+  const redo = async () => {
+    setProblem(null);
+    const r = await generateViews(workId, [angle]);
+    if (!r.ok) setProblem(r.reason);
+    else onClose();
+  };
+  return <ViewCompare open={open} onClose={onClose} state={s} onRedo={() => void redo()} redoProblem={problem} locked={ctx.busy.scene} />;
 }
 
 // 一个角度：照片位（空着时上传），下面是这个角度的三视图
@@ -245,12 +280,12 @@ function AngleColumn({ angle, locked }: { angle: ViewAngle; locked: boolean }) {
         {s.failed && <p className="text-label text-bad">没生成出来：{s.failed}</p>}
         {problem && !open && <p className="text-label text-warn">{problem}</p>}
       </div>
-      {s.view && <ViewCompare open={open} onClose={() => setOpen(false)} state={s} onRedo={() => void redo()} redoProblem={problem} />}
+      {s.view && <ViewCompare open={open} onClose={() => setOpen(false)} state={s} onRedo={() => void redo()} redoProblem={problem} locked={ctx.busy.scene} />}
     </div>
   );
 }
 
-// 生成三视图（用户点按钮，小间只能提议）：做还没有三视图的角度；缺照片时不能点，写明缺哪张（AC-02.1）
+// 生成三视图（用户点按钮，小间只能放卡片，PRD 4.2 第 1 条）：做还没有三视图的角度；缺照片时不能点，写明缺哪张（AC-02.1）
 export function GenerateViewsButton({ size = 'md' }: { size?: 'sm' | 'md' }) {
   const { ctx, workId } = useWorkspace();
   const [problem, setProblem] = useState<string | null>(null);

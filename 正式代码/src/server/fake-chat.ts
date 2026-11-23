@@ -93,6 +93,7 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
   导出: { tool: 'offer_export', input: { round: 1, candidate: 2 } },
   // 补齐只放卡片，用户点了才补（技术写法 14.6）
   补齐: { tool: 'propose_retry', input: { kind: 'scene', round: 1, candidate: 1 } },
+  补齐二: { tool: 'propose_retry', input: { kind: 'scene', round: 1, candidate: 2 } },
   补齐背景: { tool: 'propose_retry', input: { kind: 'backdrop', round: 1, candidate: 1 } },
   后续: { tool: 'note_followup', input: { text: '真人佩戴图' } },
   换模型: { tool: 'set_image_model', input: { model: 'gpt-image-2' } },
@@ -102,6 +103,7 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
     tool: 'ask_confirm',
     input: { items: [{ type: 'confirm_view', angle: 'front' }, { type: 'confirm_view', angle: 'side' }, { type: 'confirm_view', angle: 'back' }] },
   },
+  问侧面: { tool: 'ask_confirm', input: { items: [{ type: 'confirm_view', angle: 'side' }] } },
   问信息: {
     tool: 'ask_confirm',
     input: { items: [{ type: 'accept_info', field: 'category' }, { type: 'accept_info', field: 'material' }, { type: 'accept_info', field: 'size' }] },

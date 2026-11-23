@@ -12,7 +12,8 @@ export function ApprovalCard({ kind, active, done }: { kind: PromptKind; active:
   const backdrop = kind === 'backdrop';
   const st = backdrop ? backdropApprovalStatus(ctx) : sceneApprovalStatus(ctx);
   const approval = backdrop ? ctx.backdropApproval : ctx.approval;
-  const approved = st.kind === 'valid' && approval;
+  // 批准了、也发起了才收起；批准了却没发起（发起时被挡住了）照样放出滑块，再滑一次就是新的一版（技术写法 14.6）
+  const approved = st.kind === 'valid' && approval && approval.usedRound != null;
   const what = backdrop ? '背景方案' : '方案';
   const step = backdrop ? 'backdrop' : approved ? 'result' : 'placement';
 

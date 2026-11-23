@@ -13,6 +13,7 @@ import { mutateWork } from '@/client/work-store';
 import { db } from '@/data/db';
 import { logEvent, patchResult } from '@/data/repo';
 import { exportResult } from '@/client/export';
+import { setVerdict } from '@/client/results';
 import { sceneApprovalStatus } from '@/domain/approval';
 import { activeUploads } from '@/domain/assets';
 import { lastSlotTask, passed, retryCheck, roundSlots, slotState } from '@/domain/generation';
@@ -144,13 +145,8 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
       r.verdictAt = Date.now();
     });
 
-  const pick = (kind: 'real' | 'style', v: Verdict) => {
-    patch((r) => {
-      r.verdict = { ...r.verdict, [kind]: v };
-      r.verdictAt = Date.now(); // 两项都点完后停手一会儿再告诉小间（技术写法 13.12）
-    });
-    void logEvent('verdict', result.workId, { round: result.round, slot: result.slot, kind, value: v });
-  };
+  // 两项验收：和小间问过用户后代点的走同一个函数（技术写法 14.4）；两项都点完后停手一会儿再告诉小间（技术写法 13.12）
+  const pick = (kind: 'real' | 'style', v: Verdict) => void setVerdict(result, { [kind]: v });
   const toggleIssue = (issue: string) =>
     patch((r) => {
       r.issues = r.issues.includes(issue) ? r.issues.filter((i) => i !== issue) : [...r.issues, issue];

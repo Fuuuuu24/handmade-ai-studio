@@ -42,8 +42,9 @@ async function approveBy(slider: Locator) {
   await slider.press('End');
 }
 
-// 发一句话。浏览器会在小间空闲时代发交接和通知（技术写法 13.12），先等它回完再发；发出后确认这句出现在对话里
-async function say(page: Page, text: string) {
+// 发一句话。浏览器会在小间空闲时代发交接和通知（技术写法 13.12），先等它回完再发；发出后确认这句出现在对话里。
+// settle=false：不等小间回完（小间发起的确认框开着时，要等测试去点）
+async function say(page: Page, text: string, { settle = true } = {}) {
   const box = chat(page).getByRole('textbox', { name: '和小间说' });
   const send = chat(page).getByRole('button', { name: '发送' });
   for (let i = 0; ; i++) {
@@ -57,7 +58,7 @@ async function say(page: Page, text: string) {
       if (i >= 2) throw e;
     }
   }
-  await expect(send).toBeVisible({ timeout: 30_000 });
+  if (settle) await expect(send).toBeVisible({ timeout: 30_000 });
 }
 
 // 从首页开始（流程一）：只说一句话
@@ -172,8 +173,8 @@ async function acceptInfo(page: Page) {
   await expect(step(page, '信息')).toHaveAccessibleName(/完成/);
 }
 
-// 自己生成背景：共创、背景风格、背景提示词、批准，生成两张后选第 1 张
-async function generateBackdrop(page: Page) {
+// 自己生成背景：共创、背景风格、背景提示词、批准，等两张都出来
+async function generateBackdropRound(page: Page) {
   await step(page, '背景').click();
   await canvas(page).getByRole('button', { name: '自己生成' }).click();
   await say(page, '灵感是雨后的石阶【测试：记录】【测试：总结】');
@@ -186,10 +187,13 @@ async function generateBackdrop(page: Page) {
   await approveBy(card.getByRole('slider', { name: /滑动批准并生成两张背景/ }));
   await step(page, '背景').click();
   await expect(canvas(page).getByRole('heading', { name: '第 1 轮背景' })).toBeVisible();
-  const pick = canvas(page).getByRole('button', { name: '用这张' }).first();
-  await expect(pick).toBeVisible({ timeout: 60_000 });
   await expect(canvas(page).getByRole('button', { name: '用这张' })).toHaveCount(2, { timeout: 60_000 });
-  await pick.click();
+}
+
+// 生成两张后在画布上选第 1 张
+async function generateBackdrop(page: Page) {
+  await generateBackdropRound(page);
+  await canvas(page).getByRole('button', { name: '用这张' }).first().click();
   await expect(canvas(page).getByRole('button', { name: '已选定' })).toBeVisible();
 }
 
@@ -197,12 +201,6 @@ test.describe('背景与模板库（PRD FR-04、FR-06，技术写法 13.4）', (
   test('自己生成背景：共创 → 背景风格 → 批准 → 两张选一张 → 沉淀进模板库；模板库里改名、删除，删掉后已经用了它的作品照常可用', async ({ page }, info) => {
     await startHome(page);
     await acceptInfo(page);
-    // 硬规则：背景没批准时小间不能生成（PRD 4.2 第 1 条）
-    await step(page, '背景').click();
-    await canvas(page).getByRole('button', { name: '自己生成' }).click();
-    await say(page, '直接生成背景吧【测试：生成背景】');
-    await expect(chat(page).getByText('不能生成背景：背景方案还没批准')).toBeVisible();
-
     await generateBackdrop(page);
     await expect(canvas(page).getByRole('heading', { name: '背景', level: 2 })).toBeVisible();
     await expect(step(page, '背景')).toHaveAccessibleName(/完成/);
@@ -277,10 +275,6 @@ const candidate = (page: Page, round: number, n: number) => canvas(page).getByRo
 test.describe('摆放与合成（PRD FR-07—FR-10，技术写法 13.5）', () => {
   test('流程一主线：摆放 → 批准 → 背景图＋三视图合成两张 → 验收 → 导出（提醒声明 AI 生成）→ 对照原图 → 两版对比 → 从这一版修改', async ({ page }, info) => {
     await readyForPlacement(page);
-    // 硬规则：没有批准时小间不能生成（PRD 4.2 第 1 条）
-    await say(page, '直接生成吧【测试：生成】');
-    await expect(chat(page).getByText('不能生成：方案还没批准')).toBeVisible();
-
     await say(page, '平铺就好【测试：摆放】【测试：提示词】【测试：批准】');
     await step(page, '摆放').click();
     // 合成方案写明所用的背景图
@@ -349,9 +343,17 @@ test.describe('摆放与合成（PRD FR-07—FR-10，技术写法 13.5）', () =
     await canvas(page).getByRole('button', { name: '我已核对，两者一致' }).click();
     await approveBy(canvas(page).getByRole('slider', { name: /滑动批准并生成两张/ }));
 
-    await expect(canvas(page).getByText(/候选 \d 没有生成出来：/)).toBeVisible({ timeout: 60_000 });
+    const failedText = canvas(page).getByText(/候选 \d 没有生成出来：/);
+    await expect(failedText).toBeVisible({ timeout: 60_000 });
     await expect(canvas(page).getByRole('img', { name: /^候选 \d$/ })).toHaveCount(1, { timeout: 60_000 });
-    await canvas(page).getByRole('button', { name: '补齐这一张' }).click();
+    // 小间只能放「补齐这一张」卡片，用户点了才补（技术写法 14.6）
+    const n = (await failedText.textContent())?.match(/候选 (\d)/)?.[1];
+    await say(page, `补一张吧【测试：${n === '2' ? '补齐二' : '补齐'}】`);
+    const card = chat(page).getByText('补齐这一张？').locator('xpath=ancestor::div[contains(@class,"rounded-[14px]")]');
+    await expect(card).toBeVisible();
+    await expect(canvas(page).getByRole('img', { name: /^候选 \d$/ })).toHaveCount(1);
+    await card.getByRole('button', { name: '补齐这一张' }).click();
+    await expect(chat(page).getByText(`已重新提交第 1 轮候选 ${n}`)).toBeVisible();
     await expect(canvas(page).getByRole('img', { name: /^候选 \d$/ })).toHaveCount(2, { timeout: 60_000 });
   });
 
@@ -436,5 +438,83 @@ test.describe('流程二（PRD 5.2）', () => {
     await expect(canvas(page).getByRole('img', { name: '候选 2' })).toBeVisible({ timeout: 60_000 });
     // 流程二只批准一次（合成）；顶栏顺序仍是背景在前
     await expect(page.getByRole('navigation', { name: '流程进度' }).getByRole('button').first()).toHaveAccessibleName(/^背景/);
+  });
+});
+
+// 「要我替你点吗」卡片（技术写法 14.4）
+const askCard = (page: Page) => chat(page).getByText('要我替你点吗？').last().locator('xpath=ancestor::div[contains(@class,"rounded-[14px]")]');
+
+test.describe('小间的操作权限（技术写法 14）', () => {
+  test('三视图问过再代点：只同意一部分、卡片上点「同意」；点错了能取消确认；小间推进下一步，画布跟着走、不发交接', async ({ page }) => {
+    await startHome(page);
+    await uploadAngles(page);
+    await canvas(page).getByRole('button', { name: '生成三视图' }).click();
+    await expect(chat(page).getByText('通知：三视图 · 已告诉小间')).toBeVisible({ timeout: 60_000 });
+    await expect(chat(page).getByText(/我理解的现状：收到「三视图」的通知/)).toBeVisible();
+
+    // 用户先开口也要先问：卡片列出三样，还没代点
+    await say(page, '帮我把三视图确认了【测试：问三视图】');
+    await expect(askCard(page).getByText('侧面三视图可以用')).toBeVisible();
+    await expect(canvas(page).getByText('三视图 0/3 已确认')).toBeVisible();
+    // 卡片上的「对照」打开和商品画布同一个对照弹窗
+    await askCard(page).getByRole('button', { name: '对照' }).first().click();
+    await expect(page.getByRole('dialog', { name: '对照正面三视图' })).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    // 只同意一部分：只点那几样，卡片写明引用的原话
+    await say(page, '正面和背面可以，侧面我再看看【测试：部分同意】');
+    await expect(chat(page).getByText('替你点了：正面三视图可以用；背面三视图可以用（你说「正面和背面可以」）；其余 1 样没点')).toBeVisible();
+    await expect(canvas(page).getByText('三视图 2/3 已确认')).toBeVisible();
+
+    // 再问侧面，点卡片上的「同意」（等于打这两个字发出去）
+    await say(page, '侧面也看过了【测试：问侧面】');
+    await askCard(page).getByRole('button', { name: '同意' }).click();
+    await expect(chat(page).getByText('替你点了：侧面三视图可以用（你说「同意」）')).toBeVisible();
+    await expect(canvas(page).getByText('三视图 3/3 已确认')).toBeVisible();
+
+    // 点错了能取消确认，不用花钱重做（技术写法 14.11 第 4 条）
+    await step(page, '商品').click();
+    await angle(page, '正面').getByRole('button', { name: '对照正面三视图' }).click();
+    const dialog = page.getByRole('dialog', { name: '对照正面三视图' });
+    await dialog.getByRole('button', { name: '取消确认' }).click();
+    await expect(dialog.getByRole('button', { name: '可以用' })).toBeVisible();
+    await dialog.getByRole('button', { name: '可以用' }).click();
+    await expect(canvas(page).getByText('三视图 3/3 已确认')).toBeVisible();
+
+    // 小间推进下一步：画布切到信息，不发交接消息（技术写法 14.7）
+    await say(page, '这一步好了【测试：推进商品】');
+    await expect(canvas(page).getByRole('heading', { name: '信息', level: 2 })).toBeVisible();
+    await expect(chat(page).getByText('推进到「信息」')).toBeVisible();
+    await expect(chat(page).getByText('交接：商品 · 已告诉小间')).toHaveCount(0);
+  });
+
+  test('信息建议问过再代点；背景候选选定并沉淀；小间发起从模板库删除，取消和确认各一次', async ({ page }) => {
+    await startHome(page);
+    await say(page, '是 925 银的耳饰，长 3 厘米【测试：信息】【测试：问信息】');
+    await expect(askCard(page).getByText('材料用建议「925 银」')).toBeVisible();
+    await askCard(page).getByRole('button', { name: '同意' }).click();
+    await expect(chat(page).getByText(/替你点了：品类用建议「耳饰」；材料用建议「925 银」；尺寸用建议「长 3cm」/)).toBeVisible();
+    await expect(step(page, '信息')).toHaveAccessibleName(/完成/);
+
+    await generateBackdropRound(page);
+    await expect(chat(page).getByText('通知：背景图 · 已告诉小间')).toBeVisible({ timeout: 60_000 });
+    await expect(chat(page).getByText(/我理解的现状：收到「背景图」的通知/)).toBeVisible();
+    await say(page, '用第一张，存进模板库【测试：问选背景】');
+    await expect(askCard(page).getByText('图里不能有饰品，请先看一眼')).toBeVisible();
+    await askCard(page).getByRole('button', { name: '同意' }).click();
+    await expect(chat(page).getByText(/替你点了：用第 1 轮背景 1；第 1 轮背景 1 沉淀进模板库，起名「苔绿晨光」/)).toBeVisible();
+    await step(page, '背景').click();
+    await expect(canvas(page).getByText('已沉淀进模板库「苔绿晨光」')).toBeVisible();
+
+    // 删除要用户在确认框里点（PRD 4.2 第 5 条）：取消就不删
+    await say(page, '把苔绿晨光从模板库删掉【测试：删背景】', { settle: false });
+    const confirmBox = page.getByRole('dialog', { name: '小间想从模板库删除「苔绿晨光」？' });
+    await confirmBox.getByRole('button', { name: '取消' }).click();
+    await expect(chat(page).getByText('用户取消了，「苔绿晨光」还在模板库里')).toBeVisible();
+    await say(page, '还是删掉吧【测试：删背景】', { settle: false });
+    await confirmBox.getByRole('button', { name: '删除' }).click();
+    await expect(chat(page).getByText('用户确认了，「苔绿晨光」已从模板库删除；已经选了它的作品照常可用')).toBeVisible();
+    await step(page, '背景').click();
+    await expect(canvas(page).getByText('已从模板库删除')).toBeVisible();
   });
 });
