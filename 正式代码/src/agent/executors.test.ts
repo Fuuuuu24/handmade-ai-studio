@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useTestDb } from '@/data/db';
+import { db, useTestDb } from '@/data/db';
 import { loadContext } from '@/client/work-store';
 import { addUpload, confirmView, getWork, listResults, listTasks, putTask, saveApproval, saveBackdropResult, saveResult, saveViewResult, saveWork } from '@/data/repo';
 import type { Result, ViewAngle } from '@/domain/types';
@@ -234,11 +234,33 @@ describe('小间的工具：三视图和背景图（技术写法 13.7）', () =>
     const cand = backdrop(b.id, 1, 0);
     await saveBackdropResult({ ...task(b.id, 1, 0, 'succeeded', 1, 'backdrop'), id: cand.taskId }, cand, new Blob([new Uint8Array(4)]), new Blob([new Uint8Array(2)]));
     expect((await executeTool(b.id, 'use_backdrop', { backdropId: cand.id }, deps)).message).toContain('要由用户在画布上点「用这张」');
+    // 从「自己生成」换成模板：结果里写明做法变了（评审第 2 条）
     const out = await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:cream@1' }, deps);
-    expect(out).toEqual({ ok: true, message: '已选用模板库里的背景图「午后书桌」（内置模板，暂无参数）', changes: ['背景图「午后书桌」'] });
+    expect(out).toEqual({
+      ok: true,
+      message: '已选用背景图「午后书桌」（内置模板，暂无参数）；背景做法从「自己生成」换成了「用模板库里的」',
+      changes: ['背景图「午后书桌」'],
+    });
     expect(await getWork(b.id)).toMatchObject({ backdropId: 'builtin:cream@1', backdropMode: 'library' });
+    expect((await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:rose@1' }, deps)).message).toBe('已选用背景图「温柔礼物」（内置模板，暂无参数）；背景做法仍是「用模板库里的」');
+    expect((await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:rose@1' }, deps)).message).toBe('背景本来就是「温柔礼物」');
     await putTask(task(b.id, 1, 0, 'running'));
-    expect(await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:rose@1' }, deps)).toEqual({ ok: false, message: LOCK_SCENE });
+    expect(await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:moss@1' }, deps)).toEqual({ ok: false, message: LOCK_SCENE });
+  });
+
+  it('use_backdrop：背景生成中拒绝；选这件作品沉淀过的背景，做法跟着变成「自己生成」（评审第 1、2 条）', async () => {
+    const b = setBackdropMode(backdropWork(), 'generate');
+    await saveWork(b);
+    const own = backdrop(b.id, 1, 0, { savedAt: 1, name: '苔绿晨光' });
+    await saveBackdropResult({ ...task(b.id, 1, 0, 'succeeded', 1, 'backdrop'), id: own.taskId }, own, new Blob([new Uint8Array(4)]), new Blob([new Uint8Array(2)]));
+    await putTask(task(b.id, 2, 0, 'running', 1, 'backdrop'));
+    expect(await executeTool(b.id, 'use_backdrop', { backdropId: 'builtin:cream@1' }, deps)).toEqual({ ok: false, message: LOCK_BACKDROP });
+    expect((await getWork(b.id))?.backdropId).toBeNull();
+    await db().tasks.clear();
+    await saveWork({ ...(await getWork(b.id))!, backdropMode: 'library' });
+    const out = await executeTool(b.id, 'use_backdrop', { backdropId: own.id }, deps);
+    expect(out.message).toBe('已选用背景图「苔绿晨光」（这件作品生成的）；背景做法从「用模板库里的」换成了「自己生成」');
+    expect(await getWork(b.id)).toMatchObject({ backdropId: own.id, backdropMode: 'generate', flow: 'home' });
   });
 
   it('show_step 切换画布，步骤用编号', async () => {

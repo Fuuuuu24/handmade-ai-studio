@@ -1,7 +1,7 @@
 import { builtinBackdrop } from '@/config/backdrops';
 import { BACKDROP_KEYS, NO_PROPS, STYLE_LABELS } from '@/config/style';
 import { backdropBasisOf, basisOfBackdropSnapshot, diffBackdropBasis } from './snapshot';
-import type { Approval, Backdrop, BackdropParams, BackdropRef, Id, Work, WorkState } from './types';
+import type { Approval, Backdrop, BackdropMode, BackdropParams, BackdropRef, Id, Work, WorkState } from './types';
 
 /* 背景图与模板库（PRD FR-06，技术写法 13.4）。内置模板只写在配置里；生成的背景图存在 backdrops 表，
    用户沉淀进模板库后别的作品才能套用。沉淀、改名、删除只有界面按钮（PRD 4.2 第 2 条）。 */
@@ -47,9 +47,17 @@ export function refOfBuiltin(id: Id): BackdropRef | null {
 export const backdropCandidates = (backdrops: readonly Backdrop[], workId: Id, round: number) =>
   backdrops.filter((b) => b.workId === workId && b.round === round).sort((a, b) => a.slot - b.slot);
 
+// 这件作品自己生成的背景图（沉淀没沉淀、删没删都算）
+export const ownBackdrop = (work: Pick<Work, 'id'>, ref: Pick<BackdropRef, 'builtin' | 'workId'>) => !ref.builtin && ref.workId === work.id;
+
+// 背景做法跟着背景图的来源走（技术写法 13.4）：这件作品自己生成的是「自己生成」（共创和总结都属于这张图），
+// 内置模板和别的作品沉淀的是「用模板库里的」。选背景图的入口都按它定做法（domain/work.ts 的 chooseBackdrop）
+export const backdropModeOf = (work: Pick<Work, 'id'>, ref: Pick<BackdropRef, 'builtin' | 'workId'>): BackdropMode =>
+  ownBackdrop(work, ref) ? 'generate' : 'library';
+
 // 背景这一步完成：选定了背景图；选的是这件作品自己生成的，还要共创总结已确认（技术写法 13.2）
 export const backdropDone = (work: Work, ref: BackdropRef | null) =>
-  !!ref && (ref.workId !== work.id || work.story.summaryState === 'confirmed');
+  !!ref && (!ownBackdrop(work, ref) || work.story.summaryState === 'confirmed');
 
 // 小间的 use_backdrop 能选什么：内置模板、已沉淀且没删除的；这件作品的背景候选只能用户点「用这张」（技术写法 13.7）
 export function agentPickProblem(ref: BackdropRef | null, id: Id): string | null {
@@ -59,11 +67,13 @@ export function agentPickProblem(ref: BackdropRef | null, id: Id): string | null
   return null;
 }
 
-// 用户在画布上能选什么：模板库里的（没删除），或这件作品的背景候选
+// 用户在画布上能选什么：这件作品自己生成的背景图（沉淀后又从模板库删除的也能重选，删除只挡别的作品套用），
+// 或模板库里的（没删除；正在用的那张照常可以再点）
 export function userPickProblem(ref: BackdropRef | null, work: Work): string | null {
   if (!ref) return '找不到这张背景图';
+  if (ownBackdrop(work, ref)) return null;
   if (ref.deleted && ref.id !== work.backdropId) return '这张背景图已经从模板库删除，不能再选';
-  if (!ref.builtin && !ref.saved && ref.workId !== work.id) return '这张背景图还没沉淀进模板库';
+  if (!ref.builtin && !ref.saved) return '这张背景图还没沉淀进模板库';
   return null;
 }
 
@@ -80,7 +90,7 @@ export function usedBy(id: Id, works: readonly Work[], approvals: readonly Appro
 // 「背景是按旧的内容生成的」（技术写法 13.4）。换生图模型不算（AC-06.7）
 export function backdropLag(s: WorkState): string[] {
   const ref = s.backdrop;
-  if (!ref || ref.builtin || ref.workId !== s.work.id) return [];
+  if (!ref || !ownBackdrop(s.work, ref)) return [];
   const b = s.backdrops.find((x) => x.id === ref.id);
   const a = s.backdropApproval;
   if (!b || !a || a.usedRound !== b.round) return [];

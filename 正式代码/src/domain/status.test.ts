@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { backdrop, backdropPromptedWork, BUILTIN, product, promptedWork, result, stateOf, task, upload, view } from '@/test/fixtures';
+import { backdrop, backdropPromptedWork, BUILTIN, pickBuiltin, product, promptedWork, result, stateOf, task, upload, view } from '@/test/fixtures';
 import { refOfBackdrop } from './backdrops';
 import { currentStep, stepStates, workStatusKey } from './status';
 import type { Asset, SceneApproval, Work, WorkState } from './types';
 import {
   acceptSuggestion,
   approveScene,
-  chooseCandidate,
+  chooseBackdrop,
   confirmSummary,
   draftSummary,
   newWork,
@@ -16,7 +16,6 @@ import {
   setStyle,
   startSceneRound,
   suggestInfo,
-  chooseLibraryBackdrop,
   writePrompt,
 } from './work';
 import { sceneBasisOf } from './snapshot';
@@ -50,7 +49,7 @@ describe('作品状态（PRD 5.3）：流程一，用模板库里的背景', () 
     expect(workStatusKey(stateOf(work, assets))).toBe('backdropMode');
     work = setBackdropMode(work, 'library');
     expect(workStatusKey(stateOf(work, assets))).toBe('backdropPick');
-    work = chooseLibraryBackdrop(work, BUILTIN);
+    work = pickBuiltin(work, BUILTIN);
     expect(workStatusKey(stateOf(work, assets))).toBe('plan');
     work = withScene(work, assets);
     const a = approveScene(stateOf(work, assets));
@@ -100,7 +99,7 @@ describe('作品状态：流程一，自己生成背景', () => {
     const cands = [backdrop(work.id, 1, 0), backdrop(work.id, 1, 1)];
     const picking = { ...work, backdropRound: 1 };
     expect(workStatusKey(stateOf(picking, assets, { backdrops: cands }))).toBe('backdropPick');
-    const picked = chooseCandidate(picking, cands[1].id);
+    const picked = chooseBackdrop(picking, refOfBackdrop(cands[1]));
     expect(workStatusKey(stateOf(picked, assets, { backdrops: cands, backdrop: refOfBackdrop(cands[1]) }))).toBe('plan');
     // 选定后小间又把总结改回草稿：背景这一步不算完成
     const redrafted = draftSummary(picked, { express: '雨后青苔，更冷一点', feel: '安静', avoid: '' });

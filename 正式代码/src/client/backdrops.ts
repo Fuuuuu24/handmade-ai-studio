@@ -1,7 +1,7 @@
 import { getBackdrop, getBlob, logEvent, patchBackdrop } from '@/data/repo';
-import { backdropNameProblem, userPickProblem } from '@/domain/backdrops';
+import { backdropNameProblem, ownBackdrop, userPickProblem } from '@/domain/backdrops';
 import type { BackdropRef, Id } from '@/domain/types';
-import { chooseCandidate, chooseLibraryBackdrop } from '@/domain/work';
+import { chooseBackdrop } from '@/domain/work';
 import { loadContext, mutateWork, resolveBackdrop } from './work-store';
 
 export { resolveBackdrop };
@@ -40,16 +40,17 @@ export async function backdropImage(ref: BackdropRef, which: 'full' | 'thumb' = 
 
 export type PickOutcome = { ok: true } | { ok: false; reason: string };
 
-// 用户在画布上选背景图：模板库里的，或这一轮的背景候选（候选只能用户点，技术写法 13.7）
+// 用户在画布上选背景图：模板库里的，或这件作品的背景候选（候选只能用户点，技术写法 13.7）。
+// 做法跟着背景图的来源走（chooseBackdrop）；两种生成进行中都不能换，和画布上锁住的按钮一致
 export async function pickBackdrop(workId: Id, id: Id): Promise<PickOutcome> {
   const ctx = await loadContext(workId);
   if (ctx.busy.scene) return { ok: false, reason: '正在合成这一轮候选，等结束后再换背景' };
+  if (ctx.busy.backdrop) return { ok: false, reason: '背景正在生成中，等两张背景出来后再换' };
   const ref = await resolveBackdrop(id);
   const problem = userPickProblem(ref, ctx.work);
   if (problem) return { ok: false, reason: problem };
-  const candidate = !ref!.builtin && !ref!.saved && ref!.workId === workId;
-  await mutateWork(workId, (c) => (candidate ? chooseCandidate(c.work, id) : chooseLibraryBackdrop(c.work, id)));
-  void logEvent(candidate ? 'pick_backdrop' : 'use_template', workId, { builtin: ref!.builtin });
+  await mutateWork(workId, (c) => chooseBackdrop(c.work, ref!));
+  void logEvent(ownBackdrop(ctx.work, ref!) ? 'pick_backdrop' : 'use_template', workId, { builtin: ref!.builtin });
   return { ok: true };
 }
 

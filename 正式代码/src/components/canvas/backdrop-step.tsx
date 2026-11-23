@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
-import { listedBuiltins } from '@/config/backdrops';
+import { BACKDROP_MODE_NAMES, listedBuiltins } from '@/config/backdrops';
 import { BACKDROP_KEYS } from '@/config/style';
 import { pickBackdrop, saveToLibrary } from '@/client/backdrops';
 import { retrySlot } from '@/client/generation';
@@ -63,14 +63,9 @@ function ModeSwitch({ locked }: { locked: boolean }) {
   };
   return (
     <div className="segmented self-start" role="group" aria-label="背景的做法">
-      {(
-        [
-          ['library', '用模板库里的'],
-          ['generate', '自己生成'],
-        ] as const
-      ).map(([m, label]) => (
+      {(['library', 'generate'] as const).map((m) => (
         <button key={m} type="button" aria-pressed={work.backdropMode === m} disabled={locked} onClick={() => void choose(m)}>
-          {label}
+          {BACKDROP_MODE_NAMES[m]}
         </button>
       ))}
     </div>

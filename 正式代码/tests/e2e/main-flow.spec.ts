@@ -254,7 +254,7 @@ test.describe('背景与模板库（PRD FR-04、FR-06，技术写法 13.4）', (
   test('小间只能选模板库里的背景图（use_backdrop）', async ({ page }) => {
     await startHome(page);
     await say(page, '用雨后那张背景吧【测试：用模板】');
-    await expect(chat(page).getByText('已选用模板库里的背景图「雨后清晨」（内置模板，暂无参数）')).toBeVisible();
+    await expect(chat(page).getByText('已选用背景图「雨后清晨」（内置模板，暂无参数）；背景做法换成了「用模板库里的」')).toBeVisible();
     await step(page, '背景').click();
     await expect(canvas(page).getByRole('button', { name: '用模板库里的' })).toHaveAttribute('aria-pressed', 'true');
     await expect(canvas(page).getByText('示意模板，无参数').first()).toBeVisible();

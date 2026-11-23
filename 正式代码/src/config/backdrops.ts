@@ -34,3 +34,6 @@ export const builtinBackdrop = (id: string) => BUILTIN_BACKDROPS.find((b) => b.i
 
 // 模板库里列出的内置模板（不含被新版本取代的）
 export const listedBuiltins = () => BUILTIN_BACKDROPS.filter((b) => !b.retired);
+
+// 背景这一步的两种做法（技术写法 13.4）
+export const BACKDROP_MODE_NAMES = { library: '用模板库里的', generate: '自己生成' } as const;

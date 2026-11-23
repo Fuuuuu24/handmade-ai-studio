@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { backdropPromptedWork, BUILTIN, product, readyWork, upload, view } from '@/test/fixtures';
+import { backdropPromptedWork, BUILTIN, pickBuiltin, product, readyWork, upload, view } from '@/test/fixtures';
 import { backdropBasisOf, backdropSnapshotOf, diffBackdropBasis, diffSceneBasis, diffSceneSnapshot, sceneBasisOf, sceneSnapshotOf } from './snapshot';
-import { draftSummary, setInfo, setStyle, suggestInfo, chooseLibraryBackdrop } from './work';
+import { draftSummary, setInfo, setStyle, suggestInfo } from './work';
 
 describe('合成依据（技术写法 13.5）', () => {
   it('参考图是三张已确认的三视图；原图和细节照不进（AC-02.3a）', () => {
@@ -24,7 +24,7 @@ describe('合成依据（技术写法 13.5）', () => {
   it('改了什么：背景图、三视图、比例、摆放分别报', () => {
     const { work, assets } = readyWork();
     const a = sceneBasisOf(work, assets);
-    expect(diffSceneBasis(a, sceneBasisOf(chooseLibraryBackdrop(work, 'builtin:rose@1'), assets))).toEqual(['背景图']);
+    expect(diffSceneBasis(a, sceneBasisOf(pickBuiltin(work, 'builtin:rose@1'), assets))).toEqual(['背景图']);
     const redo = [...assets.slice(0, 5), view(assets[2])];
     expect(diffSceneBasis(a, sceneBasisOf(work, redo))).toEqual(['三视图']);
     expect(diffSceneBasis(a, sceneBasisOf(setStyle({ ...work, ratio: '3:4' }, 'composition', '主体放大，突出细节', 'user'), assets))).toEqual(['比例', '构图']);

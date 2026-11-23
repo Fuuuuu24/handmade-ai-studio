@@ -3,7 +3,7 @@ import { backdrop, backdropPromptedWork, BUILTIN, product, promptedWork, readyWo
 import { refOfBackdrop } from './backdrops';
 import { changeText, diffFacts, factsOf, handoffBlocker, handoffText, nextStepOf } from './handoff';
 import { sceneBasisOf } from './snapshot';
-import { approveScene, chooseCandidate, editPrompt, markUnknown, newWork, queueHandoff, setInfo, setStyle, suggestInfo } from './work';
+import { approveScene, chooseBackdrop, editPrompt, markUnknown, newWork, queueHandoff, setInfo, setStyle, suggestInfo } from './work';
 
 describe('「下一步」交接（PRD AC-11.3a，技术写法 13.12）', () => {
   it('下一步按这件作品的流程排；出图没有下一步', () => {
@@ -29,6 +29,19 @@ describe('「下一步」交接（PRD AC-11.3a，技术写法 13.12）', () => {
     expect(handoffBlocker(stateOf(work, assets), 'backdrop')).toBeNull();
   });
 
+  it('背景：选了自家的背景图、总结回到草稿时，不管哪种做法都说「共创总结还没确认」（评审第 6 条）', () => {
+    const w = backdropPromptedWork();
+    const b = backdrop(w.id, 1, 0, { savedAt: 9 });
+    const picked = chooseBackdrop(w, refOfBackdrop(b));
+    const draft = { ...picked, story: { ...picked.story, summaryState: 'draft' as const } };
+    expect(handoffBlocker(stateOf(picked, [], { backdrop: refOfBackdrop(b) }), 'backdrop')).toBeNull();
+    expect(handoffBlocker(stateOf(draft, [], { backdrop: refOfBackdrop(b) }), 'backdrop')).toBe('共创总结还没确认');
+    // 旧数据里的「用模板库里的＋自家背景」也一样
+    expect(handoffBlocker(stateOf({ ...draft, backdropMode: 'library' }, [], { backdrop: refOfBackdrop(b) }), 'backdrop')).toBe('共创总结还没确认');
+    expect(handoffBlocker(stateOf(draft, [], { backdrop: null }), 'backdrop')).toBe('选定的背景图找不到了');
+    expect(handoffBlocker(stateOf({ ...draft, backdropId: null }, [], { backdrop: null }), 'backdrop')).toBe('还没选定背景图');
+  });
+
   it('交接内容：商品写原图和三视图，信息写已确认、未知和还没处理的建议', () => {
     const { work, assets } = readyWork();
     expect(handoffText(stateOf(work, [...assets, upload(work.id, 'detail')]), 'product')).toBe(
@@ -46,7 +59,7 @@ describe('「下一步」交接（PRD AC-11.3a，技术写法 13.12）', () => {
     expect(handoffText(stateOf(work, assets), 'backdrop')).toContain('- 选定的背景图：「雨后清晨」（内置模板）；参数：示意模板，无参数');
     const w = backdropPromptedWork();
     const b = backdrop(w.id, 1, 0, { savedAt: 9, name: '苔绿晨光' });
-    const text = handoffText(stateOf(chooseCandidate(w, b.id), [], { backdrop: refOfBackdrop(b) }), 'backdrop');
+    const text = handoffText(stateOf(chooseBackdrop(w, refOfBackdrop(b)), [], { backdrop: refOfBackdrop(b) }), 'backdrop');
     expect(text).toContain('- 做法：自己生成');
     expect(text).toContain('（这件作品生成的，已沉淀进模板库）');
     expect(text).toContain('- 共创总结（已确认）：表达「雨后青苔」');

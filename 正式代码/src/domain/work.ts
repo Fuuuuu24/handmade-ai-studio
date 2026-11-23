@@ -10,12 +10,15 @@ import {
   sceneGenerationBlockers,
   type Blocker,
 } from './approval';
+import { backdropModeOf } from './backdrops';
 import { emptyInfo } from './info';
 import { backdropSnapshotOf, basisOfSceneSnapshot, sceneSnapshotOf } from './snapshot';
 import type {
+  Backdrop,
   BackdropApproval,
   BackdropBasis,
   BackdropMode,
+  BackdropRef,
   Id,
   InfoField,
   PromptBases,
@@ -204,12 +207,14 @@ export function setBackdropMode(w: Work, mode: BackdropMode): Work {
   return touch(w, { backdropMode: mode, backdropId: null, flow: mode === 'generate' ? 'home' : w.flow });
 }
 
-// 选模板库里的背景图（用户在画布上点，或小间的 use_backdrop）：做法随之是「用模板库里的」，流程不变
-export const chooseLibraryBackdrop = (w: Work, id: Id) =>
-  w.backdropMode === 'library' && w.backdropId === id ? w : touch(w, { backdropMode: 'library', backdropId: id });
-
-// 选这一轮的背景候选：只有界面按钮（技术写法 13.7，小间不能代选）
-export const chooseCandidate = (w: Work, id: Id) => (w.backdropId === id ? w : touch(w, { backdropId: id }));
+// 选定一张背景图：画布上点「用这张」、在模板库里点一张、小间的 use_backdrop、「从这一版修改」都走这里。
+// 做法跟着背景图的来源走（backdropModeOf，技术写法 13.4），不看是从哪个入口选的。
+// 自己生成的背景图只出在流程一（流程二改成自己生成时已经切过来），定为「自己生成」时这里再兜一次底
+export function chooseBackdrop(w: Work, ref: Pick<BackdropRef, 'id' | 'builtin' | 'workId'>): Work {
+  const mode = backdropModeOf(w, ref);
+  if (w.backdropId === ref.id && w.backdropMode === mode) return w;
+  return touch(w, { backdropId: ref.id, backdropMode: mode, ...(mode === 'generate' ? { flow: 'home' as const } : {}) });
+}
 
 // 「重新设计背景」：放开选定的背景图，背景风格又能改，可以再生成一轮
 export const clearBackdrop = (w: Work) => (w.backdropId ? touch(w, { backdropId: null }) : w);
@@ -264,8 +269,9 @@ export function revertPrompt<K extends PromptKind>(w: Work, k: K): Work {
 const sceneStyle = (style: Style) => Object.fromEntries(SCENE_KEYS.map((k) => [k, style[k]])) as Pick<Style, SceneKey>;
 
 // 恢复那一版合成批准时的摆放、背景图、比例、生图模型和提示词；三视图、商品信息、共创总结是作品本身的事实，保持现在的
-// （之后改过的话，恢复的提示词会被判为过期）。问题出在背景时回背景这一步重选或重新生成
-export function reviseFrom(w: Work, result: Result, approval: SceneApproval): Work {
+// （之后改过的话，恢复的提示词会被判为过期）。问题出在背景时回背景这一步重选或重新生成。
+// 背景做法跟着恢复的那张背景图走：backdrops 传这件作品生成的背景图（WorkState.backdrops），用来认出是不是自家的
+export function reviseFrom(w: Work, result: Result, approval: SceneApproval, backdrops: readonly Backdrop[]): Work {
   const snap = approval.snapshot;
   const text = snap.prompt;
   const basis = basisOfSceneSnapshot(snap);
@@ -284,11 +290,12 @@ export function reviseFrom(w: Work, result: Result, approval: SceneApproval): Wo
     imageModel: w.imageModel,
     prompt: w.prompt,
   };
-  const mode: BackdropMode = isBuiltinBackdrop(snap.backdropId) ? 'library' : (w.backdropMode ?? 'library');
-  return touch(w, {
+  const id = snap.backdropId;
+  const picked = id
+    ? chooseBackdrop(w, { id, builtin: isBuiltinBackdrop(id), workId: backdrops.find((b) => b.id === id)?.workId ?? null })
+    : touch(w, { backdropId: null });
+  return touch(picked, {
     style,
-    backdropId: snap.backdropId,
-    backdropMode: snap.backdropId === w.backdropId ? w.backdropMode : mode,
     ratio: snap.ratio,
     imageModel: snap.imageModel,
     prompt,

@@ -3,9 +3,13 @@ import { refOfBuiltin } from '@/domain/backdrops';
 import { backdropBasisOf, sceneBasisOf, sceneSnapshotOf } from '@/domain/snapshot';
 import type { Asset, AssetKind, Backdrop, Id, Result, Task, ViewAngle, Work, WorkState } from '@/domain/types';
 import { newId } from '@/domain/util';
-import { confirmSummary, draftSummary, newWork, setBackdropMode, setInfo, setStyle, chooseLibraryBackdrop, writePrompt } from '@/domain/work';
+import { chooseBackdrop, confirmSummary, draftSummary, newWork, setBackdropMode, setInfo, setStyle, writePrompt } from '@/domain/work';
 
 export const BUILTIN = 'builtin:moss@1';
+
+// 测试里选背景图（做法跟着来源走，见 chooseBackdrop）：内置模板按编号；这件作品自己生成的按编号
+export const pickBuiltin = (w: Work, id: string) => chooseBackdrop(w, refOfBuiltin(id)!);
+export const pickOwn = (w: Work, id: Id) => chooseBackdrop(w, { id, builtin: false, workId: w.id });
 
 export function upload(workId: Id, kind: AssetKind = 'front', extra: Partial<Asset> = {}): Asset {
   return {
@@ -58,7 +62,7 @@ const withInfo = (w: Work) => setInfo(setInfo(setInfo(w, 'category', '耳饰'), 
 export function readyWork(): { work: Work; assets: Asset[] } {
   let work = withInfo(newWork({ imageModel: 'img-a', chatModel: 'chat-a' }));
   const assets = product(work.id);
-  work = chooseLibraryBackdrop(work, BUILTIN);
+  work = pickBuiltin(work, BUILTIN);
   work = setStyle(work, 'placement', '平铺', 'user');
   work = setStyle(work, 'composition', '主体居中，留白多', 'user');
   return { work, assets };

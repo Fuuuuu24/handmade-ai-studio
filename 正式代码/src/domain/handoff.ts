@@ -1,3 +1,4 @@
+import { BACKDROP_MODE_NAMES } from '@/config/backdrops';
 import { INFO_CORE, INFO_FIELDS, INFO_KEYS, type InfoKey } from '@/config/info';
 import { imageModel } from '@/config/models';
 import { FLOW_NAMES, FLOW_STEPS, STEP_NAMES, type Flow, type StepId } from '@/config/steps';
@@ -40,7 +41,8 @@ export function handoffBlocker(s: WorkState, step: HandoffStep): string | null {
   if (step === 'backdrop') {
     if (!work.backdropMode) return '还没选背景的做法';
     if (backdropDone(work, s.backdrop)) return null;
-    if (work.backdropMode === 'generate' && work.backdropId && s.backdrop) return '共创总结还没确认';
+    // 选定了、也读得到，却没完成：只会是这件作品自己生成的那张还差共创总结（backdropDone），不看现在是哪种做法
+    if (work.backdropId && s.backdrop) return '共创总结还没确认';
     return work.backdropId ? '选定的背景图找不到了' : '还没选定背景图';
   }
   return sceneApprovalStatus(s).kind === 'valid' ? null : '合成方案还没批准';
@@ -55,7 +57,6 @@ const PROMPT_TEXT: Record<PromptStatus['kind'], string> = {
 };
 
 const APPROVAL_TEXT: Record<ApprovalStatus['kind'], string> = { none: '还没有', stale: '已失效', valid: '有效' };
-const MODE_TEXT = { library: '用模板库里的', generate: '自己生成' } as const;
 const SUMMARY_STATE = { none: '还没有', draft: '草稿', confirmed: '已确认' } as const;
 
 const infoText = (s: WorkState, k: InfoKey) => {
@@ -81,7 +82,7 @@ export function factsOf(s: WorkState): Record<string, Fact> {
     const sug = work.info[k].suggestion;
     if (sug) f[`${INFO_FIELDS[k].label}（你的建议，待用户确认）`] = { text: sug.value };
   }
-  f['背景做法'] = { text: work.backdropMode ? MODE_TEXT[work.backdropMode] : '还没选' };
+  f['背景做法'] = { text: work.backdropMode ? BACKDROP_MODE_NAMES[work.backdropMode] : '还没选' };
   f['背景图'] = { text: s.backdrop ? `「${s.backdrop.name}」` : work.backdropId ? '找不到了' : '还没有', id: work.backdropId ?? undefined };
   const sum = work.story.summary;
   f['共创总结'] = { text: sum ? `${SUMMARY_STATE[work.story.summaryState]}：表达「${sum.express}」，感受「${sum.feel}」，避免「${sum.avoid}」` : '还没有' };
@@ -133,7 +134,7 @@ export function handoffText(s: WorkState, step: HandoffStep): string {
     const pending = INFO_KEYS.filter((k) => work.info[k].suggestion);
     lines.push(`- 还没处理的建议：${pending.length ? pending.map((k) => `${INFO_FIELDS[k].label}「${work.info[k].suggestion!.value}」`).join('、') : '没有'}`);
   } else if (step === 'backdrop') {
-    lines.push(`- 做法：${work.backdropMode ? MODE_TEXT[work.backdropMode] : '还没选'}`);
+    lines.push(`- 做法：${work.backdropMode ? BACKDROP_MODE_NAMES[work.backdropMode] : '还没选'}`);
     const b = s.backdrop;
     if (b) {
       const from = b.builtin ? '内置模板' : b.workId === work.id ? `这件作品生成的，${b.saved ? '已沉淀进模板库' : '没沉淀进模板库'}` : '模板库里沉淀的';

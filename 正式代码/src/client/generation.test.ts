@@ -14,7 +14,8 @@ import { db, useTestDb } from '@/data/db';
 import { addUpload, confirmView, getSceneApproval, getWork, listAssets, listResults, listTasks, listWorkBackdrops, saveBackdropResult, saveViewResult, saveWork } from '@/data/repo';
 import type { ViewAngle } from '@/domain/types';
 import { newId } from '@/domain/util';
-import { reviseFrom, chooseLibraryBackdrop, writePrompt } from '@/domain/work';
+import { refOfBackdrop } from '@/domain/backdrops';
+import { chooseBackdrop, reviseFrom, writePrompt } from '@/domain/work';
 import { backdrop, backdropPromptedWork, readyWork, task, viewTask } from '@/test/fixtures';
 import { approveAndGenerate, approveAndGenerateBackdrop, generateViews, retrySlot } from './generation';
 import { loadContext, mutateWork } from './work-store';
@@ -38,7 +39,7 @@ async function seedReady() {
   await seedPhotos(work.id, true);
   const bd = backdrop('work_other', 1, 0, { savedAt: 1 });
   await saveBackdropResult({ ...task('work_other', 1, 0, 'succeeded', 1, 'backdrop'), id: bd.taskId }, bd, bytes(60), bytes(6));
-  await mutateWork(work.id, (c) => chooseLibraryBackdrop(c.work, bd.id));
+  await mutateWork(work.id, (c) => chooseBackdrop(c.work, refOfBackdrop(bd)));
   const ctx = await loadContext(work.id);
   await saveWork(writePrompt(ctx.work, 'scene', '第 1 张是背景图，第 2—4 张是三视图……', ctx.basis));
   return { workId: work.id, backdrop: bd };
@@ -144,7 +145,7 @@ describe('合成的参考图（AC-02.3a）', () => {
     await settle(workId);
     const first = (await listResults(workId)).find((r) => r.slot === 0)!;
     const approval = (await getSceneApproval(first.approvalId))!;
-    await mutateWork(workId, (c) => reviseFrom(c.work, first, approval));
+    await mutateWork(workId, (c) => reviseFrom(c.work, first, approval, c.backdrops));
     await mutateWork(workId, (c) => writePrompt(c.work, 'scene', '只把构图改成主体偏一侧', c.basis));
     expect(await approveAndGenerate(workId)).toEqual({ ok: true, round: 2 });
     await settle(workId);

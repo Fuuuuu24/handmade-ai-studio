@@ -160,7 +160,7 @@ function Candidate({ result, ratio, approval, comparing: inCompare, onCompare }:
   // 从这一版修改（AC-09.4）：恢复那一版的方案并记下父结果，原结果保留
   const revise = async () => {
     if (!approval || locked) return;
-    await mutateWork(workId, (c) => reviseFrom(c.work, result, approval));
+    await mutateWork(workId, (c) => reviseFrom(c.work, result, approval, c.backdrops));
     void logEvent('revise', workId, { round: result.round, slot: result.slot });
   };
 

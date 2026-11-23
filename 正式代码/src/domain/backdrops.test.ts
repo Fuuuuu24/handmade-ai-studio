@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { backdrop, backdropPromptedWork, BUILTIN, stateOf } from '@/test/fixtures';
-import { agentPickProblem, backdropCandidates, backdropDone, backdropLag, refOfBackdrop, refOfBuiltin, usedBy, userPickProblem } from './backdrops';
+import { agentPickProblem, backdropCandidates, backdropDone, backdropLag, backdropModeOf, refOfBackdrop, refOfBuiltin, usedBy, userPickProblem } from './backdrops';
 import type { SceneApproval } from './types';
-import { approveBackdrop, chooseCandidate, confirmSummary, draftSummary, editSummary, newWork, setImageModel, startBackdropRound } from './work';
+import { approveBackdrop, chooseBackdrop, confirmSummary, draftSummary, editSummary, newWork, setImageModel, startBackdropRound } from './work';
 
 const work = () => newWork({ imageModel: 'img-a', chatModel: 'chat-a' });
 
@@ -46,6 +46,16 @@ describe('背景图与模板库（PRD FR-06）', () => {
     const gone = backdrop('other', 1, 0, { savedAt: 1, deletedAt: 2 });
     expect(userPickProblem(refOfBackdrop(gone), w)).toBe('这张背景图已经从模板库删除，不能再选');
     expect(userPickProblem(refOfBackdrop(gone), { ...w, backdropId: gone.id })).toBeNull();
+    // 这件作品自己的：沉淀后又删除也能重选（评审第 10 条）
+    expect(userPickProblem(refOfBackdrop(backdrop(w.id, 1, 1, { savedAt: 1, deletedAt: 2 })), w)).toBeNull();
+  });
+
+  it('背景做法跟着来源走：自家的是自己生成，内置和别的作品沉淀的是用模板库里的', () => {
+    const w = newWork({ imageModel: 'img-a', chatModel: 'chat-a' });
+    expect(backdropModeOf(w, refOfBackdrop(backdrop(w.id, 1, 0)))).toBe('generate');
+    expect(backdropModeOf(w, refOfBackdrop(backdrop(w.id, 1, 0, { savedAt: 1, deletedAt: 2 })))).toBe('generate');
+    expect(backdropModeOf(w, refOfBackdrop(backdrop('other', 1, 0, { savedAt: 1 })))).toBe('library');
+    expect(backdropModeOf(w, refOfBuiltin(BUILTIN)!)).toBe('library');
   });
 
   it('被几件作品用过：现在选着的，加上合成批准里用过的', () => {
@@ -65,7 +75,7 @@ describe('选定的背景是不是按旧的内容生成的（技术写法 13.4�
     const s = startBackdropRound(stateOf(a.work, [], { backdropApproval: a.approval }), a.approval);
     if (!s.ok) throw new Error('应当可以生成背景');
     const b = backdrop(s.work.id, 1, 0);
-    return { work: chooseCandidate(s.work, b.id), approval: s.approval, b };
+    return { work: chooseBackdrop(s.work, refOfBackdrop(b)), approval: s.approval, b };
   }
   const lag = (w: ReturnType<typeof picked>['work'], x: ReturnType<typeof picked>) =>
     backdropLag(stateOf(w, [], { backdrops: [x.b], backdrop: refOfBackdrop(x.b), backdropApproval: x.approval }));

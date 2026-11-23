@@ -4,7 +4,7 @@ import { listedBuiltins } from '@/config/backdrops';
 import { deriveContext } from '@/client/work-store';
 import { refOfBackdrop, refOfBuiltin } from '@/domain/backdrops';
 import type { Asset, Work, WorkState } from '@/domain/types';
-import { approveScene, chooseCandidate, confirmSummary, draftSummary, editSummary, reviseFrom, setRatio, startSceneRound, suggestInfo } from '@/domain/work';
+import { approveScene, chooseBackdrop, confirmSummary, draftSummary, editSummary, reviseFrom, setRatio, startSceneRound, suggestInfo } from '@/domain/work';
 import { backdrop, backdropPromptedWork, backdropWork, product, promptedWork, readyWork, result, stateOf, task, upload, view } from '@/test/fixtures';
 import { factsOf } from '@/domain/handoff';
 import { setInfo } from '@/domain/work';
@@ -64,7 +64,7 @@ describe('stateSummary（技术写法 13.12）', () => {
     expect(text).toContain(`背景 1：已生成（${cands[0].id}）`);
     expect(text).toContain('选哪张要用户在画布上点「用这张」，你不能代选');
     expect(text).toContain('背景批准前还缺：无，可以请用户批准（request_approval，kind=backdrop）');
-    const picked = chooseCandidate(w, cands[1].id);
+    const picked = chooseBackdrop(w, refOfBackdrop(cands[1]));
     const after = summarize(picked, [], { backdrops: cands, backdrop: refOfBackdrop(cands[1]) });
     expect(after).toContain('（背景图已选定，以背景图的参数为准，不能改；想改要用户先点「重新设计背景」）');
     expect(after).toContain('选定的背景图：第 1 轮背景 2');
@@ -101,7 +101,7 @@ describe('stateSummary（技术写法 13.12）', () => {
     const a = approveScene(stateOf(work, assets));
     if (!a.ok) throw new Error('应当可以批准');
     const r = { ...result(work.id, 1, 0), issues: ['背景'] };
-    const text = summarize(reviseFrom({ ...a.work, round: 1 }, r, a.approval), assets, { results: [r] });
+    const text = summarize(reviseFrom({ ...a.work, round: 1 }, r, a.approval, []), assets, { results: [r] });
     expect(text).toContain('正在从第 1 轮候选 1 修改（用户指出的问题：背景）');
     expect(text).toContain('请用户回「背景」换一张或重新生成');
   });

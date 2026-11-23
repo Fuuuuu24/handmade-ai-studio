@@ -1,4 +1,5 @@
 import type { InferToolInput } from 'ai';
+import { BACKDROP_MODE_NAMES } from '@/config/backdrops';
 import { INFO_FIELDS } from '@/config/info';
 import { imageModel } from '@/config/models';
 import { isStepId, type StepId } from '@/config/steps';
@@ -16,13 +17,14 @@ import {
   type Blocker,
 } from '@/domain/approval';
 import { angleNames, anglesToGenerate, viewCheck } from '@/domain/assets';
-import { agentPickProblem } from '@/domain/backdrops';
+import { agentPickProblem, ownBackdrop } from '@/domain/backdrops';
 import { passed } from '@/domain/generation';
 import { saidQuoteFound } from '@/domain/said';
 import type { Work } from '@/domain/types';
 import {
   addFollowup,
   addStoryNote,
+  chooseBackdrop,
   draftSummary,
   promptOf,
   resolvePromptSync,
@@ -32,7 +34,6 @@ import {
   setStyle,
   suggestInfo,
   suggestName,
-  chooseLibraryBackdrop,
   writePrompt,
 } from '@/domain/work';
 import { getSceneApproval, logEvent, patchResult } from '@/data/repo';
@@ -62,10 +63,8 @@ const BACKDROP_PICKED = '已经选定了背景图，背景五项以背景图记�
 const findResult = (ctx: WorkContext, round: number, candidate: number) =>
   ctx.results.find((r) => r.round === round && r.slot === candidate - 1);
 
-// 修改经 mutateWork 排队执行，读到的总是最新的作品
-async function change(workId: string, fn: (ctx: WorkContext) => Work): Promise<void> {
-  await mutateWork(workId, fn);
-}
+// 修改经 mutateWork 排队执行，读到的总是最新的作品；返回改完的作品
+const change = (workId: string, fn: (ctx: WorkContext) => Work): Promise<Work> => mutateWork(workId, fn);
 
 const listText = (bs: readonly Blocker[]) => bs.map((b) => b.text).join('；');
 
@@ -147,15 +146,28 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
       return done(`风格卡已更新：${list.join('、')}${note}`, list);
     }
     case 'use_backdrop': {
+      // 两种生成进行中都不能换背景：合成时背景图锁进了快照；背景生成时两张出来要在候选区里选（技术写法 13.6）
       const { backdropId } = rawInput as Input<'use_backdrop'>;
       if (busy.scene) return refuse(LOCK_SCENE);
+      if (busy.backdrop) return refuse(LOCK_BACKDROP);
       const ref = await resolveBackdrop(backdropId);
       const problem = agentPickProblem(ref, backdropId);
       if (problem) return refuse(problem);
-      if (ctx.work.backdropId === backdropId) return done(`背景本来就是「${ref!.name}」`);
-      await change(workId, (c) => chooseLibraryBackdrop(c.work, backdropId));
-      void logEvent('use_template', workId, { builtin: ref!.builtin, by: 'agent' });
-      return done(`已选用模板库里的背景图「${ref!.name}」${ref!.params ? '' : '（内置模板，暂无参数）'}`, [`背景图「${ref!.name}」`]);
+      const b = ref!;
+      const before = ctx.work.backdropMode;
+      let changed = false;
+      const w = await change(workId, (c) => {
+        const next = chooseBackdrop(c.work, b);
+        changed = next !== c.work;
+        return next;
+      });
+      if (!changed) return done(`背景本来就是「${b.name}」`);
+      const own = ownBackdrop(w, b);
+      void logEvent(own ? 'pick_backdrop' : 'use_template', workId, { builtin: b.builtin, by: 'agent' });
+      const from = b.builtin ? '内置模板，暂无参数' : own ? '这件作品生成的' : '模板库里沉淀的';
+      const mode = BACKDROP_MODE_NAMES[w.backdropMode!];
+      const modeText = before === w.backdropMode ? `背景做法仍是「${mode}」` : `背景做法${before ? `从「${BACKDROP_MODE_NAMES[before]}」` : ''}换成了「${mode}」`;
+      return done(`已选用背景图「${b.name}」（${from}）；${modeText}`, [`背景图「${b.name}」`]);
     }
     case 'draft_backdrop_prompt': {
       const { prompt } = rawInput as Input<'draft_backdrop_prompt'>;
@@ -255,7 +267,7 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
       });
       if (revise && approval) {
         const fresh = { ...res, issues: [...new Set([...res.issues, ...issues])] };
-        await change(workId, (c) => reviseFrom(c.work, fresh, approval));
+        await change(workId, (c) => reviseFrom(c.work, fresh, approval, c.backdrops));
         void logEvent('revise', workId, { round, slot: candidate - 1, by: 'agent' });
       }
       const what = [issues.length ? `问题：${issues.join('、')}` : '', note?.trim() ? `说明：${note.trim()}` : ''].filter(Boolean).join('；');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { backdropPromptedWork, backdropWork, BUILTIN, current, currentBasis, product, promptedWork, readyWork, stateOf, task, upload, view, viewTask } from '@/test/fixtures';
+import { backdropPromptedWork, backdropWork, BUILTIN, current, currentBasis, pickBuiltin, pickOwn, product, promptedWork, readyWork, stateOf, task, upload, view, viewTask } from '@/test/fixtures';
 import {
   approvalReminders,
   backdropApprovalBlockers,
@@ -19,7 +19,6 @@ import {
   acceptSuggestion,
   approveBackdrop,
   approveScene,
-  chooseCandidate,
   dismissSuggestion,
   editPrompt,
   markPromptChecked,
@@ -33,7 +32,6 @@ import {
   startBackdropRound,
   startSceneRound,
   suggestInfo,
-  chooseLibraryBackdrop,
   writePrompt,
 } from './work';
 
@@ -129,7 +127,7 @@ describe('背景批准前还缺什么（backdropApprovalBlockers）', () => {
   });
 
   it('已经选定背景图时不能再批准生成，要先「重新设计背景」；背景或合成生成中也不能', () => {
-    const w = chooseCandidate(backdropPromptedWork(), 'bd_x');
+    const w = pickOwn(backdropPromptedWork(), 'bd_x');
     expect(texts(backdropApprovalBlockers(stateOf(w, [], { backdrop: null })))).toEqual(['已经选定了背景图；要重新生成，先点「重新设计背景」']);
     const p = backdropPromptedWork();
     expect(texts(backdropApprovalBlockers(stateOf(p, [], { tasks: [task(p.id, 1, 0, 'running', 1, 'backdrop')] })))).toEqual(['背景正在生成中']);
@@ -159,7 +157,7 @@ describe('写提示词之前', () => {
     expect(scenePromptWriteBlocker(stateOf({ ...work, backdropId: null }, assets))?.text).toBe('还没选定背景图');
     expect(backdropPromptWriteBlocker(work)?.text).toBe('背景选的是模板库里的，不需要写背景提示词');
     expect(backdropPromptWriteBlocker(backdropWork())).toBeNull();
-    expect(backdropPromptWriteBlocker(chooseCandidate(backdropWork(), 'bd_x'))?.text).toBe('已经选定了背景图；要重新生成，先点「重新设计背景」');
+    expect(backdropPromptWriteBlocker(pickOwn(backdropWork(), 'bd_x'))?.text).toBe('已经选定了背景图；要重新生成，先点「重新设计背景」');
   });
 
   it('为什么要挡：建议没处理时写的提示词，一接受就过期', () => {
@@ -218,7 +216,7 @@ describe('批准是否有效、能不能发起生成', () => {
     expect(st(work)).toEqual({ kind: 'valid' });
     expect(st(setInfo(work, 'price', '99 元'))).toEqual({ kind: 'valid' });
     expect(st(setInfo(work, 'material', '纯银'))).toEqual({ kind: 'stale', changed: ['商品信息'] });
-    expect(st(chooseLibraryBackdrop(work, 'builtin:cream@1'))).toEqual({ kind: 'stale', changed: ['背景图'] });
+    expect(st(pickBuiltin(work, 'builtin:cream@1'))).toEqual({ kind: 'stale', changed: ['背景图'] });
     const redone = [...assets.slice(0, 5), view(assets[2])];
     expect(st(work, redone)).toEqual({ kind: 'stale', changed: ['三视图'] });
     expect(approval.snapshot.references).toEqual(assets.slice(3).map((a) => a.id));

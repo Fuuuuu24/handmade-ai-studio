@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { backdropPromptedWork, backdropWork, BUILTIN, promptedWork, readyWork, result, stateOf } from '@/test/fixtures';
+import { backdrop, backdropPromptedWork, backdropWork, BUILTIN, pickBuiltin, pickOwn, promptedWork, readyWork, result, stateOf } from '@/test/fixtures';
 import { backdropPromptStatus, sceneApprovalStatus, scenePromptStatus } from './approval';
+import { refOfBackdrop, refOfBuiltin } from './backdrops';
 import { backdropBasisOf, sceneBasisOf } from './snapshot';
 import type { Asset, SceneApproval, Work } from './types';
 import {
@@ -11,7 +12,7 @@ import {
   approveBackdrop,
   approveScene,
   cancelRevision,
-  chooseCandidate,
+  chooseBackdrop,
   clearBackdrop,
   confirmSummary,
   dismissNameSuggestion,
@@ -36,7 +37,6 @@ import {
   suggestInfo,
   suggestName,
   summaryEdits,
-  chooseLibraryBackdrop,
 } from './work';
 
 const fresh = () => newWork({ imageModel: 'img-a', chatModel: 'chat-a' });
@@ -112,19 +112,36 @@ describe('新建作品：按入口定流程（PRD 5.2）', () => {
 
 describe('背景的做法与选定（技术写法 13.4）', () => {
   it('换做法清掉已选的背景；流程一里选模板仍是流程一', () => {
-    const picked = chooseLibraryBackdrop(fresh(), BUILTIN);
+    const picked = pickBuiltin(fresh(), BUILTIN);
     expect(picked).toMatchObject({ flow: 'home', backdropMode: 'library', backdropId: BUILTIN });
     expect(setBackdropMode(picked, 'generate')).toMatchObject({ flow: 'home', backdropMode: 'generate', backdropId: null });
     expect(setBackdropMode(picked, 'library')).toBe(picked);
   });
 
-  it('选候选、重新设计背景', () => {
+  it('选这件作品的候选、重新设计背景', () => {
     const w = setBackdropMode(fresh(), 'generate');
-    const chosen = chooseCandidate(w, 'bd_1');
-    expect(chosen.backdropId).toBe('bd_1');
-    expect(chooseCandidate(chosen, 'bd_1')).toBe(chosen);
+    const chosen = pickOwn(w, 'bd_1');
+    expect(chosen).toMatchObject({ backdropId: 'bd_1', backdropMode: 'generate' });
+    expect(pickOwn(chosen, 'bd_1')).toBe(chosen);
     expect(clearBackdrop(chosen)).toMatchObject({ backdropId: null, backdropMode: 'generate' });
     expect(clearBackdrop(w)).toBe(w);
+  });
+
+  it('做法跟着背景图的来源走，不看从哪个入口选（评审第 1 条）', () => {
+    const w = setBackdropMode(fresh(), 'generate');
+    const own = refOfBackdrop(backdrop(w.id, 1, 0, { savedAt: 1 }));
+    // 自家的，沉淀过也算：在「用模板库里的」下点它，切回自己生成
+    expect(chooseBackdrop(setBackdropMode(w, 'library'), own)).toMatchObject({ backdropId: own.id, backdropMode: 'generate', flow: 'home' });
+    // 内置模板、别的作品沉淀的：用模板库里的
+    expect(chooseBackdrop(w, refOfBuiltin(BUILTIN)!)).toMatchObject({ backdropId: BUILTIN, backdropMode: 'library', flow: 'home' });
+    const other = refOfBackdrop(backdrop('work_other', 1, 0, { savedAt: 1 }));
+    expect(chooseBackdrop(w, other)).toMatchObject({ backdropId: other.id, backdropMode: 'library' });
+    // 已经是这张、做法也对：原样返回；旧数据里「用模板库里的＋自家背景」再点一次会纠正
+    const picked = chooseBackdrop(w, own);
+    expect(chooseBackdrop(picked, own)).toBe(picked);
+    expect(chooseBackdrop({ ...picked, backdropMode: 'library' }, own).backdropMode).toBe('generate');
+    // 兜底：自己生成只在流程一
+    expect(chooseBackdrop({ ...w, flow: 'template', backdropMode: 'library' }, own).flow).toBe('home');
   });
 });
 
@@ -206,9 +223,9 @@ describe('从指定版本修改（AC-09.4）', () => {
     const { work, assets, approval } = generatedOnce();
     const r = { ...result(work.id, 1, 1), approvalId: approval.id, issues: ['构图'] };
     let w = setStyle(work, 'composition', '主体放大，突出细节', 'user');
-    w = setRatio(chooseLibraryBackdrop(w, 'builtin:rose@1'), '3:4');
+    w = setRatio(pickBuiltin(w, 'builtin:rose@1'), '3:4');
     w = setInfo(w, 'price', '128 元');
-    const revised = reviseFrom(w, r, approval);
+    const revised = reviseFrom(w, r, approval, []);
     expect(revised.style.composition.value).toBe(approval.snapshot.style.composition);
     expect([revised.ratio, revised.backdropId, revised.backdropMode]).toEqual([approval.snapshot.ratio, BUILTIN, 'library']);
     expect(revised.prompt?.text).toBe(approval.snapshot.prompt);
@@ -219,17 +236,34 @@ describe('从指定版本修改（AC-09.4）', () => {
     expect(scenePromptStatus(revised, sceneBasisOf(revised, assets)).kind).toBe('ok');
   });
 
+  it('恢复的背景图定做法（评审第 5 条）：现在用模板、恢复自家的 → 自己生成；现在自己生成、恢复别的作品沉淀的 → 用模板库里的', () => {
+    const { work, approval } = generatedOnce();
+    const own = backdrop(work.id, 1, 0, { savedAt: 1 });
+    const usedOwn: SceneApproval = { ...approval, snapshot: { ...approval.snapshot, backdropId: own.id } };
+    const fromOwn = reviseFrom(work, result(work.id, 1, 0), usedOwn, [own]);
+    expect(fromOwn).toMatchObject({ backdropId: own.id, backdropMode: 'generate', flow: 'home' });
+    expect(cancelRevision(fromOwn)).toMatchObject({ backdropId: BUILTIN, backdropMode: 'library' });
+
+    const generating = chooseBackdrop(setBackdropMode(work, 'generate'), refOfBackdrop(own));
+    const usedOther: SceneApproval = { ...approval, snapshot: { ...approval.snapshot, backdropId: 'bd_other' } };
+    const fromOther = reviseFrom(generating, result(work.id, 1, 1), usedOther, [own]);
+    expect(fromOther).toMatchObject({ backdropId: 'bd_other', backdropMode: 'library' });
+    expect(cancelRevision(fromOther)).toMatchObject({ backdropId: own.id, backdropMode: 'generate' });
+    // 恢复内置模板：用模板库里的
+    expect(reviseFrom(generating, result(work.id, 1, 0), approval, [own])).toMatchObject({ backdropId: BUILTIN, backdropMode: 'library' });
+  });
+
   it('那一版之后改过商品信息：恢复的提示词标为过期', () => {
     const { work, assets, approval } = generatedOnce();
-    const revised = reviseFrom(setInfo(work, 'material', '纯银'), result(work.id, 1, 0), approval);
+    const revised = reviseFrom(setInfo(work, 'material', '纯银'), result(work.id, 1, 0), approval, []);
     expect(scenePromptStatus(revised, sceneBasisOf(revised, assets))).toEqual({ kind: 'stale', changed: ['商品信息'] });
   });
 
   it('取消修改恢复修改前的方案（含背景图）；连着从两张修改，取消回到最初', () => {
     const { work, approval } = generatedOnce();
-    const before = setStyle(setRatio(chooseLibraryBackdrop(work, 'builtin:stone@1'), '9:16'), 'placement', '悬挂', 'user');
-    const once = reviseFrom(before, result(work.id, 1, 0), approval);
-    const twice = reviseFrom(setRatio(once, '3:4'), result(work.id, 1, 1), approval);
+    const before = setStyle(setRatio(pickBuiltin(work, 'builtin:stone@1'), '9:16'), 'placement', '悬挂', 'user');
+    const once = reviseFrom(before, result(work.id, 1, 0), approval, []);
+    const twice = reviseFrom(setRatio(once, '3:4'), result(work.id, 1, 1), approval, []);
     const back = cancelRevision(twice);
     expect([back.ratio, back.backdropId]).toEqual(['9:16', 'builtin:stone@1']);
     expect(back.style.placement).toEqual(before.style.placement);
@@ -241,7 +275,7 @@ describe('从指定版本修改（AC-09.4）', () => {
   it('批准时记下父结果；开始生成后修改记录清掉', () => {
     const { work, assets, approval } = generatedOnce();
     const r = result(work.id, 1, 0);
-    const changed = setStyle(reviseFrom(work, r, approval), 'bannedScene', '花', 'user');
+    const changed = setStyle(reviseFrom(work, r, approval, []), 'bannedScene', '花', 'user');
     const revised = markPromptChecked(changed, 'scene', sceneBasisOf(changed, assets));
     const a = approveOk(revised, assets, approval);
     expect(a.approval.parentResultId).toBe(r.id);

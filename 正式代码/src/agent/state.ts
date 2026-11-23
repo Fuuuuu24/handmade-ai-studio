@@ -1,3 +1,4 @@
+import { BACKDROP_MODE_NAMES } from '@/config/backdrops';
 import { INFO_FIELDS, INFO_KEYS } from '@/config/info';
 import type { ChatModel } from '@/config/models';
 import { FLOW_NAMES, STEP_NAMES, stepsOf } from '@/config/steps';
@@ -114,7 +115,7 @@ export function stateSummary(i: SummaryInput): string {
   }
 
   /* ---------- 背景 ---------- */
-  const mode = { library: '用模板库里的', generate: '自己生成' }[work.backdropMode ?? 'library'];
+  const mode = BACKDROP_MODE_NAMES[work.backdropMode ?? 'library'];
   lines.push(work.backdropMode ? `背景做法：${mode}` : '背景做法：还没选（请用户在「背景」里选：用模板库里的，或自己生成）');
   const bd = i.backdrop;
   if (bd) {
