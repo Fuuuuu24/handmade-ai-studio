@@ -27,7 +27,7 @@ import { changeText, diffFacts, factsOf } from '@/domain/handoff';
 import { lastSlotTask, roundResults, slotsOf, slotState } from '@/domain/generation';
 import { currentStep, stepStates, workStatus } from '@/domain/status';
 import type { BackdropRef, StyleSource } from '@/domain/types';
-import { styleLagsSummary, summaryEdits } from '@/domain/work';
+import { DEFAULT_WORK_NAME, styleLagsSummary, summaryEdits } from '@/domain/work';
 import type { WorkContext } from '@/client/work-store';
 
 // 每次对话附给小间的作品状态（技术写法第 6 节、13.12）。在浏览器里生成，纯函数，便于测试。
@@ -85,7 +85,7 @@ export function stateSummary(i: SummaryInput): string {
   const lines: string[] = [];
   const steps = stepStates(i);
   const flowSteps = stepsOf(work.flow);
-  lines.push(`作品：${work.name}${work.nameSuggestion ? `；你建议的名字「${work.nameSuggestion.value}」待用户在顶栏确认` : ''}`);
+  lines.push(`作品：${work.name}${work.name === DEFAULT_WORK_NAME ? '（还没起名，品类清楚后用 rename_work 起一个）' : ''}`);
   lines.push(`流程：${FLOW_NAMES[work.flow]}（${flowSteps.map((s) => s.name).join(' → ')}）`);
   lines.push(`进度：${workStatus(i).text}；现在该做：${STEP_NAMES[currentStep(i, steps)]}；已完成：${flowSteps.filter((s) => steps[s.id] === 'done').map((s) => s.name).join('、') || '无'}`);
   // 自上次交接以来的变化（AC-11.3b）：包括用户在画布上改的，也包括你用工具改的

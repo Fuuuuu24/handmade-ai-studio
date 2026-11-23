@@ -36,7 +36,7 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
   },
   // 用户纠正一处细节，只写「不能改的细节」的建议：测建议没处理时小间写不了提示词（UX-02）、写好提示词后再来建议时的提醒
   纠正细节: { tool: 'update_info', input: { items: [{ field: 'keep', value: '蝴蝶结的两个圈不能变形', note: '测试' }] } },
-  起名: { tool: 'suggest_name', input: { name: '蝴蝶结耳坠', note: '测试' } },
+  起名: { tool: 'rename_work', input: { name: '蝴蝶结耳坠' } },
   记录: { tool: 'record_story', input: { kind: 'theme', text: '雨后石阶上的蝴蝶结' } },
   总结: { tool: 'draft_summary', input: { express: '雨后蝴蝶结的安静', feel: '安静、想凑近看', avoid: '太花、道具抢戏' } },
   推荐风格: { tool: 'set_style', input: { items: [{ field: 'light', value: '清冷晨光', basis: 'recommend', reason: '测试：贴合雨后的安静' }] } },

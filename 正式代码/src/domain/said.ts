@@ -7,7 +7,8 @@ import type { PromptState } from './types';
    只核对片段在不在，不判断片段和这一项是否相关；相关不相关由卡片上显示的原话交给用户看。
    系统代发的交接和通知消息不算用户原话，由对话面板在传进来之前排除。 */
 
-const plain = (s: string) => s.replace(/[\s\p{P}\p{S}]/gu, '').toLowerCase();
+// 比对原话时去掉空格和标点、不分大小写（小间代点核对同意的原话也用它，domain/asks.ts）
+export const plain = (s: string) => s.replace(/[\s\p{P}\p{S}]/gu, '').toLowerCase();
 
 const inEdit = (q: string, p: PromptState<unknown> | null | undefined) =>
   !!p?.edited && plain(p.text).includes(q) && !plain(p.original?.text ?? '').includes(q);

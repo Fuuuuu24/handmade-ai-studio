@@ -10,7 +10,7 @@ export type { Flow, ViewAngle };
 
 /* ---------- 商品信息 ---------- */
 
-// 小间写入的只能是建议，用户接受后才进入 value（PRD 4.2 第 3 条）
+// 小间写入的只能是建议，用户接受（或问过用户、用户同意后小间代点）才进入 value（PRD 4.2 第 2、3 条）
 export interface Suggestion {
   value: string;
   note?: string;
@@ -44,7 +44,7 @@ export interface Story {
   notes: StoryNote[];
   noStory: boolean; // 「暂无明确故事」（AC-04.5）
   summary: StorySummary | null;
-  summaryState: 'none' | 'draft' | 'confirmed'; // 小间只能写草稿，确认由用户点
+  summaryState: 'none' | 'draft' | 'confirmed'; // 小间只能写草稿；确认由用户点，或问过用户、用户同意后小间代点
   drafted?: StorySummary; // 小间最后一次起草的原文，和 summary 对比就知道用户改了哪几项（BC-003）
 }
 
@@ -210,10 +210,46 @@ export interface Handoff {
   facts: Record<string, Fact>;
 }
 
+/* ---------- 小间问过再代点（技术写法 14.4） ---------- */
+
+export type VerdictPick = 'ok' | 'bad';
+
+// 小间能替用户点的几样，和画布上的按钮一一对应：确认三视图、接受信息建议、标「未知」、确认共创总结、
+// 选定背景候选、沉淀进模板库、两项验收、流程二改自己生成背景（会切到流程一）。张数和候选从 1 开始
+export type AskAction =
+  | { type: 'confirm_view'; angle: ViewAngle }
+  | { type: 'accept_info'; field: InfoKey }
+  | { type: 'mark_unknown'; field: InfoKey }
+  | { type: 'confirm_summary' }
+  | { type: 'pick_backdrop'; round: number; candidate: number }
+  | { type: 'save_backdrop'; name: string }
+  | { type: 'verdict'; round: number; candidate: number; real?: VerdictPick; style?: VerdictPick }
+  | { type: 'switch_flow' };
+
+export interface AskItem {
+  action: AskAction;
+  text: string; // 卡片上的一行，比如「正面三视图可以用」
+  target: Id | null; // 要点的那样东西：三视图、背景图、结果的编号；卡片据此放「对照」「看大图」
+  mark: string; // 问的时候那样东西的样子，代点前再比一次，变了整条请求作废
+}
+
+// waiting 等用户回复；done 代点过（可能只点了一部分）；expired 东西变了作废；replaced 又问了新的
+export type AskState = 'waiting' | 'done' | 'expired' | 'replaced';
+
+export interface Ask {
+  id: Id; // 小间这次 ask_confirm 调用的编号，对话里的卡片按它找
+  at: number;
+  items: AskItem[];
+  state: AskState;
+  quote?: string; // 代点时引用的用户原话
+  done?: number[]; // 代点了哪几样（items 的下标）
+  reason?: string; // 作废的原因
+  closedAt?: number;
+}
+
 export interface Work {
   id: Id;
   name: string;
-  nameSuggestion?: Suggestion; // 小间起的名字，用户接受后才改名
   createdAt: number;
   updatedAt: number;
   flow: Flow;
@@ -240,6 +276,7 @@ export interface Work {
   proposals?: Record<Id, 'accepted' | 'declined'>; // 小间提议卡片上用户的决定，按工具调用编号记
   lastHandoff?: Handoff | null;
   pendingHandoffs?: StepId[]; // 用户点了「下一步」、还没发给小间的交接（对话空闲时发出，内容在发出那一刻生成）
+  asks?: Record<Id, Ask>; // 小间问过「要我替你点吗」的请求，按编号记；同一时间只有一条在等回复（技术写法 14.4）
 }
 
 export interface Followup {
@@ -260,7 +297,7 @@ export interface Asset {
   kind: AssetKind;
   view?: ViewAngle; // 三视图的角度
   parentId?: Id; // 三视图的来源原图
-  confirmed?: boolean; // 三视图用户对照后确认可以用
+  confirmed?: boolean; // 三视图对照后确认可以用（用户点，或用户同意后小间代点）；可以取消
   taskId?: Id; // 三视图出自哪个任务
   blobId: Id;
   thumbId: Id;

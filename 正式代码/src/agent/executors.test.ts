@@ -279,12 +279,11 @@ describe('小间的工具：其余的', () => {
     return { w, r };
   }
 
-  it('suggest_name 只写名字建议，不改名（PRD 4.2 第 3 条）', async () => {
+  it('rename_work 直接改名（技术写法 14.3）；和现名一样时不改', async () => {
     const w = await seed();
-    expect((await executeTool(w.id, 'suggest_name', { name: '银杏叶耳坠', note: '按品类起的' }, deps)).ok).toBe(true);
-    const saved = await getWork(w.id);
-    expect(saved?.name).toBe(w.name);
-    expect(saved?.nameSuggestion?.value).toBe('银杏叶耳坠');
+    expect(await executeTool(w.id, 'rename_work', { name: ' 银杏叶耳坠 ' }, deps)).toEqual({ ok: true, message: '作品改名为「银杏叶耳坠」', changes: ['作品名「银杏叶耳坠」'] });
+    expect((await getWork(w.id))?.name).toBe('银杏叶耳坠');
+    expect((await executeTool(w.id, 'rename_work', { name: '银杏叶耳坠' }, deps)).message).toBe('作品本来就叫「银杏叶耳坠」');
   });
 
   it('note_feedback 只记问题和说明，不改验收（验收只能用户点）', async () => {

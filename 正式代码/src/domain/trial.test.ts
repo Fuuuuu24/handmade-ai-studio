@@ -25,6 +25,7 @@ describe('试用记录（PRD 6.2、AC-10.4）', () => {
       背景张数: '2',
       候选图数: '2',
       还原度与风格评价: '像实物 1、不像 1；风格对 2、不对 0；问题：轮廓；原话：链子变长了',
+      小间代点: '没有',
       修改与补图次数: '修改 1，补齐 1，加照片 0',
       '耗时（分钟）': '10',
       '累计成本（美元）': '0.0812',
@@ -35,6 +36,14 @@ describe('试用记录（PRD 6.2、AC-10.4）', () => {
       人工帮助: '',
       建议: '',
     });
+  });
+
+  it('小间问过用户后代点的次数按种类写，分得出验收是谁点的（技术写法 14.4）', () => {
+    const { work, assets } = promptedWork();
+    const proxy = (at: number, action: string) => ev('proxy', work.id, at, { action, by: 'agent' });
+    const events = [proxy(1, 'confirm_view'), proxy(2, 'confirm_view'), proxy(3, 'verdict'), ev('proxy', 'other', 4, { action: 'verdict', by: 'agent' })];
+    const row = trialRow('T-1', 1, { work, assets, tasks: [], results: [], backdrops: [] }, [], events);
+    expect(row.小间代点).toBe('3 次（三视图 2、验收 1）');
   });
 
   it('不导出作品名和聊天原文', () => {

@@ -32,8 +32,8 @@ import {
   setImageModel,
   setRatio,
   setStyle,
+  renameWork,
   suggestInfo,
-  suggestName,
   writePrompt,
 } from '@/domain/work';
 import { getSceneApproval, logEvent, patchResult } from '@/data/repo';
@@ -82,11 +82,11 @@ export async function executeTool(workId: string, name: ToolName, rawInput: unkn
       const list = items.map((it) => `${INFO_FIELDS[it.field].label}「${it.value}」`);
       return done(`已写成待确认建议：${list.join('、')}（在画布上接受后才生效）`, list);
     }
-    case 'suggest_name': {
-      const { name: n, note } = rawInput as Input<'suggest_name'>;
-      if (n.trim() === ctx.work.name) return done(`作品本来就叫「${ctx.work.name}」`);
-      await change(workId, (c) => suggestName(c.work, n, note));
-      return done(`已写成名字建议「${n.trim()}」，用户在顶栏接受后才改名`, [`名字建议「${n.trim()}」`]);
+    case 'rename_work': {
+      const n = (rawInput as Input<'rename_work'>).name.trim();
+      if (n === ctx.work.name) return done(`作品本来就叫「${n}」`);
+      await change(workId, (c) => renameWork(c.work, n));
+      return done(`作品改名为「${n}」`, [`作品名「${n}」`]);
     }
     case 'propose_views': {
       const { angles } = rawInput as Input<'propose_views'>;

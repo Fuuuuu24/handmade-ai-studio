@@ -25,7 +25,7 @@ beforeEach(() => {
   useTestDb(newId('test'));
 });
 
-describe('选背景图、沉淀、改名、删除（只由界面按钮调用，PRD 4.2 第 2 条）', () => {
+describe('选背景图、沉淀、改名、删除（画布按钮和小间共用，技术写法 14.3、14.4）', () => {
   it('这件作品的候选选定后做法不变；模板库里的选定后做法是「用模板库里的」', async () => {
     const w = await seed();
     const own = await store(w.id);

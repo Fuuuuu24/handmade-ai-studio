@@ -47,14 +47,11 @@ export const agentTools = {
         .max(6),
     }),
   }),
-  suggest_name: tool({
+  rename_work: tool({
     outputSchema: toolOutput,
     description:
-      '给作品起一个名字建议（作品还叫「未命名作品」、品类已经清楚时用）。简短、按品类和造型起，比如「银杏叶耳坠」，不编造寓意。只是建议，用户在顶栏接受后才改名。',
-    inputSchema: z.object({
-      name: z.string().min(1).max(20),
-      note: z.string().max(40).optional().describe('依据，比如「按品类和造型起的」'),
-    }),
+      '给作品改名，直接生效（顶栏同步）。作品还叫「未命名作品」、品类已经清楚时起一个；已经有名字的，用户让你改才改。简短、按品类和造型起，比如「银杏叶耳坠」，不编造寓意。',
+    inputSchema: z.object({ name: z.string().min(1).max(20) }),
   }),
   propose_views: tool({
     outputSchema: toolOutput,

@@ -2,14 +2,15 @@ import { BACKDROP } from '@/config/backdrops';
 import { ratioHeight } from '@/config/ratios';
 import { getBackdrop, getBlob, logEvent, patchBackdrop } from '@/data/repo';
 import { backdropNameProblem, ownBackdrop, userPickProblem } from '@/domain/backdrops';
-import type { BackdropRef, Id } from '@/domain/types';
-import { chooseBackdrop } from '@/domain/work';
+import type { BackdropMode, BackdropRef, Id } from '@/domain/types';
+import { chooseBackdrop, setBackdropMode } from '@/domain/work';
 import { loadContext, mutateWork, resolveBackdrop } from './work-store';
 
 export { resolveBackdrop };
 
 /* 背景图（技术写法 13.4、13.6）：内置模板只写在配置里，其余存在 backdrops 表；这里统一成 BackdropRef。
-   沉淀、改名、删除只由界面按钮在用户点了之后调用（PRD 4.2 第 2 条），小间没有对应工具。 */
+   选定背景候选、沉淀进模板库：用户点，或问过用户、用户同意后小间代点；改名小间可以直接做；
+   从模板库删除要用户在确认框里点「确认」，小间可以发起（PRD 4.2 第 2、5 条，技术写法 14.3）。 */
 
 // 内置模板的图还没提供时，用它的示意色块渲染一张背景比例的图（和界面上的色块一样的渐变），合成时作参考图。
 // 尺寸见 config/backdrops.ts
@@ -45,9 +46,13 @@ export async function backdropImage(ref: BackdropRef, which: 'full' | 'thumb' = 
 
 export type PickOutcome = { ok: true } | { ok: false; reason: string };
 
-// 用户在画布上选背景图：模板库里的，或这件作品的背景候选（候选只能用户点，技术写法 13.7）。
+// 试用事件里记下是谁点的：小间问过、用户同意后代点的记 by: 'agent'（技术写法 14.4）
+type By = 'agent' | undefined;
+const byOf = (by: By): Record<string, string> => (by ? { by } : {});
+
+// 在画布上选背景图：模板库里的，或这件作品的背景候选（候选由用户点，或问过用户后小间代点，技术写法 14.4）。
 // 做法跟着背景图的来源走（chooseBackdrop）；两种生成进行中都不能换，和画布上锁住的按钮一致
-export async function pickBackdrop(workId: Id, id: Id): Promise<PickOutcome> {
+export async function pickBackdrop(workId: Id, id: Id, by?: By): Promise<PickOutcome> {
   const ctx = await loadContext(workId);
   if (ctx.busy.scene) return { ok: false, reason: '正在合成这一轮候选，等结束后再换背景' };
   if (ctx.busy.backdrop) return { ok: false, reason: '背景正在生成中，等两张背景出来后再换' };
@@ -55,12 +60,12 @@ export async function pickBackdrop(workId: Id, id: Id): Promise<PickOutcome> {
   const problem = userPickProblem(ref, ctx.work);
   if (problem) return { ok: false, reason: problem };
   await mutateWork(workId, (c) => chooseBackdrop(c.work, ref!));
-  void logEvent(ownBackdrop(ctx.work, ref!) ? 'pick_backdrop' : 'use_template', workId, { builtin: ref!.builtin });
+  void logEvent(ownBackdrop(ctx.work, ref!) ? 'pick_backdrop' : 'use_template', workId, { builtin: ref!.builtin, ...byOf(by) });
   return { ok: true };
 }
 
 // 沉淀进模板库：起个名字；沉淀后别的作品可以套用（AC-06.4）
-export async function saveToLibrary(id: Id, name: string): Promise<PickOutcome> {
+export async function saveToLibrary(id: Id, name: string, by?: By): Promise<PickOutcome> {
   const problem = backdropNameProblem(name);
   if (problem) return { ok: false, reason: problem };
   const b = await getBackdrop(id);
@@ -70,8 +75,23 @@ export async function saveToLibrary(id: Id, name: string): Promise<PickOutcome> 
     x.savedAt = x.savedAt ?? Date.now();
     x.deletedAt = null;
   });
-  void logEvent('save_backdrop', b.workId);
+  void logEvent('save_backdrop', b.workId, byOf(by));
   return { ok: true };
+}
+
+// 换背景的做法（画布上的二选一、小间的 set_backdrop_mode、问过用户后代点的「改成自己生成」都走这里）：
+// 换做法时清掉已选的背景图；流程二改成自己生成时切到流程一（setBackdropMode）
+export async function chooseBackdropMode(workId: Id, mode: BackdropMode, by?: By): Promise<{ changed: boolean; flowChanged: boolean }> {
+  let changed = false;
+  let flowChanged = false;
+  await mutateWork(workId, (c) => {
+    const next = setBackdropMode(c.work, mode);
+    changed = next !== c.work;
+    flowChanged = changed && c.work.flow !== next.flow;
+    return next;
+  });
+  if (changed) void logEvent('backdrop_mode', workId, { mode, flowChanged, ...byOf(by) });
+  return { changed, flowChanged };
 }
 
 export async function renameBackdrop(id: Id, name: string): Promise<PickOutcome> {

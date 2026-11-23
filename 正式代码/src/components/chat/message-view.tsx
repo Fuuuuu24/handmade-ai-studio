@@ -12,7 +12,7 @@ import ThoughtLine from '@/components/bits/ThoughtLine/ThoughtLine';
 
 const TOOL_DOING: Record<string, string> = {
   update_info: '整理商品信息',
-  suggest_name: '起名字',
+  rename_work: '改作品名',
   propose_views: '准备生成三视图',
   record_story: '记下你说的',
   draft_summary: '起草共创总结',

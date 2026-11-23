@@ -14,11 +14,14 @@ import { backdropModeOf } from './backdrops';
 import { emptyInfo } from './info';
 import { backdropSnapshotOf, basisOfSceneSnapshot, sceneSnapshotOf } from './snapshot';
 import type {
+  Ask,
+  AskItem,
   Backdrop,
   BackdropApproval,
   BackdropBasis,
   BackdropMode,
   BackdropRef,
+  Fact,
   Id,
   InfoField,
   PromptBases,
@@ -86,18 +89,11 @@ export function newWork(o: NewWorkOptions): Work {
   };
 }
 
-// 名字清空时保留原名；用户自己改名后，小间的名字建议作废
-export const renameWork = (w: Work, name: string) => touch(w, { name: name.trim() || w.name, nameSuggestion: undefined });
-
-// 小间起的名字只是建议，用户接受后才改名（和商品信息一样，PRD 4.2 第 3 条）
-export function suggestName(w: Work, name: string, note?: string): Work {
+// 改名：用户在顶栏改，或小间直接改（rename_work，技术写法 14.3）。名字清空时保留原名
+export function renameWork(w: Work, name: string): Work {
   const v = name.trim();
-  if (!v || v === w.name) return w;
-  return touch(w, { nameSuggestion: { value: v, note, at: Date.now() } });
+  return v && v !== w.name ? touch(w, { name: v }) : w;
 }
-
-export const acceptNameSuggestion = (w: Work) => (w.nameSuggestion ? renameWork(w, w.nameSuggestion.value) : w);
-export const dismissNameSuggestion = (w: Work) => touch(w, { nameSuggestion: undefined });
 
 /* ---------- 商品信息 ---------- */
 
@@ -109,7 +105,7 @@ export const setInfo = (w: Work, key: InfoKey, value: string) => setField(w, key
 export const markUnknown = (w: Work, key: InfoKey, unknown: boolean) =>
   setField(w, key, unknown ? { value: '', unknown: true } : { value: w.info[key].value, unknown: false });
 
-// 小间只能写建议（PRD 4.2 第 3 条）；和已确认的值相同就不必再建议
+// 小间只能写建议（PRD 4.2 第 3 条）；和已确认的值相同就不必再建议。撤回自己的建议用 dismissSuggestion（和画布上的「忽略」一样）
 export function suggestInfo(w: Work, key: InfoKey, value: string, note?: string): Work {
   const v = value.trim();
   if (!v || v === w.info[key].value) return w;
@@ -136,7 +132,7 @@ export function addStoryNote(w: Work, kind: StoryNote['kind'], text: string): Wo
 
 export const setNoStory = (w: Work, noStory: boolean) => touch(w, { story: { ...w.story, noStory } });
 
-// 小间起草：总是草稿，确认由用户点（PRD 4.2 第 3 条、AC-04.4）。和现在的总结一样就不动，
+// 小间起草：总是草稿；确认由用户点，或问过用户、用户同意后小间代点（PRD 4.2 第 2、3 条，AC-04.4）。和现在的总结一样就不动，
 // 免得重复起草把用户的确认打回草稿（BC-007）。drafted 记下小间写的原文，用户改过哪几项可以告诉小间（BC-003）
 export function draftSummary(w: Work, summary: StorySummary): Work {
   const s = trimSummary(summary);
@@ -372,6 +368,28 @@ export function startSceneRound(s: WorkState, approval: SceneApproval | null): R
 // 用户点了「下一步」：只记「哪一步交接了」，内容在发出那一刻按当时的作品数据生成；同一步排两次只记一次
 export const queueHandoff = (w: Work, step: StepId) =>
   w.pendingHandoffs?.includes(step) ? w : touch(w, { pendingHandoffs: [...(w.pendingHandoffs ?? []), step] });
+
+// 小间推进到下一步（next_step，技术写法 14.7）：不发交接消息，只记下交接快照（「自上次交接以来」从这里重新算），
+// 去掉这一步还在排队的交接
+export const advanceStep = (w: Work, step: StepId, facts: Record<string, Fact>, at = Date.now()) =>
+  touch(w, { lastHandoff: { step, at, facts }, pendingHandoffs: (w.pendingHandoffs ?? []).filter((s) => s !== step) });
+
+/* ---------- 小间问过再代点（技术写法 14.4） ---------- */
+
+// 记下一条「要我替你点吗」的请求；同一时间只有一条在等回复，之前在等的作废（replaced）
+export function openAsk(w: Work, id: Id, items: AskItem[], at = Date.now()): Work {
+  const asks: Record<Id, Ask> = {};
+  for (const [k, a] of Object.entries(w.asks ?? {})) asks[k] = a.state === 'waiting' ? { ...a, state: 'replaced', closedAt: at } : a;
+  asks[id] = { id, at, items, state: 'waiting' };
+  return touch(w, { asks });
+}
+
+// 请求结束：代点过（done 是代点了的下标）或作废（expired）。已经结束的不再改
+export function closeAsk(w: Work, id: Id, patch: Pick<Ask, 'state'> & Partial<Pick<Ask, 'quote' | 'done' | 'reason'>>, at = Date.now()): Work {
+  const a = w.asks?.[id];
+  if (!a || a.state !== 'waiting') return w;
+  return touch(w, { asks: { ...w.asks, [id]: { ...a, ...patch, closedAt: at } } });
+}
 
 /* ---------- 后续需求与提议卡片 ---------- */
 

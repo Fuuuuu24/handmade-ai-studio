@@ -3,19 +3,19 @@ import { backdrop, backdropPromptedWork, backdropWork, BUILTIN, pickBuiltin, pic
 import { backdropPromptStatus, sceneApprovalStatus, scenePromptStatus } from './approval';
 import { refOfBackdrop, refOfBuiltin } from './backdrops';
 import { backdropBasisOf, sceneBasisOf } from './snapshot';
-import type { Asset, SceneApproval, Work } from './types';
+import type { Asset, AskItem, SceneApproval, Work } from './types';
 import {
-  acceptNameSuggestion,
   acceptSuggestion,
   addCost,
   addStoryNote,
+  advanceStep,
   approveBackdrop,
   approveScene,
   cancelRevision,
+  closeAsk,
   chooseBackdrop,
   clearBackdrop,
   confirmSummary,
-  dismissNameSuggestion,
   dismissSuggestion,
   draftSummary,
   editPrompt,
@@ -24,6 +24,8 @@ import {
   markPromptChecked,
   markUnknown,
   newWork,
+  openAsk,
+  queueHandoff,
   renameWork,
   reviseFrom,
   revertPrompt,
@@ -35,7 +37,6 @@ import {
   startSceneRound,
   styleLagsSummary,
   suggestInfo,
-  suggestName,
   summaryEdits,
 } from './work';
 
@@ -294,25 +295,42 @@ describe('杂项', () => {
   });
 });
 
-describe('作品名称：小间只能起建议名', () => {
-  it('建议不改名；接受后才改名并清掉建议', () => {
-    const w = suggestName(fresh(), ' 银杏叶耳坠 ', '按品类起的');
-    expect(w.name).toBe('未命名作品');
-    expect(w.nameSuggestion).toMatchObject({ value: '银杏叶耳坠', note: '按品类起的' });
-    const a = acceptNameSuggestion(w);
-    expect(a.name).toBe('银杏叶耳坠');
-    expect(a.nameSuggestion).toBeUndefined();
+describe('作品名称：用户和小间都直接改（技术写法 14.3）', () => {
+  it('改名去掉首尾空格；和现名相同或为空时不改', () => {
+    const w = renameWork(fresh(), ' 银杏叶耳坠 ');
+    expect(w.name).toBe('银杏叶耳坠');
+    expect(renameWork(w, '银杏叶耳坠')).toBe(w);
+    expect(renameWork(w, '  ')).toBe(w);
+  });
+});
+
+describe('小间推进下一步（技术写法 14.7）', () => {
+  it('记下交接快照，去掉这一步还在排队的交接，别的步骤照旧排着', () => {
+    const w = queueHandoff(queueHandoff(fresh(), 'product'), 'info');
+    const facts = { 流程: { text: '首页开始' } };
+    const a = advanceStep(w, 'product', facts, 123);
+    expect(a.lastHandoff).toEqual({ step: 'product', at: 123, facts });
+    expect(a.pendingHandoffs).toEqual(['info']);
+  });
+});
+
+describe('问过再代点的请求（技术写法 14.4）', () => {
+  const item: AskItem = { action: { type: 'confirm_summary' }, text: '确认共创总结', target: null, mark: 'x' };
+
+  it('同一时间只有一条在等回复：再问一条，旧的作废', () => {
+    const a = openAsk(fresh(), 'call_1', [item], 1);
+    expect(a.asks?.call_1).toMatchObject({ id: 'call_1', at: 1, state: 'waiting' });
+    const b = openAsk(a, 'call_2', [item], 2);
+    expect(b.asks?.call_1).toMatchObject({ state: 'replaced', closedAt: 2 });
+    expect(b.asks?.call_2?.state).toBe('waiting');
   });
 
-  it('和现名相同或为空时不建议；不用、自己改名都会作废建议', () => {
-    const w = renameWork(fresh(), '雨后青苔');
-    expect(suggestName(w, '雨后青苔')).toBe(w);
-    expect(suggestName(w, '  ')).toBe(w);
-    const s = suggestName(w, '青苔耳坠');
-    expect(dismissNameSuggestion(s).name).toBe('雨后青苔');
-    expect(dismissNameSuggestion(s).nameSuggestion).toBeUndefined();
-    expect(renameWork(s, '我自己的名字').nameSuggestion).toBeUndefined();
-    expect(acceptNameSuggestion(w)).toBe(w);
+  it('结束一条请求：记下原话和代点了哪几样；已经结束的不再改', () => {
+    const a = openAsk(fresh(), 'call_1', [item, item], 1);
+    const done = closeAsk(a, 'call_1', { state: 'done', quote: '同意', done: [0] }, 5);
+    expect(done.asks?.call_1).toMatchObject({ state: 'done', quote: '同意', done: [0], closedAt: 5 });
+    expect(closeAsk(done, 'call_1', { state: 'expired', reason: '变了' })).toBe(done);
+    expect(closeAsk(done, 'nope', { state: 'expired' })).toBe(done);
   });
 });
 

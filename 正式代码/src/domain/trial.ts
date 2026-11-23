@@ -1,6 +1,7 @@
 import { isBuiltinBackdrop } from '@/config/backdrops';
 import { FLOW_NAMES } from '@/config/steps';
 import { UPLOAD } from '@/config/upload';
+import { ACTION_NAMES } from './asks';
 import { activeUploads } from './assets';
 import { passed } from './generation';
 import type { Approval, Asset, Backdrop, Result, SceneApproval, Task, TrialEvent, Work } from './types';
@@ -23,6 +24,7 @@ export const TRIAL_COLUMNS = [
   '方案／比例',
   '候选图数',
   '还原度与风格评价',
+  '小间代点',
   '修改与补图次数',
   '耗时（分钟）',
   '人工帮助',
@@ -44,6 +46,18 @@ export interface TrialWork {
 }
 
 const count = (events: readonly TrialEvent[], type: string) => events.filter((e) => e.type === type).length;
+
+// 小间问过用户、用户同意后代点的次数（技术写法 14.4）：按种类分开写，分得出验收是谁点的
+function proxyText(events: readonly TrialEvent[]): string {
+  const proxied = events.filter((e) => e.type === 'proxy');
+  if (!proxied.length) return '没有';
+  const by = new Map<string, number>();
+  for (const e of proxied) {
+    const name = ACTION_NAMES[e.data?.action as keyof typeof ACTION_NAMES] ?? '其他';
+    by.set(name, (by.get(name) ?? 0) + 1);
+  }
+  return `${proxied.length} 次（${[...by].map(([k, n]) => `${k} ${n}`).join('、')}）`;
+}
 
 // 三视图重做次数：每个角度第一次之后的都算重做（换了原图再生成也算）
 function viewRedos(tasks: readonly Task[]): number {
@@ -99,6 +113,7 @@ export function trialRow(anonId: string, index: number, w: TrialWork, approvals:
     还原度与风格评价: results.length
       ? `像实物 ${realOk}、不像 ${realBad}；风格对 ${styleOk}、不对 ${styleBad}${issues.length ? `；问题：${issues.join('、')}` : ''}${notes.length ? `；原话：${notes.join(' / ')}` : ''}`
       : '',
+    小间代点: proxyText(ev),
     修改与补图次数: `修改 ${count(ev, 'revise')}，补齐 ${count(ev, 'retry')}，加照片 ${Math.max(0, count(ev, 'upload') - 1)}`,
     '耗时（分钟）': String(minutes),
     人工帮助: '',

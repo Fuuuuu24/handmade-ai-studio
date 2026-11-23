@@ -141,8 +141,10 @@ export function replaceAsset(old: Asset, img: ImageInput) {
   });
 }
 
-// 三视图逐张确认（AC-02.3）：只有界面按钮
+// 三视图逐张确认（AC-02.3）：用户在对照弹窗里点，或问过用户、用户同意后小间代点（技术写法 14.4）；
+// 点错了可以在对照弹窗里取消确认（技术写法 14.11 第 4 条），不用花钱重做
 export const confirmView = (asset: Asset) => tracked(`assets:${asset.workId}`, () => db().assets.update(asset.id, { confirmed: true }));
+export const unconfirmView = (asset: Asset) => tracked(`assets:${asset.workId}`, () => db().assets.update(asset.id, { confirmed: false }));
 
 /* ---------- 生成任务与结果 ---------- */
 
@@ -226,7 +228,7 @@ export async function listSavedBackdrops(): Promise<Backdrop[]> {
   return saved.filter((b) => b.deletedAt == null).sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0));
 }
 
-// 沉淀、改名、删除：只由界面按钮调用（PRD 4.2 第 2 条、AC-06.4）；按数据库里的最新记录只改对应字段
+// 沉淀、改名、删除（AC-06.4；谁能点见 client/backdrops.ts）：按数据库里的最新记录只改对应字段
 export const patchBackdrop = (id: Id, fn: (b: Backdrop) => void) =>
   tracked(`backdrop:${id}`, () => db().backdrops.where('id').equals(id).modify(fn));
 
