@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AgentUIMessage, MessageMeta } from '@/agent/tools';
-import { turnProblem, withoutLastStep } from './chat-turn';
+import { closeDanglingCalls, DANGLING_OUTPUT, pendingToolCall, turnProblem, userTextsAfterCall, userTextsOf, withoutLastStep } from './chat-turn';
 
 type Part = AgentUIMessage['parts'][number];
 
@@ -53,5 +53,49 @@ describe('withoutLastStep：重试只重做最后一步', () => {
   it('前面没有调用过工具：整条重来', () => {
     expect(withoutLastStep(reply([step, think()]))).toBeNull();
     expect(withoutLastStep(reply([step, say('上一步只有一句话'), step, think()]))).toBeNull();
+  });
+});
+
+describe('userTextsOf：核对「你说的」只看用户原话（技术写法 13.12）', () => {
+  it('浏览器代发的交接和通知不算', () => {
+    expect(userTextsOf([user('想要平铺'), user('【交接：摆放】摆放：平铺', 'handoff'), user('【通知：候选】…', 'notice')])).toEqual(['想要平铺']);
+  });
+});
+
+const user = (text: string, system?: 'handoff' | 'notice') =>
+  ({ id: text, role: 'user', metadata: system ? { system } : undefined, parts: [{ type: 'text', text }] }) as AgentUIMessage;
+const asking = { type: 'tool-ask_confirm', toolCallId: 'call_ask', state: 'output-available', input: { items: [] }, output: { ok: true, message: '卡片已放出' } } as Part;
+const waiting = { type: 'tool-request_delete', toolCallId: 'call_del', state: 'input-available', input: { target: 'work' } } as Part;
+
+describe('userTextsAfterCall：同意的原话只认问过之后用户说的（技术写法 14.4）', () => {
+  it('从问的那条回复往后数；问之前说的、系统代发的都不算；找不到那次调用时为空', () => {
+    const list = [user('帮我把三视图确认了'), reply([step, asking]), user('【通知：三视图】…', 'notice'), user('同意')];
+    expect(userTextsAfterCall(list, 'call_ask')).toEqual(['同意']);
+    expect(userTextsAfterCall(list.slice(0, 2), 'call_ask')).toEqual([]);
+    // 界面还没更新到这次调用（同一步里刚问完就代点）、或调用还在执行：当作还没回复，不作废请求
+    expect(userTextsAfterCall(list, 'call_nope')).toEqual([]);
+    const inFlight = [reply([step, { ...asking, state: 'input-available', output: undefined } as Part])];
+    expect(userTextsAfterCall(inFlight, 'call_ask')).toEqual([]);
+    // 卡片没放出来（中途停下、补上的结果不是成功的）：不能拿之后的话去代点
+    const dangling = [reply([step, { ...asking, output: DANGLING_OUTPUT } as Part]), user('同意')];
+    expect(userTextsAfterCall(dangling, 'call_ask')).toBeNull();
+  });
+});
+
+describe('工具调用还没出结果（技术写法 14.5）', () => {
+  it('最后一条回复里有没结果的调用：不算空闲', () => {
+    expect(pendingToolCall([user('删掉吧'), reply([step, waiting])])).toBe(true);
+    expect(pendingToolCall([user('删掉吧'), reply([step, recorded])])).toBe(false);
+    expect(pendingToolCall([user('你好')])).toBe(false);
+  });
+
+  it('读出来时补上结果；参数没收全的去掉；没有要补的原样返回', () => {
+    const streaming = { type: 'tool-rename_work', toolCallId: 'call_name', state: 'input-streaming', input: undefined } as Part;
+    const list = [user('删掉吧'), reply([step, recorded, waiting, streaming])];
+    const fixed = closeDanglingCalls(list);
+    expect(fixed[1].parts).toEqual([step, recorded, { ...waiting, state: 'output-available', output: DANGLING_OUTPUT }]);
+    expect(pendingToolCall(fixed)).toBe(false);
+    const fine = [user('你好'), reply([step, recorded])];
+    expect(closeDanglingCalls(fine)).toBe(fine);
   });
 });

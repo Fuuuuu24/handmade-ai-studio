@@ -1,71 +1,132 @@
+import { BACKDROP_MODE_NAMES } from '@/config/backdrops';
+import { BUDGET } from '@/config/budget';
 import { INFO_FIELDS, INFO_KEYS } from '@/config/info';
 import type { ChatModel } from '@/config/models';
-import { STEPS } from '@/config/steps';
-import { NO_PROPS, STYLE_KEYS, STYLE_LABELS } from '@/config/style';
+import { FLOW_NAMES, STEP_NAMES, stepsOf } from '@/config/steps';
+import { BACKDROP_KEYS, NO_PROPS, SCENE_KEYS, STYLE_LABELS, type StyleKey } from '@/config/style';
 import { ASSET_KINDS } from '@/config/upload';
-import { VERDICT_TEXT } from '@/config/verdict';
-import { approvalBlockers, approvalReminders, approvalStatus, approvedPhase, promptStatus, promptWriteBlocker } from '@/domain/approval';
-import { roundResults, roundSlots, slotState } from '@/domain/generation';
-import { activeUploads } from '@/domain/snapshot';
+import { VIEW_NAMES } from '@/config/views';
+import { VERDICT_SHORT } from '@/config/verdict';
+import {
+  approvalReminders,
+  approvedPhase,
+  backdropApprovalBlockers,
+  backdropApprovalStatus,
+  backdropPromptStatus,
+  backdropPromptWriteBlocker,
+  sceneApprovalBlockers,
+  sceneApprovalStatus,
+  scenePromptStatus,
+  scenePromptWriteBlocker,
+  type ApprovalStatus,
+  type PromptStatus,
+} from '@/domain/approval';
+import { waitingAsk } from '@/domain/asks';
+import { activeUploads, angleStates } from '@/domain/assets';
+import { backdropCandidates, paramsText } from '@/domain/backdrops';
+import { changeText, diffFacts, factsOf } from '@/domain/handoff';
+import { lastSlotTask, roundResults, slotsOf, slotState } from '@/domain/generation';
 import { currentStep, stepStates, workStatus } from '@/domain/status';
-import { styleLagsSummary, summaryEdits } from '@/domain/work';
-import type { Approval, Asset, Basis, Result, Snapshot, StyleSource, Task, Work } from '@/domain/types';
+import type { Backdrop, BackdropRef, StyleSource } from '@/domain/types';
+import { DEFAULT_WORK_NAME, styleLagsSummary, summaryEdits } from '@/domain/work';
+import type { WorkContext } from '@/client/work-store';
 
-// 每次对话附给小间的作品状态（技术写法第 6 节）。在浏览器里生成，纯函数，便于测试。
+// 每次对话附给小间的作品状态（技术写法第 6 节、13.12）。在浏览器里生成，纯函数，便于测试。
 
-export interface SummaryInput {
-  work: Work;
-  assets: readonly Asset[];
-  approval: Approval | null;
-  tasks: readonly Task[];
-  results: readonly Result[];
-  scenes: readonly { id: string; name: string; desc: string }[];
-  basis: Basis;
-  current: Snapshot;
-  isGenerating: boolean;
+export interface SummaryInput extends WorkContext {
+  library: readonly BackdropRef[]; // 模板库里可选的背景图
   chatModel: ChatModel | null;
   imageModelLabel: string;
+  photoLabels?: readonly string[]; // 这次附上的图各是什么，顺序同附图
+  missingPhotos?: readonly string[]; // 本地读不出来、没附上的图
 }
 
 const SOURCE_TEXT: Record<StyleSource, string> = {
   user: '用户在画布上改的',
   said: '用户说的',
   recommend: '你推荐的，待用户确认',
-  scene: '来自布景',
-  shop: '来自我的风格',
 };
 
 const KIND_TEXT = { inspiration: '灵感', theme: '主题', emotion: '情绪', other: '其他' } as const;
 const SUMMARY_TEXT = { express: '表达', feel: '感受', avoid: '避免' } as const;
 
-export function stateSummary(i: SummaryInput): string {
-  const { work } = i;
-  const lines: string[] = [];
-  const statusInput = { work, assets: i.assets, tasks: i.tasks, results: i.results, approval: i.approval, current: i.current };
-  const steps = stepStates(statusInput);
-  const step = STEPS.find((s) => s.id === currentStep(steps))!;
-  lines.push(`作品：${work.name}${work.nameSuggestion ? `；你建议的名字「${work.nameSuggestion.value}」待用户在顶栏确认` : ''}`);
-  lines.push(`进度：${workStatus(statusInput).text}；现在该做：${step.name}`);
+const promptText = (ps: PromptStatus, name: string) =>
+  ({
+    missing: '还没写',
+    stale: ps.kind === 'stale' ? `已过期，写完后改了：${ps.changed.join('、')}，需要重写` : '',
+    unchecked: `${name}手改过，待核对（按规则写回风格卡并调用 resolve_prompt_sync）`,
+    conflict: ps.kind === 'conflict' ? `和方案有矛盾，等用户决定：${ps.conflicts.join('；')}` : '',
+    ok: '有效',
+  })[ps.kind];
 
-  const uploads = activeUploads(i.assets, work.id);
-  const count = (k: Asset['kind']) => uploads.filter((a) => a.kind === k).length;
-  lines.push(
-    uploads.length
-      ? `照片：${uploads.length} 张（整体 ${count('overall')}、背面 ${count('back')}、细节 ${count('detail')}）；资产${work.assetsConfirmed ? '已确认' : '还没确认'}`
-      : '照片：还没有，需要先请用户上传整体照',
-  );
-  if (uploads.length) lines.push(`照片编号：${uploads.map((a, n) => `${n + 1}. ${a.id}（${ASSET_KINDS[a.kind]}）`).join('；')}`);
-  if (work.route === 'A') {
-    const whites = i.assets.filter((a) => a.origin === 'white' && !a.removed);
-    const making = i.tasks.some((t) => t.kind === 'white' && (t.status === 'queued' || t.status === 'running'));
-    const chosen = i.basis.references.includes(work.whiteChoice ?? '');
+// 这件作品自己生成、沉淀过的背景图不用 use_backdrop 选，要先问用户（ask_confirm 的 pick_backdrop，写明第几轮第几张）
+function refText(r: BackdropRef, own: Backdrop | undefined): string {
+  const from = r.builtin
+    ? `内置模板${r.placeholder ? '，图还没提供，用色块示意' : ''}`
+    : own
+      ? `这件作品第 ${own.round} 轮背景 ${own.slot + 1}，沉淀过的；选它要先问用户：ask_confirm 的 pick_backdrop`
+      : '用户沉淀的';
+  return `${r.id} ${r.name}（${from}；${paramsText(r.params)}）`;
+}
+
+// 模板库里可选的背景图（顺序见 libraryList）：沉淀的只列最近几张，其余写个数，免得作品状态超过对话接口的长度上限（评审第 9 条）；
+// 内置模板都列。use_backdrop 照样认没列出的编号（用户在对话里给出编号时）
+function libraryLine(library: readonly BackdropRef[], own: readonly Backdrop[]): string {
+  if (!library.length) return '模板库里可选的背景图：没有';
+  const saved = library.filter((r) => !r.builtin);
+  const shown = [...saved.slice(0, BUDGET.chat.libraryInState), ...library.filter((r) => r.builtin)];
+  const more = saved.length - Math.min(saved.length, BUDGET.chat.libraryInState);
+  const list = shown.map((r) => refText(r, own.find((b) => b.id === r.id))).join('；');
+  return `模板库里可选的背景图（use_backdrop 用编号）：${list}${more ? `；另有 ${more} 张沉淀的背景图没列出，用户想用其中一张时，请他在「背景」的模板库里点` : ''}`;
+}
+
+function approvalText(name: string, status: ApprovalStatus, a: { version: number; usedRound: number | null } | null, phase: ReturnType<typeof approvedPhase>, where: string) {
+  if (status.kind === 'none' || !a) return `${name}：还没有`;
+  if (status.kind === 'stale') return `${name}：第 ${a.version} 版已失效，批准后改了：${status.changed.join('、')}`;
+  // 用户可能在小间回复的同时批准并开始了生成：说清楚是这版方案在生成，不要再请用户批准（BC-009）
+  if (phase === 'generating') return `${name}：用户已经批准了第 ${a.version} 版，第 ${a.usedRound} 轮正在生成；不需要再请用户批准`;
+  if (phase === 'used') return `${name}：第 ${a.version} 版有效，已用于第 ${a.usedRound} 轮；要按同一方案再生成，需要用户在「${where}」里再滑一次「批准并生成」`;
+  // 批准了却没发起（发起时被挡住了）：批准和生成是同一下，用户再滑一次就是新的一版（技术写法 14.6）
+  return `${name}：第 ${a.version} 版有效，还没生成；请用户在「${where}」里再滑一次「批准并生成」`;
+}
+
+export function stateSummary(i: SummaryInput): string {
+  const { work, busy } = i;
+  const lines: string[] = [];
+  const steps = stepStates(i);
+  const flowSteps = stepsOf(work.flow);
+  lines.push(`作品：${work.name}${work.name === DEFAULT_WORK_NAME ? '（还没起名，品类清楚后用 rename_work 起一个）' : ''}`);
+  lines.push(`流程：${FLOW_NAMES[work.flow]}（${flowSteps.map((s) => s.name).join(' → ')}）`);
+  lines.push(`进度：${workStatus(i).text}；现在该做：${STEP_NAMES[currentStep(i, steps)]}；已完成：${flowSteps.filter((s) => steps[s.id] === 'done').map((s) => s.name).join('、') || '无'}`);
+  // 自上次交接以来的变化（AC-11.3b）：包括用户在画布上改的，也包括你用工具改的
+  if (work.lastHandoff) {
+    const changes = diffFacts(work.lastHandoff.facts, factsOf(i));
     lines.push(
-      `资产路线：A（先做白底图再生成）；白底图 ${whites.length} 张${making ? '，正在做' : ''}；${chosen ? '已选用一张' : '还没选用，用户要在画布上对照原图后选用'}`,
+      `上次交接：${STEP_NAMES[work.lastHandoff.step]}；之后有这些变化（你自己用工具改的也算在内）：${changes.length ? changes.map(changeText).join('；') : '没有'}`,
     );
-  } else {
-    lines.push('资产路线：B（原图直接作参考图，不需要白底图）');
   }
 
+  /* ---------- 商品 ---------- */
+  const uploads = activeUploads(i.assets, work.id);
+  const angles = angleStates(i.assets, i.tasks, work.id);
+  const count = (k: keyof typeof ASSET_KINDS) => uploads.filter((a) => a.kind === k).length;
+  lines.push(
+    uploads.length
+      ? `照片：${angles.map((s) => `${VIEW_NAMES[s.angle]}${s.photo ? '有' : '缺'}`).join('、')}；细节 ${count('detail')} 张${count('unsorted') ? `；未分类 ${count('unsorted')} 张，看照片用 set_photo_kind 选好类型，看不出就问用户` : ''}`
+      : '照片：还没有，请用户上传正面、侧面、背面三张照片（可以另传细节照）',
+  );
+  if (uploads.length) lines.push(`照片编号：${uploads.map((a, n) => `${n + 1}. ${a.id}（${ASSET_KINDS[a.kind]}）`).join('；')}`);
+  const viewText = angles.map((s) => {
+    const name = VIEW_NAMES[s.angle];
+    if (!s.photo) return `${name}缺照片`;
+    if (s.generating) return `${name}生成中`;
+    const failed = s.failed ? `，最近一次没生成出来（${s.failed}）` : '';
+    if (!s.view) return `${name}${s.failed ? `没生成出来（${s.failed}）` : '还没生成'}`;
+    return `${name}${s.view.confirmed ? '已确认' : '待用户对照原图确认'}${failed}`;
+  });
+  lines.push(`三视图：${viewText.join('；')}。三张都确认，商品这一步才完成；生成要用户点按钮，你只能用 propose_views 放卡片；确认要用户对照原图看过，你问过、他同意后可以代点`);
+
+  /* ---------- 信息 ---------- */
   lines.push('商品信息：');
   for (const k of INFO_KEYS) {
     const f = work.info[k];
@@ -74,92 +135,120 @@ export function stateSummary(i: SummaryInput): string {
     lines.push(`- ${INFO_FIELDS[k].label}：${state}${sug}`);
   }
 
-  const notes = work.story.notes.slice(-8);
-  lines.push(notes.length ? `共创记录：${notes.map((n) => `[${KIND_TEXT[n.kind]}] ${n.text}`).join('；')}` : '共创记录：还没有');
-  if (work.story.noStory) lines.push('用户表示暂无明确故事');
-  const sum = work.story.summary;
-  const sumState = { none: '还没有', draft: '草稿，待用户确认', confirmed: '用户已确认' }[work.story.summaryState];
-  lines.push(sum ? `共创总结（${sumState}）：表达「${sum.express}」；感受「${sum.feel || '未写'}」；避免「${sum.avoid || '未写'}」` : `共创总结：${sumState}`);
-  const edits = summaryEdits(work.story);
-  if (edits.length) {
-    const what = edits.map((e) => `${SUMMARY_TEXT[e.part]}：你写的「${e.drafted || '（空）'}」，用户改成「${e.now || '（空）'}」`).join('；');
-    lines.push(`用户改过你起草的总结，以用户的为准，你草稿里被改掉或删掉的说法不要再写进风格和提示词：${what}`);
+  /* ---------- 背景 ---------- */
+  const mode = BACKDROP_MODE_NAMES[work.backdropMode ?? 'library'];
+  lines.push(work.backdropMode ? `背景做法：${mode}` : '背景做法：还没选（问用户用模板库里的还是自己生成，他说了用 set_backdrop_mode 选好）');
+  const bd = i.backdrop;
+  if (bd) {
+    const from = bd.builtin ? '内置模板' : bd.workId === work.id ? '这件作品生成的' : '模板库里别的作品沉淀的';
+    lines.push(`选定的背景图：${bd.name}（${bd.id}，${from}${bd.deleted ? '，已从模板库删除，这件作品照常可用' : ''}）；参数：${paramsText(bd.params)}`);
+  } else if (work.backdropId) {
+    lines.push(`选定的背景图找不到了（${work.backdropId}），请用户重新选一张`);
+  } else {
+    lines.push('选定的背景图：还没有');
+  }
+  if (work.backdropMode === 'generate' || work.story.summaryState !== 'none') {
+    const notes = work.story.notes.slice(-8);
+    lines.push(notes.length ? `背景共创记录：${notes.map((n) => `[${KIND_TEXT[n.kind]}] ${n.text}`).join('；')}` : '背景共创记录：还没有');
+    if (work.story.noStory) lines.push('用户表示暂无明确故事');
+    const sum = work.story.summary;
+    const sumState = { none: '还没有', draft: '草稿，待用户确认', confirmed: '用户已确认' }[work.story.summaryState];
+    lines.push(sum ? `共创总结（${sumState}）：表达「${sum.express}」；感受「${sum.feel || '未写'}」；避免「${sum.avoid || '未写'}」` : `共创总结：${sumState}`);
+    const edits = summaryEdits(work.story);
+    if (edits.length) {
+      const what = edits.map((e) => `${SUMMARY_TEXT[e.part]}：你写的「${e.drafted || '（空）'}」，用户改成「${e.now || '（空）'}」`).join('；');
+      lines.push(`用户改过你起草的总结，以用户的为准，你草稿里被改掉或删掉的说法不要再写进风格和提示词：${what}`);
+    }
+  }
+  if (work.backdropMode === 'generate') {
+    if (styleLagsSummary(work)) lines.push('注意：你推荐风格之后，共创总结改过了；按新总结检查背景风格，需要时用 set_style 调整并说明理由');
+    lines.push(`背景风格${work.backdropId ? '（背景图已选定，以背景图的参数为准，不能改；想改先用 redesign_backdrop 放开）' : ''}：`);
+    for (const k of BACKDROP_KEYS) lines.push(styleLine(i, k));
+    const round = work.backdropRound;
+    if (round > 0) {
+      const cands = backdropCandidates(i.backdrops, work.id, round);
+      const slots = slotsOf('backdrop').map((s) => {
+        const st = slotState(i.tasks, work.id, 'backdrop', round, s);
+        const c = cands.find((b) => b.slot === s);
+        if (c) return `背景 ${s + 1}：已生成（${c.id}${work.backdropId === c.id ? '，用户选定了这张' : ''}${c.savedAt ? '，已沉淀进模板库' : ''}）`;
+        const lastFail = lastSlotTask(i.tasks, work.id, 'backdrop', round, s);
+        return `背景 ${s + 1}：${{ empty: '未开始', active: '生成中', succeeded: '已完成', failed: `失败（${lastFail?.error ?? '原因未知'}）` }[st]}`;
+      });
+      lines.push(
+        `第 ${round} 轮背景：${slots.join('；')}${cands.length && !work.backdropId ? '。选哪张要用户看过图决定（图里不能有饰品）：他在画布上点「用这张」，或你用 ask_confirm（pick_backdrop）问过、他同意后代点' : ''}`,
+      );
+    }
+    lines.push(`背景提示词：${promptText(backdropPromptStatus(work, i.backdropBasis), '背景提示词')}`);
+    const wait = backdropPromptWriteBlocker(work);
+    if (wait && !work.backdropId) lines.push(`写背景提示词前：${wait.text}；现在用 draft_backdrop_prompt 会被拒绝`);
+    if (work.backdropPrompt?.text) lines.push(`背景提示词原文：${work.backdropPrompt.text}`);
+    const bst = backdropApprovalStatus(i);
+    const bphase = approvedPhase(i.backdropApproval, bst, busy.backdrop);
+    lines.push(approvalText('背景批准', bst, i.backdropApproval, bphase, '背景'));
+    if (!work.backdropId && bphase !== 'generating' && bphase !== 'unused') {
+      const bs = backdropApprovalBlockers(i);
+      lines.push(`背景批准前还缺：${bs.length ? bs.map((b) => b.text).join('；') : '无，可以请用户批准（request_approval，kind=backdrop）'}`);
+    }
   }
 
-  if (styleLagsSummary(work)) lines.push('注意：你推荐风格之后，共创总结改过了；按新总结检查风格卡，需要时用 set_style 调整并说明理由');
-  lines.push('风格卡：');
-  for (const k of STYLE_KEYS) {
-    const v = work.style[k];
-    const shown = v.value || (k === 'props' && v.source !== 'user' && work.sceneId ? NO_PROPS : '');
-    const source = v.source === 'said' && v.quote ? `用户说的「${v.quote}」` : SOURCE_TEXT[v.source];
-    lines.push(`- ${STYLE_LABELS[k]}：${shown ? `${shown}（${source}）` : '未定'}`);
-  }
-  const scene = i.scenes.find((s) => s.id === work.sceneId);
-  lines.push(`当前布景：${scene ? `${scene.name}（${scene.id}）` : '没有'}`);
-  lines.push(`可用布景：${i.scenes.map((s) => `${s.id} ${s.name}（${s.desc}）`).join('；')}`);
-  lines.push(`比例：${work.ratio}；生图模型：${i.imageModelLabel}`);
+  /* ---------- 摆放 ---------- */
+  lines.push('摆放卡：');
+  for (const k of SCENE_KEYS) lines.push(styleLine(i, k));
+  lines.push(`合成比例：${work.ratio}（只有这个比例可选；三视图 1:1、背景 3:4 由系统固定）；生图模型：${i.imageModelLabel}（三视图、背景、合成都用它）`);
+  lines.push(`合成提示词：${promptText(scenePromptStatus(work, i.basis), '合成提示词')}`);
+  const sceneWait = scenePromptWriteBlocker(i);
+  if (sceneWait) lines.push(`写合成提示词前：${sceneWait.text}；现在用 draft_prompt 会被拒绝`);
+  if (work.prompt?.text) lines.push(`合成提示词原文：${work.prompt.text}`);
+  lines.push('合成参考图：第 1 张是选定的背景图，第 2—4 张是正面、侧面、背面三视图；原图和细节照不进合成');
 
-  const ps = promptStatus(work, i.basis);
-  const psText = {
-    missing: '还没写',
-    stale: ps.kind === 'stale' ? `已过期，写完后改了：${ps.changed.join('、')}，需要重写` : '',
-    unchecked: '提示词手改过，待核对（按规则写回风格卡并调用 resolve_prompt_sync）',
-    conflict: ps.kind === 'conflict' ? `和方案有矛盾，等用户决定：${ps.conflicts.join('；')}` : '',
-    ok: '有效',
-  }[ps.kind];
-  lines.push(`提示词：${psText}`);
-  // 核心信息的建议没处理完不能写提示词（UX-02）：先写进状态，免得小间调用了才被拒
-  const wait = promptWriteBlocker(work);
-  if (wait) lines.push(`写提示词前：${wait.text}，要等用户在信息页接受或忽略；现在用 draft_prompt 会被拒绝`);
-  if (work.prompt?.text) lines.push(`提示词原文：${work.prompt.text}`);
-
-  const ap = approvalStatus(i.approval, i.current);
-  const phase = approvedPhase(i.approval, i.current, i.isGenerating);
-  if (ap.kind === 'none' || !i.approval) lines.push('批准：还没有');
-  else if (ap.kind === 'stale') lines.push(`批准：第 ${i.approval.version} 版已失效，批准后改了：${ap.changed.join('、')}`);
-  else if (phase === 'generating') {
-    // 用户可能在小间回复的同时批准并开始了生成：说清楚是这版方案在生成，不要再请用户批准（BC-009）
-    lines.push(`批准：用户已经批准了当前方案（第 ${i.approval.version} 版），第 ${i.approval.usedRound} 轮正在生成；不需要再请用户批准，等结果出来请用户验收`);
-  } else if (phase === 'used') {
-    lines.push(`批准：第 ${i.approval.version} 版有效，已用于第 ${i.approval.usedRound} 轮生成；要按同一方案再生成一轮，需要用户再批准一次`);
-  } else lines.push(`批准：第 ${i.approval.version} 版有效，还没生成`);
-
+  const st = sceneApprovalStatus(i);
+  const phase = approvedPhase(i.approval, st, busy.scene);
+  lines.push(approvalText('合成批准', st, i.approval, phase, '摆放'));
   if (work.revision) {
     const from = i.results.find((r) => r.id === work.revision!.fromResultId);
     const reasons = work.revision.reasons.length ? `（用户指出的问题：${work.revision.reasons.join('、')}）` : '';
-    lines.push(`正在从${from ? `第 ${from.round} 轮候选 ${from.slot + 1}` : '一张旧结果'}修改${reasons}：方案已恢复成那一版，改好后请用户重新批准`);
-    // 生成时商品照片后面会带上这张结果（BC-006）：提示词要写明各张图的用途
-    const n = i.basis.references.length;
-    lines.push(`房间参考图：生成时参考图依次是前 ${n} 张商品图，最后一张（第 ${n + 1} 张）是这张结果，只用来参考房间、机位、光线和摆放位置；重写提示词时按规则写明各张图的用途`);
+    lines.push(`正在从${from ? `第 ${from.round} 轮候选 ${from.slot + 1} ` : '一张旧结果'}修改${reasons}：合成方案已恢复成那一版，改好后请用户重新批准；问题出在背景时，请用户回「背景」换一张或重新生成`);
   }
-
   // 当前方案已批准、还没生成或正在生成时，没有「批准前还缺」可说（「已有任务在生成中」不是要再批准的理由）
   if (phase !== 'generating' && phase !== 'unused') {
-    const blockers = approvalBlockers(work, i.assets, i.basis, i.isGenerating);
-    lines.push(`批准前还缺：${blockers.length ? blockers.map((b) => b.text).join('；') : '无，可以请用户批准'}`);
+    const bs = sceneApprovalBlockers(i);
+    lines.push(`合成批准前还缺：${bs.length ? bs.map((b) => b.text).join('；') : '无，可以请用户批准（request_approval，kind=scene）'}`);
     const reminders = approvalReminders(work);
-    if (reminders.length) lines.push(`批准前提醒（不挡批准）：${reminders.map((b) => b.text).join('；')}；请用户在信息页接受或忽略`);
+    if (reminders.length) lines.push(`批准前提醒（不挡批准）：${reminders.map((b) => b.text).join('；')}；请用户处理（在「信息」里接受或忽略，或你问过、他同意后代点）`);
   }
 
+  /* ---------- 出图 ---------- */
   if (work.round > 0) {
     const r = work.round;
     const done = roundResults(i.results, work.id, r);
-    const slotText = roundSlots().map((s) => {
-      const st = slotState(i.tasks, work.id, r, s);
+    const slotText = slotsOf('scene').map((s) => {
+      const sst = slotState(i.tasks, work.id, 'scene', r, s);
       const res = done.find((x) => x.slot === s);
       if (res) {
-        const v = `${VERDICT_TEXT.real[res.verdict.real]}、${VERDICT_TEXT.style[res.verdict.style]}`;
+        const v = `像不像实物：${VERDICT_SHORT.real[res.verdict.real]}，风格对不对：${VERDICT_SHORT.style[res.verdict.style]}`;
         return `候选 ${s + 1}：已出图（${v}${res.issues.length ? `；问题：${res.issues.join('、')}` : ''}${res.note ? `；用户说：${res.note}` : ''}）`;
       }
-      const lastFail = [...i.tasks].reverse().find((t) => t.round === r && t.slot === s && t.status === 'failed');
-      return `候选 ${s + 1}：${{ empty: '未开始', active: '生成中', succeeded: '已完成', failed: `失败（${lastFail?.error ?? '原因未知'}）` }[st]}`;
+      const lastFail = lastSlotTask(i.tasks, work.id, 'scene', r, s);
+      return `候选 ${s + 1}：${{ empty: '未开始', active: '生成中', succeeded: '已完成', failed: `失败（${lastFail?.error ?? '原因未知'}）` }[sst]}`;
     });
-    lines.push(`第 ${r} 轮生成：${slotText.join('；')}`);
+    lines.push(`第 ${r} 轮合成：${slotText.join('；')}`);
   } else {
-    lines.push('生成：还没有');
+    lines.push('合成：还没有生成');
   }
 
+  // 在等用户回复的「要我替你点吗」（技术写法 14.4）：用户回复同意后用 confirm_for_user 代点
+  const ask = waitingAsk(work);
+  if (ask) lines.push(`在等用户回复的「要我替你点吗」：${ask.items.map((it, n) => `${n + 1}. ${it.text}`).join('；')}。用户同意后用 confirm_for_user 代点；他没同意就不要点`);
+  lines.push(libraryLine(i.library, i.backdrops));
+  if (i.photoLabels?.length) lines.push(`这次附上的图：${i.photoLabels.map((l, n) => `${n + 1}. ${l}`).join('；')}`);
+  if (i.missingPhotos?.length) lines.push(`本地读不出来、没附上的图：${i.missingPhotos.join('；')}`);
   const cm = i.chatModel;
-  lines.push(`当前对话模型：${cm ? `${cm.label}${cm.vision ? '（能看照片）' : '（看不到照片，需要时请用户描述）'}` : '未知'}`);
+  lines.push(`当前对话模型：${cm ? `${cm.label}${cm.vision ? '（能看图）' : '（看不到图，需要时请用户描述）'}` : '未知'}`);
   return lines.join('\n');
+}
+
+function styleLine(i: SummaryInput, k: StyleKey): string {
+  const v = i.work.style[k];
+  const source = v.source === 'said' && v.quote ? `用户说的「${v.quote}」` : SOURCE_TEXT[v.source];
+  return `- ${STYLE_LABELS[k]}：${v.value ? `${v.value}（${source}）` : k === 'props' ? `未定（不写就是${NO_PROPS}）` : '未定'}`;
 }

@@ -3,11 +3,10 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { STEPS, type StepId } from '@/config/steps';
-import { mutateWork } from '@/client/work-store';
-import { deleteWork, logEvent } from '@/data/repo';
+import { stepsOf, type StepId } from '@/config/steps';
+import { mutateWork, removeWork } from '@/client/work-store';
 import { workStatus, type StepState } from '@/domain/status';
-import { acceptNameSuggestion, dismissNameSuggestion, renameWork } from '@/domain/work';
+import { renameWork } from '@/domain/work';
 import { useConfirm } from '@/components/ui/dialog';
 import { DraftInput } from '@/components/ui/draft-field';
 import { Icon } from '@/components/ui/icon';
@@ -19,14 +18,15 @@ import StatusMark from '@/components/bits/StatusMark/StatusMark';
 import { useToast } from '@/components/ui/toast';
 
 // 顶栏：作品 / 名称（可直接改）· 状态，右侧细进度（v3 原型）
-// 删除作品（PRD 4.2 第 5 条）：用户确认后才删；生成中不能删，避免轮询把结果写回已删除的作品
+// 删除作品（PRD 4.2 第 5 条）：用户确认后才删（小间也能发起，弹同样的确认框，见 agent/executors.ts）；
+// 生成中不能删，避免轮询把结果写回已删除的作品
 function DeleteWork() {
-  const { ctx, workId } = useWorkspace();
+  const { ctx } = useWorkspace();
   const confirm = useConfirm();
   const toast = useToast();
   const router = useRouter();
   const [problem, setProblem] = useState<string | null>(null);
-  const locked = ctx.isGenerating || ctx.isMakingWhite;
+  const locked = ctx.anyGenerating;
   return (
     <>
       {problem && (
@@ -50,10 +50,7 @@ function DeleteWork() {
             });
             if (!ok) return;
             try {
-              const cost = ctx.work.costUSD;
-              await deleteWork(workId);
-              // 试用记录：作品删了，花费仍要算进总成本
-              void logEvent('delete_work', undefined, { costUSD: cost });
+              await removeWork(ctx.work);
               toast(`已删除「${ctx.work.name}」`);
               router.push('/works');
             } catch (e) {
@@ -65,25 +62,6 @@ function DeleteWork() {
         </button>
       </WarmTooltip>
     </>
-  );
-}
-
-// 小间起的名字只是建议（PRD 4.2 第 3 条），在名字旁边接受或忽略
-function NameSuggestion() {
-  const { ctx, workId } = useWorkspace();
-  const s = ctx.work.nameSuggestion;
-  if (!s) return null;
-  return (
-    <span className="ml-2 inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent-soft py-0.5 pr-1 pl-2 text-aux" title={s.note}>
-      <span className="text-accent">小间建议</span>
-      <span className="max-w-[16ch] truncate text-ink">{s.value}</span>
-      <button type="button" className="mini-btn" onClick={() => void mutateWork(workId, (c) => acceptNameSuggestion(c.work))}>
-        用这个
-      </button>
-      <button type="button" className="mini-btn" onClick={() => void mutateWork(workId, (c) => dismissNameSuggestion(c.work))}>
-        不用
-      </button>
-    </span>
   );
 }
 
@@ -144,14 +122,7 @@ function StepMark({ state, isCurrent, working }: { state: StepState; isCurrent: 
 
 export function Topbar({ states }: { states: Record<StepId, StepState> }) {
   const { ctx, viewing, current, setViewing, busy, workId } = useWorkspace();
-  const status = workStatus({
-    work: ctx.work,
-    assets: ctx.assets,
-    tasks: ctx.tasks,
-    results: ctx.results,
-    approval: ctx.approval,
-    current: ctx.snapshot,
-  });
+  const status = workStatus(ctx);
   useEffect(() => {
     document.title = `${ctx.work.name} · 一间`;
   }, [ctx.work.name]);
@@ -171,12 +142,12 @@ export function Topbar({ states }: { states: Record<StepId, StepState> }) {
           onCommit={(v) => v.trim() && void mutateWork(workId, (c) => renameWork(c.work, v))}
         />
         <StatusChip text={status.text} tone={status.tone} className="ml-1" />
-        <NameSuggestion />
       </nav>
       <SaveStatusText />
       <ServiceNote />
       <nav aria-label="流程进度" className="ml-auto flex items-center gap-0.5">
-        {STEPS.map((s) => {
+        {/* 两套流程各自的顺序（PRD 5.2）：首页开始先商品，套用模板先背景 */}
+        {stepsOf(ctx.work.flow).map((s) => {
           const st = states[s.id];
           const isCurrent = s.id === current;
           const isViewing = s.id === viewing;
@@ -190,7 +161,7 @@ export function Topbar({ states }: { states: Record<StepId, StepState> }) {
                 isViewing ? 'bg-fill font-medium text-ink' : isCurrent ? 'text-ink' : 'text-muted'
               }`}
             >
-              <StepMark state={st} isCurrent={isCurrent} working={isCurrent && (busy || ctx.isGenerating || ctx.isMakingWhite)} />
+              <StepMark state={st} isCurrent={isCurrent} working={isCurrent && (busy || ctx.anyGenerating)} />
               {s.name}
               <span className="sr-only">{st === 'done' ? '（完成）' : st === 'stale' ? '（已失效）' : isCurrent ? '（当前）' : ''}</span>
             </button>

@@ -1,18 +1,20 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { use, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { browser } from 'react-dom';
-import { BUILTIN_SCENES } from '@/config/scenes';
 import { UPLOAD } from '@/config/upload';
 import { createWork } from '@/client/create-work';
 import { setFirstMessage } from '@/client/first-message';
 import { checkFile } from '@/client/images';
 import { addPhotos } from '@/client/uploads';
-import { deleteWork } from '@/data/repo';
+import { deleteWork, listSavedBackdrops } from '@/data/repo';
+import { libraryList } from '@/domain/backdrops';
+import { BackdropThumb } from '@/components/ui/backdrop-thumb';
 import { Icon } from '@/components/ui/icon';
 
-// 首页：输入框居中（上传照片、说一句话即开始），下面是摄影布景模版（PRD 5.1，照 v3 原型）
+// 首页：输入框居中（上传照片、说一句话即开始，流程一），下面是模板库的背景图，点「套用」直接开始（流程二，PRD 5.1、5.2）
 export function HomePage() {
   use(browser('作品数据存在浏览器的本地数据库里'));
   const router = useRouter();
@@ -52,12 +54,16 @@ export function HomePage() {
     [],
   );
 
-  const start = async (sceneId?: string) => {
+  // 模板库：自己沉淀的在前，内置模板在后
+  const saved = useLiveQuery(() => listSavedBackdrops(), []);
+  const templates = libraryList(saved ?? []).slice(0, 8);
+
+  const start = async (backdropId?: string) => {
     if (starting) return;
     setStarting(true);
     setProblem(null);
     try {
-      const { work, scene } = await createWork(sceneId);
+      const { work, backdrop } = await createWork(backdropId);
       let assetIds: string[] = [];
       if (file) {
         const r = await addPhotos(work.id, [file]);
@@ -69,7 +75,7 @@ export function HomePage() {
           return;
         }
       }
-      const first = text.trim() || (scene ? `我想用「${scene.name}」这套布景` : '');
+      const first = text.trim() || (backdrop ? `我想套用「${backdrop.name}」这张背景` : '');
       if (first || assetIds.length) setFirstMessage(work.id, first, assetIds);
       startedRef.current = true;
       router.push(`/works/${work.id}`);
@@ -104,7 +110,7 @@ export function HomePage() {
             name="message"
             rows={2}
             className="block max-h-40 min-h-[52px] w-full resize-none bg-transparent text-block outline-none [field-sizing:content]"
-            placeholder="上传一张作品照片，说说它是什么、想要什么感觉…"
+            placeholder="上传作品照片，说说它是什么、想要什么感觉…"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -158,23 +164,20 @@ export function HomePage() {
 
         <section className="mt-[72px]">
           <div className="mb-3.5 flex items-baseline gap-2.5">
-            <h2 className="text-block font-semibold">从一套布景开始</h2>
-            <span className="text-aux text-muted">选一套，小间会按它准备方案，之后还能换</span>
+            <h2 className="text-block font-semibold">从模板库开始</h2>
+            <span className="text-aux text-muted">套用一张背景，新作品放进同一个取景；之后在「背景」里还能换</span>
           </div>
           <div className="grid grid-cols-4 gap-3.5 max-[1180px]:grid-cols-2">
-            {BUILTIN_SCENES.map((s) => (
-              <button key={s.id} type="button" className="group flex min-w-0 flex-col gap-0.5 text-left" disabled={starting} onClick={() => void start(s.id)}>
-                <span
-                  className="mb-2 block aspect-[4/3] rounded-xl transition-shadow group-hover:shadow-[0_0_0_1px_var(--color-line-strong),var(--shadow-md)]"
-                  style={{ background: `linear-gradient(135deg, ${s.colors[0]}, ${s.colors[1]} 60%, ${s.colors[2]})` }}
-                  aria-hidden="true"
-                />
-                <span className="text-body font-medium">{s.name}</span>
-                <span className="text-aux text-muted">{s.desc}</span>
+            {templates.map((t) => (
+              <button key={t.id} type="button" className="group flex min-w-0 flex-col gap-1.5 text-left" disabled={starting} onClick={() => void start(t.id)} aria-label={`套用「${t.name}」`}>
+                <span className="block rounded-lg transition-shadow group-hover:shadow-[0_0_0_1px_var(--color-line-strong),var(--shadow-md)]">
+                  <BackdropThumb backdrop={t} className="!aspect-[4/3]" />
+                </span>
+                <span className="truncate text-body font-medium">{t.name}</span>
+                <span className="text-aux text-muted">{t.builtin ? '内置模板' : '我沉淀的'}</span>
               </button>
             ))}
           </div>
-          <p className="mt-3 text-label text-muted">布景示意图待提供，现在先用色块表示色调。</p>
         </section>
       </div>
     </div>

@@ -6,14 +6,14 @@ import { browser } from 'react-dom';
 import { useBlobUrl, useLibrary } from '@/client/hooks';
 import type { WorkContext } from '@/client/work-store';
 import { passed } from '@/domain/generation';
-import { activeUploads } from '@/domain/snapshot';
+import { activeUploads } from '@/domain/assets';
 import { workStatus } from '@/domain/status';
 import { fmtTime } from '@/components/ui/format';
 import { Icon } from '@/components/ui/icon';
 import { StatusChip } from '@/components/ui/status-chip';
 import { EmptyState, PageFrame, PageLoading } from './page-frame';
 
-// 封面：最近一张两项都满意的结果，其次最近一张结果，再其次整体照（沿用 v3）
+// 封面：最近一张两项都满意的结果，其次最近一张结果，再其次正面照（沿用 v3）
 function coverOf(c: WorkContext): string | null {
   const results = [...c.results].sort((a, b) => b.createdAt - a.createdAt);
   const result = results.find(passed) ?? results[0];
@@ -23,7 +23,7 @@ function coverOf(c: WorkContext): string | null {
 
 function WorkCard({ c }: { c: WorkContext }) {
   const url = useBlobUrl(coverOf(c));
-  const status = workStatus({ work: c.work, assets: c.assets, tasks: c.tasks, results: c.results, approval: c.approval, current: c.snapshot });
+  const status = workStatus(c);
   return (
     <Link href={`/works/${c.work.id}`} className="group flex min-w-0 flex-col gap-2.5 rounded-lg text-left">
       <div className="grid aspect-square place-items-center overflow-hidden rounded-lg bg-soft transition-shadow duration-200 ease-soft group-hover:shadow-[0_0_0_1px_var(--color-line-strong),var(--shadow-md)]">

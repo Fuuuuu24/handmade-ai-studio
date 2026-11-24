@@ -1,10 +1,15 @@
 import type { ReactNode } from 'react';
 
-// 作品、我的风格、摄影布景、历史结果共用的页面框架：内容最宽 1160px，标题 20px 常规字重（沿用 v2／v3）
+// 作品、模板库、历史结果共用的页面框架：标题 20px 常规字重（沿用 v2／v3）。
+// 内容最宽 1096px，宽屏时居中；左边至少让出图标栏展开后多出来的宽度，再留 32px（和收起时离边的距离一样），
+// 鼠标移到图标栏上展开时不挡内容。窄屏时内容因此偏右一些
+const INSET =
+  'pl-[max(calc(var(--spacing-rail-open)_-_var(--spacing-rail)_+_2rem),calc((100%_-_1096px)/2))] pr-[max(2rem,calc((100%_-_1096px)/2))]';
+
 export function PageFrame({ title, intro, children }: { title: string; intro?: string; children: ReactNode }) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-[1160px] px-8 pb-12 pt-10">
+      <div className={`${INSET} pb-12 pt-10`}>
         <header className="mb-7 flex flex-col gap-1.5">
           <h1 className="text-page font-normal tracking-[0.01em]">{title}</h1>
           {intro && <p className="max-w-[560px] text-aux text-muted">{intro}</p>}

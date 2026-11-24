@@ -1,3 +1,5 @@
+import { dbNotice } from './db';
+
 // 保存状态（AC-01.4）：写入成功才显示「已保存」；失败说明原因、保留界面上的内容，可重试。
 // 按 key 记录失败：同一个 key 之后写入成功才算恢复，别的写入成功不会掩盖这次失败。
 export type SaveStatus =
@@ -39,6 +41,8 @@ export function subscribeSave(fn: () => void) {
 }
 
 export function describeStorageError(e: unknown): string {
+  // 别的页面把数据库升级到了新版本：这个页面的连接已经关掉，只能刷新（data/db.ts）
+  if (dbNotice() === 'outdated') return '「一间」在别的页面更新了，内容没有保存；请刷新这个页面';
   const name = (e as { name?: string })?.name ?? '';
   const inner = (e as { inner?: { name?: string } })?.inner?.name ?? '';
   if (name === 'QuotaExceededError' || inner === 'QuotaExceededError') return '浏览器存储空间不足，内容没有保存';

@@ -54,6 +54,11 @@
   --shadow-pop: 0 16px 48px rgb(0 0 0 / 0.14);
 
   --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* 左侧图标栏：收起时的宽度、悬停或键盘聚焦时展开的宽度（components/shell/app-shell.tsx）。
+     作品、模板库、历史结果的内容区按它们让开，展开时不挡内容（components/pages/page-frame.tsx） */
+  --spacing-rail: 60px;
+  --spacing-rail-open: 196px;
 }
 
 @layer base {

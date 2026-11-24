@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getFake, submitFake } from './fake-images';
+import { fakeLook, getFake, submitFake } from './fake-images';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -29,6 +29,12 @@ describe('假生图网关（只给开发和测试用）', () => {
     expect(getFake(b.id).status).toBe('completed');
     expect(getFake(all.id).status).toBe('failed');
     expect(getFake(again.id).status).toBe('failed');
+  });
+
+  it('按任务类型出不同的测试图：三视图白底、背景图、合成（技术写法 13.9）', () => {
+    expect(fakeLook(submitFake('三视图', '1:1', 'view').id)).toEqual({ title: 'TEST VIEW', background: '#ffffff' });
+    expect(fakeLook(submitFake('背景', '3:4', 'backdrop').id).title).toBe('TEST BACKDROP');
+    expect(fakeLook(submitFake('合成', '1:1').id).title).toBe('TEST IMAGE');
   });
 
   it('不认识的任务编号如实报错', () => {

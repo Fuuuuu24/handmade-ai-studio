@@ -2,19 +2,23 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { executeTool } from '@/agent/executors';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { executeTool, type ExecDeps } from '@/agent/executors';
 import type { AgentUIMessage, ToolName } from '@/agent/tools';
 import { BUDGET } from '@/config/budget';
 import type { StepId } from '@/config/steps';
 import { errorText } from '@/client/api';
+import { hasHeld, queueDue, sendQueued, setFirstPhotos, takeFirstPhotos, type QueuedMessage } from '@/client/agent-queue';
 import { chatErrorMessage, chatRequestBody } from '@/client/chat-body';
-import { turnProblem, withoutLastStep, type TurnProblem } from '@/client/chat-turn';
+import { closeDanglingCalls, pendingToolCall, turnProblem, userTextsAfterCall, userTextsOf, withoutLastStep, type TurnProblem } from '@/client/chat-turn';
 import { takeFirstMessage } from '@/client/first-message';
 import { addPhotos } from '@/client/uploads';
 import { loadMessages, saveMessages } from '@/data/repo';
 import { mutateWork } from '@/client/work-store';
 import { addCost } from '@/domain/work';
+import { useConfirm } from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/toast';
 import { useWorkspace } from '@/components/workspace/context';
 import { Composer } from './composer';
 import { MessageView } from './message-view';
@@ -34,14 +38,15 @@ interface Props {
   onUserSend: () => void; // 用户发了消息：画布跟回当前步骤
 }
 
-// 每次挂载都从本地数据库读最新的对话，再交给对话会话；不用上层缓存的旧记录，避免把旧记录写回去覆盖新内容
+// 每次挂载都从本地数据库读最新的对话，再交给对话会话；不用上层缓存的旧记录，避免把旧记录写回去覆盖新内容。
+// 中途停下留下的没结果的工具调用补上结果，不然下一次请求会出错（技术写法 14.5）
 export function ChatPanel(props: Props) {
   const { workId } = useWorkspace();
   const [loaded, setLoaded] = useState<{ workId: string; messages: AgentUIMessage[] } | { workId: string; error: string } | null>(null);
   useEffect(() => {
     let live = true;
     loadMessages(workId).then(
-      (messages) => live && setLoaded({ workId, messages: messages as AgentUIMessage[] }),
+      (messages) => live && setLoaded({ workId, messages: closeDanglingCalls(messages as AgentUIMessage[]) }),
       (e: unknown) => live && setLoaded({ workId, error: e instanceof Error ? e.message : String(e) }),
     );
     return () => {
@@ -62,7 +67,7 @@ export function ChatPanel(props: Props) {
 }
 
 function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, onUserSend }: Props & { initialMessages: AgentUIMessage[] }) {
-  const { workId } = useWorkspace();
+  const { workId, ctx } = useWorkspace();
   const savedRef = useRef(JSON.stringify(initialMessages));
   const autoSteps = useRef(0);
   const [capHit, setCapHit] = useState(false);
@@ -70,11 +75,20 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   const [userStopped, setUserStopped] = useState(false);
   const [notes, setNotes] = useState<string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
-  // 用户发过的文字，执行器核对「你说的」用（BC-013）；工具在回复中途执行，这时对话还没存进数据库
+  // 用户发过的文字，执行器核对「你说的」用（BC-013）；工具在回复中途执行，这时对话还没存进数据库。
+  // 整段对话也留一份：代点时核对同意的原话，只认问过之后用户说的（技术写法 14.4）
   const userTextsRef = useRef<string[]>([]);
+  const messagesRef = useRef<AgentUIMessage[]>(initialMessages);
+  // 小间发起的「删除这件作品」用户确认了：回作品页，这段对话不再保存、不再继续（技术写法 14.5）
+  const leavingRef = useRef(false);
+  const stoppedRef = useRef(false);
+  const confirm = useConfirm();
+  const toast = useToast();
+  const router = useRouter();
 
+  // 生成通知附的结果图排在附图最前面（技术写法 13.9）：发通知前放进 agent-queue，请求时取走
   const transport = useMemo(
-    () => new DefaultChatTransport<AgentUIMessage>({ api: '/api/chat', body: () => chatRequestBody(workId) }),
+    () => new DefaultChatTransport<AgentUIMessage>({ api: '/api/chat', body: () => chatRequestBody(workId, takeFirstPhotos(workId)) }),
     [workId],
   );
 
@@ -84,6 +98,8 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
     transport,
     // 工具结果齐了自动继续；单轮连续操作有上限（技术写法第 6 节，config/budget.ts）
     sendAutomaticallyWhen: ({ messages: list }) => {
+      // 用户点了停止：等确认框的工具之后才出结果，也不自己续一轮（代码评审 2026-11-23）
+      if (stoppedRef.current) return false;
       if (!lastAssistantMessageIsCompleteWithToolCalls({ messages: list })) return false;
       if (autoSteps.current >= BUDGET.chat.maxSteps) {
         setCapHit(true);
@@ -95,14 +111,28 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
     // 对话花费累加进作品（试用记录的累计成本）；中止或出错的请求没有结束信息，服务端账本仍按估价记全
     onFinish({ message, isAbort, isError }) {
       const cost = message.metadata?.costUSD;
-      if (isAbort || isError || !cost) return;
+      // 作品已经删了：这一轮的花费记不进作品了（服务端账本照常记）
+      if (isAbort || isError || !cost || leavingRef.current) return;
       void mutateWork(workId, (c) => addCost(c.work, cost)).catch((e) => console.error('对话花费没记上', e));
     },
     async onToolCall({ toolCall }) {
       if (toolCall.dynamic) return;
       const name = toolCall.toolName as ToolName;
+      const deps: ExecDeps = {
+        showStep: onShowStep,
+        userTexts: () => userTextsRef.current,
+        userTextsAfter: (callId) => userTextsAfterCall(messagesRef.current, callId),
+        // 删除、停用、替换：弹出和画布上同一个确认框，用户点完才往下走（工具执行期间对话一直是「回复中」）
+        confirm,
+        leave: () => {
+          leavingRef.current = true;
+          toast(`已删除「${ctx.work.name}」`);
+          router.push('/works');
+        },
+      };
       try {
-        const output = await executeTool(workId, name, toolCall.input, { showStep: onShowStep, userTexts: () => userTextsRef.current });
+        const output = await executeTool(workId, name, toolCall.input, deps, toolCall.toolCallId);
+        if (leavingRef.current) return;
         void addToolOutput({ tool: name, toolCallId: toolCall.toolCallId, output });
       } catch (e) {
         void addToolOutput({ tool: name, toolCallId: toolCall.toolCallId, state: 'output-error', errorText: errorText(e) });
@@ -122,12 +152,65 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
   }, [busy, onBusyChange]);
 
   useEffect(() => {
-    userTextsRef.current = messages.filter((m) => m.role === 'user').flatMap((m) => m.parts.flatMap((p) => (p.type === 'text' ? [p.text] : [])));
+    userTextsRef.current = userTextsOf(messages);
+    messagesRef.current = messages;
   }, [messages]);
+
+  // 小间跟上画布（技术写法 13.12）：空闲时把排队的「下一步」交接、生成通知、验收通知合成一条代用户发出。
+  // 空闲和自动续步用同一个条件；上一轮出错、撞上单轮上限、有工具调用还没结果（技术写法 14.5）或用户正在打字时先不发。
+  // 用户点了停止：不会再自动续步，工具结果齐了也算空闲，不然交接和通知要等用户再打字才发（代码评审 2026-11-23）
+  const [draftEmpty, setDraftEmpty] = useState(true);
+  const [queueTick, setQueueTick] = useState(0);
+  const waitingAutoStep = lastAssistantMessageIsCompleteWithToolCalls({ messages }) && !userStopped;
+  const idle = status === 'ready' && !waitingAutoStep && !pendingToolCall(messages) && !error && !capHit && !problem && draftEmpty;
+  // 取到消息那一刻对话还空不空闲（评审第 4 条）：提交时就记下，卸载时记为不空闲；不空闲时取到的消息先留着
+  const idleRef = useRef(false);
+  useLayoutEffect(() => {
+    idleRef.current = idle;
+    return () => {
+      idleRef.current = false;
+    };
+  }, [idle]);
+  useEffect(() => {
+    if (!idle) return;
+    // 先用现成的数据看有没有要发的，没有就不去读库认领（评审第 12 条）；验收通知还要等的，到点再看一次
+    const due = queueDue(ctx, Date.now());
+    if (!due.ready && !hasHeld(workId)) {
+      if (due.waitMs == null) return;
+      const wait = setTimeout(() => setQueueTick((t) => t + 1), due.waitMs + 50);
+      return () => clearTimeout(wait);
+    }
+    let live = true;
+    let again: ReturnType<typeof setTimeout> | undefined;
+    const send = (m: QueuedMessage) => {
+      setFirstPhotos(workId, m.photos);
+      autoSteps.current = 0; // 系统消息各自算新的一轮：之前点过的停止不再管这一轮
+      stoppedRef.current = false;
+      setUserStopped(false);
+      void sendMessage({ parts: [{ type: 'text', text: m.text }], metadata: { system: m.system } });
+    };
+    // 推迟到下一轮：开发模式的严格模式会先演练一次卸载；认领在事务里，重复取也只发一次
+    const timer = setTimeout(() => {
+      sendQueued(workId, () => idleRef.current, send)
+        .then(({ sent, retryInMs, recheck }) => {
+          if (sent) return;
+          // 跑的时候又有数据变化：再看一次。清理之后（live 为假）新一轮副作用会自己算等多久，不再建定时器
+          if (recheck) setQueueTick((t) => t + 1);
+          else if (retryInMs != null && live) again = setTimeout(() => setQueueTick((t) => t + 1), retryInMs + 50);
+        })
+        .catch((e: unknown) => console.error('给小间的交接或通知没发出去', e));
+    }, 0);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+      if (again) clearTimeout(again);
+    };
+  }, [idle, ctx, queueTick, workId, sendMessage]);
 
   // 一轮结束（或出错）时保存对话，含工具调用记录（AC-11.4）；和读出来时一样就不写
   useEffect(() => {
     if (status !== 'ready' && status !== 'error') return;
+    if (leavingRef.current) return; // 作品已删除，对话跟着删了，不再写回
     const json = JSON.stringify(messages);
     if (json === savedRef.current) return;
     savedRef.current = json;
@@ -160,6 +243,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
       setCapHit(false);
       setRetries(0);
       setUserStopped(false);
+      stoppedRef.current = false;
       onUserSend();
       post(text, assetIds);
     },
@@ -171,6 +255,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
     setRetries((r) => r + 1);
     setCapHit(false);
     setUserStopped(false);
+    stoppedRef.current = false;
     clearError();
     autoSteps.current = 0;
     const last = messages.at(-1);
@@ -185,7 +270,7 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
     registerSend((text) => send(text));
   }, [registerSend, send]);
 
-  // 首页、布景页带过来的第一条消息只发一次。推迟到下一轮再取：开发模式的严格模式会先演练一次卸载，
+  // 首页、模板库「套用」带过来的第一条消息只发一次。推迟到下一轮再取：开发模式的严格模式会先演练一次卸载，
   // 卸载时 useChat 会中止进行中的请求；推迟后演练卸载会取消定时器，消息留到真正挂载后再发
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -249,11 +334,14 @@ function ChatSession({ initialMessages, registerSend, onBusyChange, onShowStep, 
         )}
         <Composer
           busy={busy}
+          onDraftChange={setDraftEmpty}
           onSend={(text) => send(text)}
           onFiles={onFiles}
           onStop={() => {
             setUserStopped(true);
-            void stop();
+            stoppedRef.current = true;
+            // 停在半路的工具调用（参数还没收全）补上结果，不然交接发不出去、下一条消息也会因为缺结果出错
+            void stop().then(() => setMessages((list) => closeDanglingCalls(list)));
           }}
         />
       </div>

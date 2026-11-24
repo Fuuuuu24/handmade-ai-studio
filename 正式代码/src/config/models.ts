@@ -48,8 +48,19 @@ export interface ImageModel {
 }
 
 export const IMAGE_MODELS: readonly ImageModel[] = [
-  // 默认：四个候选里最便宜，初测中国内模型最有希望（交接文档第 12 节），可在对话框里切换
-  { id: 'doubao-seedream-5.0-lite', label: 'Seedream 5.0 Lite', perImageUSD: 0.034, perRefUSD: 0, maxRefs: 4, sizing: { kind: 'aspect_ratio' }, outputFormat: 'jpeg' },
+  // 默认：四个候选里最便宜，初测中国内模型最有希望（交接文档第 12 节），可在对话框里切换。
+  // 它默认在右下角加「AI生成」字样，试用期所有生成都关掉（PRD AC-10.5，导出时提醒商家发布时声明）；
+  // watermark 随 body.extra 发出，网关会不会转给火山方舟没验证，产品内测试时看
+  {
+    id: 'doubao-seedream-5.0-lite',
+    label: 'Seedream 5.0 Lite',
+    perImageUSD: 0.034,
+    perRefUSD: 0,
+    maxRefs: 4,
+    sizing: { kind: 'aspect_ratio' },
+    outputFormat: 'jpeg',
+    extra: { watermark: false },
+  },
   // 输出图片 60 美元／百万 token，1K 约 1290 token
   { id: 'gemini-3.1-flash-image', label: 'Gemini 3.1 Flash 图像', perImageUSD: 0.08, perRefUSD: 0.001, maxRefs: 4, sizing: { kind: 'aspect_ratio', resolution: '1K' } },
   // 输出图片 30 美元／百万 token，medium 质量约 1600 token；参考图输入 8 美元／百万 token
@@ -84,3 +95,6 @@ export const imageEstimate = (m: ImageModel, refs: number) => m.perImageUSD + m.
 
 // 模型被移出配置后，旧作品按默认模型算参考图上限
 export const maxRefsOf = (id: string) => imageModel(id)?.maxRefs ?? imageModel(DEFAULT_IMAGE_MODEL)!.maxRefs;
+
+// 生图接口最多收几张参考图：各模型上限里最大的（v0.6 合成最多 4 张：背景图＋三视图）；部署时请求体上限按它估
+export const MAX_REFS = Math.max(...IMAGE_MODELS.map((m) => m.maxRefs));

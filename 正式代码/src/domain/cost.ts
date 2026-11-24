@@ -18,6 +18,11 @@ export function budgetCheck(spentUSD: number, estUSD: number, totalUSD: number):
   return { ok: true };
 }
 
+// 参考图张数不能超过所选模型的上限（批准时已按 maxRefsOf 挡过，接口这里再查一次，超了如实拒绝）
+export function refCountCheck(count: number, maxRefs: number, label: string): BudgetCheck {
+  return count > maxRefs ? { ok: false, reason: `${label} 一次最多带 ${maxRefs} 张参考图，这次是 ${count} 张` } : { ok: true };
+}
+
 export function imageCostCheck(perImageUSD: number, maxImageUSD: number): BudgetCheck {
   return perImageUSD > maxImageUSD
     ? { ok: false, reason: `这个模型单张约 ${perImageUSD} 美元，超过单张上限 ${maxImageUSD} 美元` }

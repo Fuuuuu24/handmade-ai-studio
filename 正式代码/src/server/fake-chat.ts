@@ -36,20 +36,48 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
   },
   // 用户纠正一处细节，只写「不能改的细节」的建议：测建议没处理时小间写不了提示词（UX-02）、写好提示词后再来建议时的提醒
   纠正细节: { tool: 'update_info', input: { items: [{ field: 'keep', value: '蝴蝶结的两个圈不能变形', note: '测试' }] } },
-  起名: { tool: 'suggest_name', input: { name: '蝴蝶结耳坠', note: '测试' } },
+  起名: { tool: 'rename_work', input: { name: '蝴蝶结耳坠' } },
   记录: { tool: 'record_story', input: { kind: 'theme', text: '雨后石阶上的蝴蝶结' } },
   总结: { tool: 'draft_summary', input: { express: '雨后蝴蝶结的安静', feel: '安静、想凑近看', avoid: '太花、道具抢戏' } },
-  布景: { tool: 'apply_scene', input: { sceneId: 'tpl-moss' } },
   推荐风格: { tool: 'set_style', input: { items: [{ field: 'light', value: '清冷晨光', basis: 'recommend', reason: '测试：贴合雨后的安静' }] } },
   // 「你说的」要核对原话（BC-013）：用户这句话里带「平铺」时摆放记为你说的；「冷灰」用户没说过，会被记为小间推荐
   说过平铺: { tool: 'set_style', input: { items: [{ field: 'placement', value: '一对耳饰平铺', basis: 'said', quote: '平铺' }] } },
   误标你说的: { tool: 'set_style', input: { items: [{ field: 'tone', value: '低饱和、偏冷灰', basis: 'said', quote: '冷灰' }] } },
+  // 三视图只能提议：放卡片，用户点了才生成
+  三视图: { tool: 'propose_views', input: {} },
+  重做侧面: { tool: 'propose_views', input: { angles: ['side'], note: '测试：侧面重做一张' } },
+  用模板: { tool: 'use_backdrop', input: { backdropId: 'builtin:moss@1' } },
+  摆放: {
+    tool: 'set_style',
+    input: {
+      items: [
+        { field: 'placement', value: '平铺', basis: 'recommend', reason: '测试' },
+        { field: 'composition', value: '主体居中，留白多', basis: 'recommend', reason: '测试' },
+      ],
+    },
+  },
+  背景风格: {
+    tool: 'set_style',
+    input: {
+      items: [
+        { field: 'tone', value: '雨后苔绿', basis: 'recommend', reason: '测试' },
+        { field: 'background', value: '手工纸', basis: 'recommend', reason: '测试' },
+        { field: 'light', value: '清冷晨光', basis: 'recommend', reason: '测试' },
+      ],
+    },
+  },
+  背景提示词: {
+    tool: 'draft_backdrop_prompt',
+    input: { prompt: '一张不含任何饰品和文字的电商主图背景：苔绿手工纸，清冷晨光从左上方斜照，画面中下方留出放耳饰的位置。' },
+  },
+  批准背景: { tool: 'request_approval', input: { kind: 'backdrop' } },
   提示词: {
     tool: 'draft_prompt',
-    input: { prompt: '一对手作 925 银蝴蝶结耳坠，严格按参考图还原颜色、数量、轮廓和连接结构，整件完整入框留边距，苔绿手工纸背景，清冷晨光，画面里不要任何文字。' },
+    input: {
+      prompt: '第 1 张是背景图，保持它的取景和光线；第 2—4 张是正面、侧面、背面三视图，商品只以三视图为准。一对手作 925 银蝴蝶结耳坠平铺在台面中央，完整入框留边距，画面里不要任何文字。',
+    },
   },
-  批准: { tool: 'request_approval', input: {} },
-  生成: { tool: 'start_generation', input: {} },
+  批准: { tool: 'request_approval', input: { kind: 'scene' } },
   选卡: {
     tool: 'offer_picks',
     input: {
@@ -62,15 +90,45 @@ export const FAKE_SCRIPT: Record<string, { tool: string; input: Record<string, u
     },
   },
   意见: { tool: 'note_feedback', input: { round: 1, candidate: 1, issues: ['轮廓'], note: '链子变长了', revise: true } },
-  存布景: { tool: 'propose_scene_save', input: { name: '测试布景', reason: '你说这套光线很喜欢' } },
-  我的风格: { tool: 'propose_shop_style', input: { fields: ['light', 'tone'], reason: '你说以后都想要这种光线' } },
   导出: { tool: 'offer_export', input: { round: 1, candidate: 2 } },
-  补齐: { tool: 'retry_candidate', input: { round: 1, candidate: 1 } },
+  // 补齐只放卡片，用户点了才补（技术写法 14.6）
+  补齐: { tool: 'propose_retry', input: { kind: 'scene', round: 1, candidate: 1 } },
+  补齐二: { tool: 'propose_retry', input: { kind: 'scene', round: 1, candidate: 2 } },
+  补齐背景: { tool: 'propose_retry', input: { kind: 'backdrop', round: 1, candidate: 1 } },
   后续: { tool: 'note_followup', input: { text: '真人佩戴图' } },
-  白底: { tool: 'make_white_asset', input: {} },
   换模型: { tool: 'set_image_model', input: { model: 'gpt-image-2' } },
   比例: { tool: 'set_ratio', input: { ratio: '3:4' } },
+  /* 小间的操作权限（技术写法 14）。用户回「同意」（卡片上的按钮也是发这两个字）时照抄原话代点，见 fakeTurn */
+  问三视图: {
+    tool: 'ask_confirm',
+    input: { items: [{ type: 'confirm_view', angle: 'front' }, { type: 'confirm_view', angle: 'side' }, { type: 'confirm_view', angle: 'back' }] },
+  },
+  问侧面: { tool: 'ask_confirm', input: { items: [{ type: 'confirm_view', angle: 'side' }] } },
+  问信息: {
+    tool: 'ask_confirm',
+    input: { items: [{ type: 'accept_info', field: 'category' }, { type: 'accept_info', field: 'material' }, { type: 'accept_info', field: 'size' }] },
+  },
+  问选背景: { tool: 'ask_confirm', input: { items: [{ type: 'pick_backdrop', round: 1, candidate: 1 }, { type: 'save_backdrop', name: '苔绿晨光' }] } },
+  问验收: { tool: 'ask_confirm', input: { items: [{ type: 'verdict', round: 1, candidate: 2, real: 'ok', style: 'ok' }] } },
+  部分同意: { tool: 'confirm_for_user', input: { quote: '正面和背面可以', only: [1, 3] } },
+  推进商品: { tool: 'next_step', input: { step: 'product' } },
+  推进信息: { tool: 'next_step', input: { step: 'info' } },
+  自己生成: { tool: 'set_backdrop_mode', input: { mode: 'generate' } },
+  // 编号由作品状态里取（fakeTurn 换掉 $ 开头的占位）：模板库里最新沉淀的背景图、第一张未分类的照片
+  删背景: { tool: 'request_delete', input: { target: 'backdrop', id: '$saved' } },
+  删作品: { tool: 'request_delete', input: { target: 'work' } },
+  设成正面: { tool: 'set_photo_kind', input: { assetId: '$unsorted', kind: 'front' } },
 };
+
+// 剧本里的占位换成作品状态（系统指令末尾）里的编号；找不到就原样留着，执行器会如实拒绝
+const PLACEHOLDERS: Record<string, RegExp> = {
+  // 模板库列表（agent/state.ts 的 libraryLine）：别的作品沉淀的写「用户沉淀的」，这件作品自己沉淀的写「这件作品第 N 轮背景 M」
+  $saved: /[：；](\S+) [^（；：]+（(?:用户沉淀的|这件作品第)/,
+  $unsorted: /\d+\. (\S+)（未分类）/,
+};
+function fill(input: Record<string, unknown>, system: string): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(input).map(([k, v]) => [k, typeof v === 'string' && PLACEHOLDERS[v] ? (system.match(PLACEHOLDERS[v])?.[1] ?? v) : v]));
+}
 
 const MARK = /【测试：([^】]+)】/g;
 
@@ -86,7 +144,22 @@ export function fakeTurn(prompt: Prompt): { text: string; calls: { tool: string;
   const user = [...prompt].reverse().find((m) => m.role === 'user');
   const text = user?.role === 'user' ? user.content.map((c) => (c.type === 'text' ? c.text : '')).join('') : '';
   if (text.includes(THINK_ONLY)) return { text: '', calls: [], thinkOnly: true };
-  const calls = [...text.matchAll(MARK)].map((m) => FAKE_SCRIPT[m[1]]).filter((c): c is (typeof FAKE_SCRIPT)[string] => !!c);
+  // 浏览器代发的交接和通知（技术写法 13.12）：按「我理解的现状 → 还没确认或有矛盾的地方 → 下一步」的结构固定回一句
+  const system = text.match(/^【(交接|通知)：([^】]+)】/);
+  if (system) {
+    return {
+      text: `（测试对话模型，不是 AI）我理解的现状：收到「${system[2]}」的${system[1]}。还没确认或有矛盾的地方：这是测试回复，没有检查。下一步：请继续。`,
+      calls: [],
+    };
+  }
+  // 用户回「同意」（卡片上的「同意」按钮也是发这两个字）：照抄原话代点
+  if (text.replaceAll(MARK, '').trim() === '同意') return { text: '', calls: [{ tool: 'confirm_for_user', input: { quote: '同意' } }] };
+  const sys = prompt.find((m) => m.role === 'system');
+  const systemText = sys?.role === 'system' ? sys.content : '';
+  const calls = [...text.matchAll(MARK)]
+    .map((m) => FAKE_SCRIPT[m[1]])
+    .filter((c): c is (typeof FAKE_SCRIPT)[string] => !!c)
+    .map((c) => ({ ...c, input: fill(c.input, systemText) }));
   if (calls.length) return { text: '', calls };
   return { text: `（测试对话模型，不是 AI）收到：${text.replaceAll(MARK, '').slice(0, 40) || '照片'}`, calls: [] };
 }

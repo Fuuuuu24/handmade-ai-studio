@@ -1,51 +1,62 @@
+import { isBuiltinBackdrop } from '@/config/backdrops';
 import { maxRefsOf } from '@/config/models';
-import { getApproval, getWork, listAssets, listResults, listTasks, saveWork } from '@/data/repo';
-import { generating } from '@/domain/generation';
-import { makingWhite } from '@/domain/white';
-import { basisOf, snapshotOf } from '@/domain/snapshot';
-import type { Approval, Asset, Basis, Id, Result, Snapshot, Task, Work } from '@/domain/types';
+import { deleteWork, getBackdrop, getBackdropApproval, getSceneApproval, getWork, listAssets, listResults, listTasks, listWorkBackdrops, logEvent, saveWork } from '@/data/repo';
+import { refOfBackdrop, refOfBuiltin } from '@/domain/backdrops';
+import { anyBusy, busyOf, type Busy } from '@/domain/generation';
+import { backdropBasisOf, backdropSnapshotOf, sceneBasisOf, sceneSnapshotOf } from '@/domain/snapshot';
+import type { BackdropBasis, BackdropRef, BackdropSnapshot, Id, SceneBasis, SceneSnapshot, Work, WorkState } from '@/domain/types';
 
 /* 作品的读取与修改。修改都经 mutateWork 排队执行：小间一次调用多个工具、界面同时编辑时，不会互相覆盖。 */
 
-export interface WorkContext {
-  work: Work;
-  assets: Asset[];
-  approval: Approval | null;
-  tasks: Task[];
-  results: Result[];
+export interface WorkContext extends WorkState {
   maxRefs: number;
-  basis: Basis;
-  snapshot: Snapshot;
-  isGenerating: boolean;
-  isMakingWhite: boolean; // 白底图任务不锁方案，但做白底时不能删作品
+  busy: Busy; // 三种生成各自是否在进行（技术写法 13.6）
+  anyGenerating: boolean; // 任一种生成中：不能删作品，顶栏转圈
+  backdropBasis: BackdropBasis;
+  backdropSnapshot: BackdropSnapshot;
+  basis: SceneBasis; // 合成提示词的依据
+  snapshot: SceneSnapshot; // 合成批准的快照
 }
 
-export function deriveContext(work: Work, assets: Asset[], approval: Approval | null, tasks: Task[], results: Result[]): WorkContext {
-  const maxRefs = maxRefsOf(work.imageModel);
+export function deriveContext(s: WorkState): WorkContext {
+  const busy = busyOf(s.tasks, s.work.id);
   return {
-    work,
-    assets,
-    approval,
-    tasks,
-    results,
-    maxRefs,
-    basis: basisOf(work, assets, maxRefs),
-    snapshot: snapshotOf(work, assets, maxRefs),
-    isGenerating: generating(tasks, work.id),
-    isMakingWhite: makingWhite(tasks, work.id),
+    ...s,
+    maxRefs: maxRefsOf(s.work.imageModel),
+    busy,
+    anyGenerating: anyBusy(busy),
+    backdropBasis: backdropBasisOf(s.work),
+    backdropSnapshot: backdropSnapshotOf(s.work),
+    basis: sceneBasisOf(s.work, s.assets),
+    snapshot: sceneSnapshotOf(s.work, s.assets),
   };
+}
+
+// 选定的背景图：内置模板从配置里取，其余从数据库取；找不到时为空（规则层会写明「找不到了」）
+export async function resolveBackdrop(id: Id | null | undefined): Promise<BackdropRef | null> {
+  if (!id) return null;
+  if (isBuiltinBackdrop(id)) return refOfBuiltin(id);
+  const b = await getBackdrop(id);
+  return b ? refOfBackdrop(b) : null;
+}
+
+export async function loadState(work: Work): Promise<WorkState> {
+  const [assets, tasks, results, backdrops, backdropApproval, approval, backdrop] = await Promise.all([
+    listAssets(work.id),
+    listTasks(work.id),
+    listResults(work.id),
+    listWorkBackdrops(work.id),
+    getBackdropApproval(work.backdropApprovalId),
+    getSceneApproval(work.approvalId),
+    resolveBackdrop(work.backdropId),
+  ]);
+  return { work, assets, tasks, results, backdrops, backdrop, backdropApproval: backdropApproval ?? null, approval: approval ?? null };
 }
 
 export async function loadContext(workId: Id): Promise<WorkContext> {
   const work = await getWork(workId);
   if (!work) throw new Error('这件作品不存在或已删除');
-  const [assets, tasks, results, approval] = await Promise.all([
-    listAssets(workId),
-    listTasks(workId),
-    listResults(workId),
-    getApproval(work.approvalId),
-  ]);
-  return deriveContext(work, assets, approval ?? null, tasks, results);
+  return deriveContext(await loadState(work));
 }
 
 const queues = new Map<Id, Promise<unknown>>();
@@ -68,4 +79,11 @@ export function mutateWork(workId: Id, fn: (ctx: WorkContext) => Work | Promise<
     if (next !== ctx.work) await saveWork(next);
     return next;
   });
+}
+
+// 删除作品：用户在确认框里点了「删除」之后（顶栏的删除按钮，或小间发起的 request_delete，PRD 4.2 第 5 条）。
+// 试用记录留一条带花费的删除记录，作品删了累计成本也不漏算
+export async function removeWork(work: Pick<Work, 'id' | 'costUSD'>): Promise<void> {
+  await deleteWork(work.id);
+  void logEvent('delete_work', undefined, { costUSD: work.costUSD });
 }

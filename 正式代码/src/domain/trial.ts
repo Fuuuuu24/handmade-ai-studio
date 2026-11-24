@@ -1,7 +1,10 @@
+import { isBuiltinBackdrop } from '@/config/backdrops';
+import { FLOW_NAMES } from '@/config/steps';
 import { UPLOAD } from '@/config/upload';
+import { ACTION_NAMES } from './asks';
+import { activeUploads } from './assets';
 import { passed } from './generation';
-import { activeUploads } from './snapshot';
-import type { Approval, Asset, Result, Task, TrialEvent, Work } from './types';
+import type { Approval, Asset, Backdrop, Result, SceneApproval, Task, TrialEvent, Work } from './types';
 
 /* 试用记录（PRD 6.2 单人记录模板、AC-10.4）：从本地数据自动算出能算的列，需要观察者填的列留空。
    用匿名编号，不导出作品名、聊天原文和照片。 */
@@ -13,19 +16,22 @@ export const TRIAL_COLUMNS = [
   '发布渠道',
   '现用办法',
   '照片问题',
+  '流程',
   '共创摘要',
   '是否转选卡',
+  '三视图重做次数',
+  '背景张数',
   '方案／比例',
-  '白底路线',
   '候选图数',
   '还原度与风格评价',
+  '小间代点',
   '修改与补图次数',
   '耗时（分钟）',
   '人工帮助',
   '累计成本（美元）',
   '导出',
   '实际发布',
-  '布景复用',
+  '背景沉淀／复用',
   '建议',
 ] as const;
 
@@ -36,17 +42,50 @@ export interface TrialWork {
   assets: readonly Asset[];
   tasks: readonly Task[];
   results: readonly Result[];
+  backdrops: readonly Backdrop[]; // 这件作品生成的背景图
 }
 
 const count = (events: readonly TrialEvent[], type: string) => events.filter((e) => e.type === type).length;
 
-export function trialRow(anonId: string, index: number, w: TrialWork, approvals: readonly Approval[], events: readonly TrialEvent[], savedSceneIds: ReadonlySet<string>): TrialRow {
+// 小间问过用户、用户同意后代点的次数（技术写法 14.4）：按种类分开写，分得出验收是谁点的
+function proxyText(events: readonly TrialEvent[]): string {
+  const proxied = events.filter((e) => e.type === 'proxy');
+  if (!proxied.length) return '没有';
+  const by = new Map<string, number>();
+  for (const e of proxied) {
+    const name = ACTION_NAMES[e.data?.action as keyof typeof ACTION_NAMES] ?? '其他';
+    by.set(name, (by.get(name) ?? 0) + 1);
+  }
+  return `${proxied.length} 次（${[...by].map(([k, n]) => `${k} ${n}`).join('、')}）`;
+}
+
+// 三视图重做次数：每个角度第一次之后的都算重做（换了原图再生成也算）
+function viewRedos(tasks: readonly Task[]): number {
+  const views = tasks.filter((t) => t.kind === 'view');
+  return views.length - new Set(views.map((t) => t.view)).size;
+}
+
+function backdropUse(work: Work, own: readonly Backdrop[]): string {
+  const saved = own.filter((b) => b.savedAt != null).length;
+  const id = work.backdropId;
+  const use = !id
+    ? '还没选背景'
+    : isBuiltinBackdrop(id)
+      ? '用了内置模板'
+      : own.some((b) => b.id === id)
+        ? '用了自己生成的'
+        : '用了模板库里沉淀的';
+  return `${use}${saved ? `；沉淀了 ${saved} 张` : ''}`;
+}
+
+export function trialRow(anonId: string, index: number, w: TrialWork, approvals: readonly Approval[], events: readonly TrialEvent[]): TrialRow {
   const { work, results } = w;
   const ev = events.filter((e) => e.workId === work.id).sort((a, b) => a.at - b.at);
   const uploads = activeUploads(w.assets, work.id);
   const small = uploads.filter((a) => Math.max(a.width, a.height) < UPLOAD.lowEdge).length;
-  const mine = approvals.filter((a) => a.workId === work.id).sort((a, b) => a.version - b.version);
+  const mine = approvals.filter((a): a is SceneApproval => a.workId === work.id && a.kind === 'scene').sort((a, b) => a.version - b.version);
   const last = mine.at(-1);
+  const own = w.backdrops.filter((b) => b.workId === work.id);
   const realOk = results.filter((r) => r.verdict.real === 'ok').length;
   const realBad = results.filter((r) => r.verdict.real === 'bad').length;
   const styleOk = results.filter((r) => r.verdict.style === 'ok').length;
@@ -55,8 +94,7 @@ export function trialRow(anonId: string, index: number, w: TrialWork, approvals:
   const notes = results.map((r) => r.note.trim()).filter(Boolean);
   const picks = count(ev, 'picks');
   const minutes = ev.length > 1 ? Math.round((ev.at(-1)!.at - ev[0].at) / 60000) : 0;
-  const scene = !work.sceneId ? '没用布景' : savedSceneIds.has(work.sceneId) ? '用了自己存的布景' : '用了内置模版';
-  const saves = count(ev, 'save_scene');
+  const mode = work.backdropMode === 'generate' ? '自己生成背景' : work.backdropMode === 'library' ? '用模板库里的背景' : '背景还没选做法';
 
   return {
     匿名编号: anonId,
@@ -65,21 +103,24 @@ export function trialRow(anonId: string, index: number, w: TrialWork, approvals:
     发布渠道: '',
     现用办法: '',
     照片问题: `照片 ${uploads.length} 张${small ? `，尺寸偏小 ${small} 张` : ''}`,
+    流程: `${FLOW_NAMES[work.flow]}；${mode}`,
     共创摘要: work.story.summary ? `${work.story.summary.express}（${work.story.summaryState === 'confirmed' ? '已确认' : '草稿'}）` : work.story.noStory ? '暂无明确故事' : '',
     是否转选卡: picks ? `是（${picks} 次）` : '否',
+    三视图重做次数: String(viewRedos(w.tasks)),
+    背景张数: String(own.length),
     '方案／比例': last ? `第 ${last.version} 版／${last.snapshot.ratio}` : '没有批准',
-    白底路线: work.route,
     候选图数: String(results.length),
     还原度与风格评价: results.length
       ? `像实物 ${realOk}、不像 ${realBad}；风格对 ${styleOk}、不对 ${styleBad}${issues.length ? `；问题：${issues.join('、')}` : ''}${notes.length ? `；原话：${notes.join(' / ')}` : ''}`
       : '',
+    小间代点: proxyText(ev),
     修改与补图次数: `修改 ${count(ev, 'revise')}，补齐 ${count(ev, 'retry')}，加照片 ${Math.max(0, count(ev, 'upload') - 1)}`,
     '耗时（分钟）': String(minutes),
     人工帮助: '',
     '累计成本（美元）': work.costUSD.toFixed(4),
     导出: `${results.filter((r) => r.exports.length).length} 张（两项通过 ${results.filter(passed).length} 张）`,
     实际发布: `${results.filter((r) => r.published).length} 张`,
-    布景复用: `${scene}${saves ? `；存了 ${saves} 次布景` : ''}`,
+    '背景沉淀／复用': backdropUse(work, own),
     建议: '',
   };
 }

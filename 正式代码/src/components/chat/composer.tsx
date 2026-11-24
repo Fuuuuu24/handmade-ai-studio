@@ -10,22 +10,29 @@ import { useWorkspace } from '@/components/workspace/context';
 
 interface Props {
   busy: boolean;
+  onDraftChange?: (empty: boolean) => void; // 输入框里有没有字：有字时先不代发交接和通知，免得打断用户
   onSend: (text: string) => void;
   onFiles: (files: File[], text: string) => Promise<void>;
   onStop: () => void;
 }
 
 // 对话输入框（React Bits Prompt Bar）：文字、「＋」上传照片、「/」命令、切换对话模型和生图模型（AC-08.7、AC-11.8）
-export function Composer({ busy, onSend, onFiles, onStop }: Props) {
+export function Composer({ busy, onDraftChange, onSend, onFiles, onStop }: Props) {
   const { ctx, config, configError, workId } = useWorkspace();
-  const [text, setText] = useState('');
+  const [text, setTextState] = useState('');
+  const setText = (v: string) => {
+    setTextState(v);
+    onDraftChange?.(!v.trim());
+  };
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { work } = ctx;
-  const showDontKnow = work.story.summaryState !== 'confirmed' && work.assetsConfirmed;
+  // 「我不知道，给我推荐」只在背景共创时出现：自己生成背景、总结还没确认（AC-04.2）
+  const showDontKnow = work.backdropMode === 'generate' && work.story.summaryState !== 'confirmed';
   const chatModels = config?.chatModels ?? [];
   const imageModels = config?.imageModels ?? [];
-  const uploadLocked = busy || uploading || ctx.isGenerating;
+  // 三视图或合成生成中照片锁定（技术写法 13.6）
+  const uploadLocked = busy || uploading || ctx.busy.views || ctx.busy.scene;
 
   const send = (message: string) => {
     if (busy || !message.trim()) return;
@@ -70,7 +77,7 @@ export function Composer({ busy, onSend, onFiles, onStop }: Props) {
         onStop={onStop}
         sourcesLabel="添加"
         sourcesDisabled={uploadLocked}
-        sourcesTitle={ctx.isGenerating ? '正在生成，等这一轮结束再加照片' : '上传作品照片'}
+        sourcesTitle={ctx.busy.views || ctx.busy.scene ? '正在生成，等这一轮结束再加照片' : '上传作品照片（先放进「未分类」，在「商品」里选类型）'}
         sources={[{ key: 'photo', name: '上传作品照片', description: 'JPG、PNG、WebP', icon: 'image', onPick: () => fileRef.current?.click() }]}
         commands={
           busy
@@ -106,8 +113,8 @@ export function Composer({ busy, onSend, onFiles, onStop }: Props) {
                   label: '生图模型',
                   prefix: '生图',
                   value: work.imageModel,
-                  disabled: busy || ctx.isGenerating || !imageModels.length,
-                  title: ctx.isGenerating ? '正在生成，等这一轮结束再换' : '换生图模型后需要重新批准',
+                  disabled: busy || ctx.anyGenerating || !imageModels.length,
+                  title: ctx.anyGenerating ? '正在生成，等这一批结束再换' : '换生图模型后需要重新批准；已确认的三视图和选定的背景图照常可用',
                   options: imageModels.map((m) => ({ key: m.id, name: m.label })),
                   onChange: (id) => void mutateWork(workId, (c) => setImageModel(c.work, id)),
                 },

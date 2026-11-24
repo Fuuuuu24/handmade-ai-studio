@@ -2,24 +2,31 @@
 
 import { use, useState } from 'react';
 import { browser } from 'react-dom';
-import { useBlobUrl, useBlobUrls, useLibrary } from '@/client/hooks';
+import { refIn, useBlobUrl, useBlobUrls, useLibrary } from '@/client/hooks';
 import type { WorkContext } from '@/client/work-store';
-import { approvalStatus } from '@/domain/approval';
+import { sceneApprovalStatus } from '@/domain/approval';
 import { passed } from '@/domain/generation';
-import type { Approval, Result } from '@/domain/types';
+import type { BackdropRef, Result, SceneApproval } from '@/domain/types';
 import { VERDICT_SHORT } from '@/config/verdict';
 import { fmtTime } from '@/components/ui/format';
 import Masonry, { type MasonryItem } from '@/components/bits/Masonry/Masonry';
 import { EmptyState, PageFrame, PageLoading } from './page-frame';
 
 
-type Entry = { c: WorkContext; r: Result; approval: Approval | undefined };
+type Entry = { c: WorkContext; r: Result; approval: SceneApproval | undefined; backdrop: BackdropRef | null };
 
-// 一张结果的来历：第几轮、第几版方案、比例、是否旧方案，以及验收（AC-10.3）
-function describe({ c, r, approval }: Entry): string {
+// 一张结果的来历：第几轮、第几版方案、比例、用的哪张背景图、是否旧方案，以及验收（AC-10.3）
+function describe({ c, r, approval, backdrop }: Entry): string {
   // 不是当前有效批准生成的那一轮，标「旧方案」（批准后又改过方案，或已经有更新的一轮）
-  const current = approvalStatus(c.approval, c.snapshot).kind === 'valid' && c.approval?.usedRound === r.round;
-  const meta = [fmtTime(r.createdAt), `第 ${r.round} 轮候选 ${r.slot + 1}`, approval ? `第 ${approval.version} 版方案` : null, approval?.snapshot.ratio, current ? null : '旧方案'];
+  const current = sceneApprovalStatus(c).kind === 'valid' && c.approval?.usedRound === r.round;
+  const meta = [
+    fmtTime(r.createdAt),
+    `第 ${r.round} 轮候选 ${r.slot + 1}`,
+    approval ? `第 ${approval.version} 版方案` : null,
+    approval?.snapshot.ratio,
+    backdrop ? `背景「${backdrop.name}」` : null,
+    current ? null : '旧方案',
+  ];
   const verdict = passed(r) ? '两项通过' : `像实物 ${VERDICT_SHORT.real[r.verdict.real]} · 风格 ${VERDICT_SHORT.style[r.verdict.style]}`;
   return [...meta, verdict, r.issues.length ? `问题：${r.issues.join('、')}` : null, r.exports.length ? '已导出' : null].filter(Boolean).join(' · ');
 }
@@ -46,7 +53,7 @@ function ResultWall({ entries }: { entries: Entry[] }) {
       title: e.c.work.name,
       description: describe(e),
       alt: `${e.c.work.name}，第 ${e.r.round} 轮候选 ${e.r.slot + 1}`,
-      url: `/works/${e.c.work.id}?step=output`,
+      url: `/works/${e.c.work.id}?step=result`,
     });
   });
   return (
@@ -75,9 +82,14 @@ export function HistoryPage() {
   use(browser('生成结果存在浏览器的本地数据库里'));
   const lib = useLibrary();
   if (!lib) return <PageLoading />;
-  const approvals = new Map(lib.approvals.map((a) => [a.id, a]));
+  const approvals = new Map(lib.approvals.flatMap((a) => (a.kind === 'scene' ? [[a.id, a] as const] : [])));
   const entries = lib.works
-    .flatMap((c) => c.results.map((r) => ({ c, r, approval: approvals.get(r.approvalId) })))
+    .flatMap((c) =>
+      c.results.map((r) => {
+        const approval = approvals.get(r.approvalId);
+        return { c, r, approval, backdrop: refIn(lib.backdrops, approval?.snapshot.backdropId) };
+      }),
+    )
     .sort((a, b) => b.r.createdAt - a.r.createdAt);
 
   return (
